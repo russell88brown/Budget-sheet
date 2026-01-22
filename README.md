@@ -1,4 +1,4 @@
-# Budget Forecast Engine — README
+﻿# Budget Forecast Engine - README
 
 ## 1. Purpose and Scope
 
@@ -36,19 +36,21 @@ There is **no hidden state** in the code.
 
 This is a **single workbook** with clearly separated concerns.
 
-# Budget sheet
+### Budget sheet
 
+```
 Spreadsheet
-├─ Inputs
-│ ├─ Accounts
-│ ├─ Income
-│ ├─ Expense
-│
-├─ Outputs (generated)
-│ ├─ Forecast Journal
-│ ├─ Daily Summary
-│ ├─ Overview
-│ └─ Logs
+|- Inputs
+| |- Accounts
+| |- Income
+| |- Expense
+|
+|- Outputs (generated)
+| |- Forecast Journal
+| |- Daily Summary
+| |- Overview
+| `- Logs
+```
 
 
 Users **only edit the Inputs**.  
@@ -69,7 +71,7 @@ An **account** is any balance that should be forecasted.
   - Credit Card  
   - Loans
 
-Balances in `Accounts` represent **“now”**.
+Balances in `Accounts` represent **"now"**.
 
 ---
 
@@ -166,9 +168,9 @@ This keeps the model forward-only and avoids fake future transactions.
 
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
-| Account Name | string | ✅ | Unique identifier |
-| Balance | number | ✅ | Starting balance |
-| Type | enum | ✅ | Cash / Credit |
+| Account Name | string | Yes | Unique identifier |
+| Balance | number | Yes | Starting balance |
+| Type | enum | Yes | Cash / Credit |
 
 ---
 
@@ -176,13 +178,13 @@ This keeps the model forward-only and avoids fake future transactions.
 
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
-| Active | boolean | ✅ | Include in forecast |
-| Name | string | ✅ | Label |
-| Amount | number | ✅ | > 0 |
-| Frequency | enum | ✅ | Recurrence |
-| Anchor Date | date | ✅ | First occurrence |
-| Paid To | ref(Account) | ✅ | Destination account |
-| Notes | string | ⛔ | Optional |
+| Active | boolean | Yes | Include in forecast |
+| Name | string | Yes | Label |
+| Amount | number | Yes | > 0 |
+| Frequency | enum | Yes | Recurrence |
+| Anchor Date | date | Yes | First occurrence |
+| Paid To | ref(Account) | Yes | Destination account |
+| Notes | string | Optional | Optional |
 
 ---
 
@@ -190,17 +192,17 @@ This keeps the model forward-only and avoids fake future transactions.
 
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
-| Active | boolean | ✅ | Include in forecast |
-| Behavior | enum | ✅ | Scheduled / Provision / CapOnly / OneOff |
-| Category | string | ⛔ | Reporting |
-| Name | string | ✅ | Label |
-| Amount | number | ✅ | ≥ 0 |
-| Frequency | enum | ⛔ | Required unless CapOnly / OneOff |
-| Anchor Date | date | ⛔ | Required for Scheduled / Provision |
-| Once Date | date | ⛔ | Required for OneOff |
-| Paid From | ref(Account) | ⛔ | Required unless CapOnly |
-| Paid To | ref(Account or External) | ⛔ | Required for Scheduled / Provision |
-| Notes | string | ⛔ | Optional |
+| Active | boolean | Yes | Include in forecast |
+| Behavior | enum | Yes | Scheduled / Provision / CapOnly / OneOff |
+| Category | string | Optional | Reporting |
+| Name | string | Yes | Label |
+| Amount | number | Yes | >= 0 |
+| Frequency | enum | Optional | Required unless CapOnly / OneOff |
+| Anchor Date | date | Optional | Required for Scheduled / Provision |
+| Once Date | date | Optional | Required for OneOff |
+| Paid From | ref(Account) | Optional | Required unless CapOnly |
+| Paid To | ref(Account or External) | Optional | Required for Scheduled / Provision |
+| Notes | string | Optional | Optional |
 
 ---
 
@@ -270,15 +272,16 @@ Generated warnings and diagnostics:
 The code is intentionally modular.  
 Each file owns a **single responsibility**.
 
+```
 Code
-├─ Config
-├─ Readers
-├─ Event Builders
-├─ Engine
-├─ Writers
-├─ Utils
-└─ Logger
-
+|- Config
+|- Readers
+|- Event Builders
+|- Engine
+|- Writers
+|- Utils
+`- Logger
+```
 
 ---
 
@@ -383,3 +386,5 @@ Responsibilities:
 - reconciliation
 - predictive discretionary timing
 - accounting-grade precision
+
+
