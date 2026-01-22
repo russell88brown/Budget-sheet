@@ -12,6 +12,8 @@ function setupSpreadsheet() {
     var sheet = ensureSheetWithHeaders_(ss, spec.name, headers);
     applyColumnRules_(ss, sheet, spec.columns);
   });
+
+  reorderSheets_(ss);
 }
 
 function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
@@ -99,7 +101,6 @@ function ensureAccountNameRanges_(spreadsheet) {
   var listsSheet = spreadsheet.getSheetByName(Config.LISTS_SHEET);
   if (!listsSheet) {
     listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
-    listsSheet.hideSheet();
   }
 
   listsSheet.getRange('A1').setValue('External');
@@ -107,7 +108,10 @@ function ensureAccountNameRanges_(spreadsheet) {
     '=FILTER(' + Config.SHEETS.ACCOUNTS + '!A2:A, ' + Config.SHEETS.ACCOUNTS + '!A2:A<>"")'
   );
 
-  spreadsheet.setNamedRange(Config.NAMED_RANGES.ACCOUNT_NAMES, listsSheet.getRange('A2:A'));
+  spreadsheet.setNamedRange(
+    Config.NAMED_RANGES.ACCOUNT_NAMES,
+    accountsSheet.getRange('A2:A')
+  );
   spreadsheet.setNamedRange(
     Config.NAMED_RANGES.ACCOUNT_NAMES_WITH_EXTERNAL,
     listsSheet.getRange('A1:A')
@@ -118,9 +122,9 @@ function ensureCategoryRange_(spreadsheet) {
   var listsSheet = spreadsheet.getSheetByName(Config.LISTS_SHEET);
   if (!listsSheet) {
     listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
-    listsSheet.hideSheet();
   }
 
+  listsSheet.getRange('A1').setValue('Expense Category');
   var categories = [
     '01. Utilities',
     '02. Living',
@@ -132,13 +136,34 @@ function ensureCategoryRange_(spreadsheet) {
     '08. Investment - Locked',
   ];
 
-  listsSheet.getRange(1, 2, categories.length, 1).setValues(
+  listsSheet.getRange(2, 1, categories.length, 1).setValues(
     categories.map(function (value) {
       return [value];
     })
   );
 
-  spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('B1:B'));
+  spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('A1:A'));
+}
+
+function reorderSheets_(spreadsheet) {
+  var order = [
+    Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.INCOME,
+    Config.SHEETS.EXPENSE,
+    Config.SHEETS.JOURNAL,
+    Config.SHEETS.DAILY_SUMMARY,
+    Config.SHEETS.OVERVIEW,
+    Config.SHEETS.LOGS,
+    Config.LISTS_SHEET,
+  ];
+
+  order.forEach(function (name, index) {
+    var sheet = spreadsheet.getSheetByName(name);
+    if (sheet) {
+      spreadsheet.setActiveSheet(sheet);
+      spreadsheet.moveActiveSheet(index + 1);
+    }
+  });
 }
 
 function columnToLetter_(column) {

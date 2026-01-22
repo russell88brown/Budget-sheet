@@ -39,6 +39,6 @@ const Config = {
     ACCOUNT_NAMES_WITH_EXTERNAL: 'AccountNamesWithExternal',
     CATEGORIES: 'ExpenseCategories',
   },
-  LISTS_SHEET: '_Lists',
+  LISTS_SHEET: 'Reference',
   FORECAST_DAYS: 365,
 };
