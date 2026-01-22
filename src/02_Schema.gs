@@ -28,7 +28,8 @@ const Schema = {
           description: 'Recurrence',
           enumValues: Object.values(Config.FREQUENCIES),
         },
-        { name: 'Anchor Date', type: 'date', required: true, description: 'First occurrence', format: 'yyyy-mm-dd' },
+        { name: 'Start Date', type: 'date', required: true, description: 'First occurrence', format: 'yyyy-mm-dd' },
+        { name: 'End Date', type: 'date', required: false, description: 'Optional stop date', format: 'yyyy-mm-dd' },
         { name: 'Paid To', type: 'ref', required: true, description: 'Destination account' },
         { name: 'Notes', type: 'string', required: false, description: 'Optional' },
       ],
@@ -41,10 +42,10 @@ const Schema = {
           name: 'Behavior',
           type: 'enum',
           required: true,
-          description: 'Scheduled / Provision / CapOnly / OneOff',
-          enumValues: Object.values(Config.BEHAVIORS),
+          description: 'Scheduled / Planned / One-time / Budget Limit (no spend)',
+          enumValues: Object.values(Config.BEHAVIOR_LABELS),
         },
-        { name: 'Category', type: 'string', required: false, description: 'Reporting' },
+        { name: 'Category', type: 'category', required: false, description: 'Reporting' },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: '>= 0', format: '0.00' },
         {
@@ -61,9 +62,27 @@ const Schema = {
           description: 'Required for Scheduled / Provision',
           format: 'yyyy-mm-dd',
         },
-        { name: 'Once Date', type: 'date', required: false, description: 'Required for OneOff', format: 'yyyy-mm-dd' },
+        {
+          name: 'Start Date',
+          type: 'date',
+          required: false,
+          description: 'Required for OneOff',
+          format: 'yyyy-mm-dd',
+        },
+        {
+          name: 'End Date',
+          type: 'date',
+          required: false,
+          description: 'Optional stop date',
+          format: 'yyyy-mm-dd',
+        },
         { name: 'Paid From', type: 'ref', required: false, description: 'Required unless CapOnly' },
-        { name: 'Paid To', type: 'ref', required: false, description: 'Required for Scheduled / Provision' },
+        {
+          name: 'Paid To',
+          type: 'ref_or_external',
+          required: false,
+          description: 'Required for Scheduled / Provision',
+        },
         { name: 'Notes', type: 'string', required: false, description: 'Optional' },
       ],
     },
@@ -164,9 +183,3 @@ const Schema = {
     return lines.join('\n');
   },
 };
-
-function renderSchemaMarkdown() {
-  var markdown = Schema.toMarkdown();
-  Logger.info(markdown);
-  return markdown;
-}

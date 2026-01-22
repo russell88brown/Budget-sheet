@@ -15,6 +15,12 @@ const Config = {
     CAP_ONLY: 'CapOnly',
     ONE_OFF: 'OneOff',
   },
+  BEHAVIOR_LABELS: {
+    Scheduled: 'Scheduled',
+    Provision: 'Planned',
+    OneOff: 'One-time',
+    CapOnly: 'Budget Limit (no spend)',
+  },
   ACCOUNT_TYPES: {
     CASH: 'Cash',
     CREDIT: 'Credit',
@@ -28,5 +34,11 @@ const Config = {
     ANNUALLY: 'Annually',
     ONCE: 'Once',
   },
+  NAMED_RANGES: {
+    ACCOUNT_NAMES: 'AccountNames',
+    ACCOUNT_NAMES_WITH_EXTERNAL: 'AccountNamesWithExternal',
+    CATEGORIES: 'ExpenseCategories',
+  },
+  LISTS_SHEET: '_Lists',
   FORECAST_DAYS: 365,
 };
