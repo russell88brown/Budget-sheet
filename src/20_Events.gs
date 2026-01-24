@@ -11,7 +11,7 @@ const Events = {
         return {
           date: date,
           kind: 'Income',
-          behavior: 'Scheduled',
+          behavior: 'Income',
           name: rule.name,
           category: null,
           from: null,
@@ -24,27 +24,17 @@ const Events = {
 
   buildExpenseEvents: function (expenseRules) {
     return expenseRules.flatMap(function (rule) {
-      if (rule.behavior === 'Budget Limit (no spend)') {
-        return [];
-      }
-
       var dates;
-      if (rule.behavior === 'One-time') {
-        if (!rule.startDate) {
-          return [];
-        }
-        dates = [normalizeDate_(rule.startDate)];
-      } else {
-        dates = Recurrence.expand({
-          startDate: rule.startDate,
-          frequency: rule.frequency,
-          endDate: rule.endDate,
-        });
-      }
+      dates = Recurrence.expand({
+        startDate: rule.startDate,
+        frequency: rule.frequency,
+        endDate: rule.endDate,
+      });
 
       return dates.map(function (date) {
         var to = rule.paidTo;
-        var kind = rule.behavior === 'Internal Transfer' ? 'Transfer' : 'Expense';
+        var kind =
+          rule.behavior === 'Transfer' || rule.behavior === 'Repayment' ? 'Transfer' : 'Expense';
         return {
           date: date,
           kind: kind,

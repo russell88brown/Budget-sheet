@@ -4,6 +4,7 @@ function setupSpreadsheet() {
 
   ensureAccountNameRanges_(ss);
   ensureCategoryRange_(ss);
+  ensureSinkFundRange_(ss);
 
   Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
@@ -62,16 +63,16 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
         refBuilder.setAllowInvalid(!column.required);
         range.setDataValidation(refBuilder.build());
       }
-    } else if (column.type === 'ref_or_external') {
-      var accountsWithExternal = getAccountNames_(spreadsheet).concat(['External']);
-      if (accountsWithExternal.length) {
-        var refExternalBuilder = SpreadsheetApp.newDataValidation().requireValueInList(
-          accountsWithExternal,
-          true
-        );
-        refExternalBuilder.setAllowInvalid(!column.required);
-        range.setDataValidation(refExternalBuilder.build());
-      }
+    } else if (column.type === 'ref_or_external_conditional' && sheet.getName() === Config.SHEETS.EXPENSE) {
+      var paidToCol = columnToLetter_(colIndex);
+      var typeCol = columnToLetter_(findColumnIndex_(sheet, 'Transaction Type') || 2);
+      var accounts = getAccountNames_(spreadsheet);
+      var accountsWithExternal = ['External'].concat(accounts);
+      var listBuilder = SpreadsheetApp.newDataValidation().requireValueInList(accountsWithExternal, true);
+      listBuilder.setAllowInvalid(!column.required);
+      range.setDataValidation(listBuilder.build());
+
+      applyPaidToConditionalRule_(sheet, typeCol, paidToCol);
     } else if (column.type === 'category') {
       var categoriesRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.CATEGORIES);
       if (categoriesRange) {
@@ -103,8 +104,18 @@ function ensureAccountNameRanges_(spreadsheet) {
 
   listsSheet.getRange('A1').setValue('Forecast Start');
   listsSheet.getRange('B1').setValue('Forecast End');
-  listsSheet.getRange('A2').setFormula('=TODAY()');
-  listsSheet.getRange('B2').setFormula('=EDATE(TODAY(),24)');
+  listsSheet.getRange('D1').setValue('Sink Fund Account');
+  listsSheet.getRange('E1').setValue('Sink Fund Amount Per Week');
+  var startCell = listsSheet.getRange('A2');
+  var endCell = listsSheet.getRange('B2');
+  if (!startCell.getValue()) {
+    startCell.setValue(new Date());
+  }
+  if (!endCell.getValue()) {
+    var endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 24);
+    endCell.setValue(endDate);
+  }
 
 }
 
@@ -115,6 +126,10 @@ function ensureCategoryRange_(spreadsheet) {
   }
 
   listsSheet.getRange('C1').setValue('Expense Category');
+  var existing = listsSheet.getRange('C2').getValue();
+  if (existing) {
+    return;
+  }
   var categories = [
     '01. Utilities',
     '02. Living',
@@ -135,6 +150,21 @@ function ensureCategoryRange_(spreadsheet) {
   spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('C2:C'));
 }
 
+function ensureSinkFundRange_(spreadsheet) {
+  var accountsSheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!accountsSheet) {
+    return;
+  }
+
+  var lastRow = accountsSheet.getLastRow();
+  if (lastRow < 2) {
+    return;
+  }
+
+  var range = accountsSheet.getRange('A2:A');
+  spreadsheet.setNamedRange(Config.NAMED_RANGES.SINK_FUNDS, range);
+}
+
 function getAccountNames_(spreadsheet) {
   var sheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
   if (!sheet) {
@@ -152,6 +182,41 @@ function getAccountNames_(spreadsheet) {
     .filter(function (value) {
       return value !== '' && value !== null;
     });
+}
+
+function findColumnIndex_(sheet, headerName) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return null;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < headers.length; i++) {
+    if (headers[i] === headerName) {
+      return i + 1;
+    }
+  }
+  return null;
+}
+
+function applyPaidToConditionalRule_(sheet, typeCol, paidToCol) {
+  var formula = '=AND($' + typeCol + '2<>\"Expense\",$' + paidToCol + '2=\"External\")';
+  var rules = sheet.getConditionalFormatRules();
+  var targetRange = sheet.getRange(paidToCol + '2:' + paidToCol);
+
+  var existing = rules.filter(function (rule) {
+    var ruleFormula = rule.getBooleanCondition() ? rule.getBooleanCondition().getCriteriaValues()[0] : '';
+    return ruleFormula === formula;
+  });
+
+  if (existing.length === 0) {
+    var rule = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(formula)
+      .setBackground('#f8d7da')
+      .setRanges([targetRange])
+      .build();
+    rules.push(rule);
+    sheet.setConditionalFormatRules(rules);
+  }
 }
 
 function reorderSheets_(spreadsheet) {

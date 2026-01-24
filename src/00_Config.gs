@@ -16,11 +16,9 @@ const Config = {
     ONE_OFF: 'OneOff',
   },
   BEHAVIOR_LABELS: {
-    Scheduled: 'Scheduled',
-    Provision: 'Planned',
-    Transfer: 'Internal Transfer',
-    OneOff: 'One-time',
-    CapOnly: 'Budget Limit (no spend)',
+    Expense: 'Expense',
+    Repayment: 'Repayment',
+    Transfer: 'Transfer',
   },
   ACCOUNT_TYPES: {
     CASH: 'Cash',
@@ -37,6 +35,7 @@ const Config = {
   },
   NAMED_RANGES: {
     CATEGORIES: 'ExpenseCategories',
+    SINK_FUNDS: 'SinkFundAccounts',
   },
   LISTS_SHEET: 'Reference',
   FORECAST_DAYS: 365,

@@ -11,7 +11,8 @@ const Readers = {
           name: row['Account Name'],
           balance: toNumber_(row['Balance']),
           type: row['Type'],
-          forecast: toBoolean_(row['Forecast']),
+          forecast: toBoolean_(row['Include']),
+          sinkFund: toBoolean_(row['Sink Fund']),
         };
       });
   },
@@ -20,7 +21,7 @@ const Readers = {
     var rows = readSheetRows_(Config.SHEETS.INCOME);
     return rows
       .filter(function (row) {
-        return toBoolean_(row['Active']);
+        return toBoolean_(row['Include']);
       })
       .map(function (row) {
         return {
@@ -29,7 +30,7 @@ const Readers = {
           frequency: row['Frequency'],
           startDate: toDate_(row['Start Date']),
           endDate: toDate_(row['End Date']),
-          paidTo: row['Paid To'],
+          paidTo: row['To Account'],
           notes: row['Notes'],
         };
       });
@@ -39,19 +40,19 @@ const Readers = {
     var rows = readSheetRows_(Config.SHEETS.EXPENSE);
     return rows
       .filter(function (row) {
-        return toBoolean_(row['Active']);
+        return toBoolean_(row['Include']);
       })
       .map(function (row) {
         return {
-          behavior: row['Behavior'],
+          behavior: row['Transaction Type'],
           category: row['Category'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
           frequency: row['Frequency'],
           startDate: toDate_(row['Start Date']),
           endDate: toDate_(row['End Date']),
-          paidFrom: row['Paid From'],
-          paidTo: row['Paid To'],
+          paidFrom: row['From Account'],
+          paidTo: row['To Account'],
           notes: row['Notes'],
         };
       });

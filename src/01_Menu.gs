@@ -4,6 +4,7 @@ function onOpen() {
     .createMenu('Budget Forecast')
     .addItem('Run forecast', 'runForecast')
     .addItem('Clear logs', 'clearLogs')
+    .addItem('Load default data', 'loadDefaultData')
     .addItem('Setup spreadsheet', 'setupSpreadsheet')
     .addToUi();
 }

@@ -11,7 +11,8 @@ Generated from `src/02_Schema.gs`.
 | Account Name | string | Yes | Unique identifier |
 | Balance | number | Yes | Starting balance |
 | Type | enum | Yes | Cash / Credit |
-| Forecast | boolean | Optional | Include running balance in Journal |
+| Include | boolean | Optional | Include in forecast outputs |
+| Sink Fund | boolean | Optional | Mark as sinking fund |
 
 ---
 
@@ -19,13 +20,13 @@ Generated from `src/02_Schema.gs`.
 
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
-| Active | boolean | Yes | Include in forecast |
+| Include | boolean | Yes | Include in forecast |
 | Name | string | Yes | Label |
 | Amount | number | Yes | > 0 |
 | Frequency | enum | Yes | Recurrence |
 | Start Date | date | Yes | First occurrence |
 | End Date | date | Optional | Optional stop date |
-| Paid To | ref | Yes | Destination account |
+| To Account | ref | Yes | Destination account |
 | Notes | string | Optional | Optional |
 
 ---
@@ -34,16 +35,16 @@ Generated from `src/02_Schema.gs`.
 
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
-| Active | boolean | Yes | Include in forecast |
-| Behavior | enum | Yes | Scheduled / Planned / Internal Transfer / One-time / Budget Limit (no spend) |
+| Include | boolean | Yes | Include in forecast |
+| Transaction Type | enum | Yes | Expense / Repayment / Transfer |
 | Category | category | Optional | Reporting |
 | Name | string | Yes | Label |
 | Amount | number | Yes | >= 0 |
-| Frequency | enum | Optional | Required unless CapOnly / OneOff |
-| Start Date | date | Optional | Required for Scheduled / Planned / One-time |
+| Frequency | enum | Optional | Recurrence |
+| Start Date | date | Optional | First occurrence |
 | End Date | date | Optional | Optional stop date |
-| Paid From | ref | Optional | Required unless CapOnly |
-| Paid To | ref_or_external | Optional | Required for Scheduled / Provision |
+| From Account | ref | Optional | Source account |
+| To Account | ref_or_external_conditional | Optional | Destination account or External |
 | Notes | string | Optional | Optional |
 
 ---
@@ -57,10 +58,10 @@ Generated from `src/02_Schema.gs`.
 | Date | date | Yes | Event date |
 | Date | date | Yes | Event date |
 | Account | string | Optional | Debited/credited account |
-| Type | enum | Yes | Income / Expense / Transfer |
+| Transaction Type | enum | Yes | Income / Expense / Transfer |
 | Name | string | Yes | Label |
 | Amount | number | Yes | Event amount |
-| Behavior | enum | Yes | Behavior |
+| Behavior | enum | Yes | Income / Expense / Repayment / Transfer |
 
 Additional columns:
 - One column per Account with Forecast checked (running balance per row)
