@@ -56,19 +56,17 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
       booleanBuilder.setAllowInvalid(!column.required);
       range.setDataValidation(booleanBuilder.build());
     } else if (column.type === 'ref') {
-      var namedRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.ACCOUNT_NAMES);
-      if (namedRange) {
-        var refBuilder = SpreadsheetApp.newDataValidation().requireValueInRange(namedRange, true);
+      var accounts = getAccountNames_(spreadsheet);
+      if (accounts.length) {
+        var refBuilder = SpreadsheetApp.newDataValidation().requireValueInList(accounts, true);
         refBuilder.setAllowInvalid(!column.required);
         range.setDataValidation(refBuilder.build());
       }
     } else if (column.type === 'ref_or_external') {
-      var namedRangeWithExternal = spreadsheet.getRangeByName(
-        Config.NAMED_RANGES.ACCOUNT_NAMES_WITH_EXTERNAL
-      );
-      if (namedRangeWithExternal) {
-        var refExternalBuilder = SpreadsheetApp.newDataValidation().requireValueInRange(
-          namedRangeWithExternal,
+      var accountsWithExternal = getAccountNames_(spreadsheet).concat(['External']);
+      if (accountsWithExternal.length) {
+        var refExternalBuilder = SpreadsheetApp.newDataValidation().requireValueInList(
+          accountsWithExternal,
           true
         );
         refExternalBuilder.setAllowInvalid(!column.required);
@@ -103,19 +101,11 @@ function ensureAccountNameRanges_(spreadsheet) {
     listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
   }
 
-  listsSheet.getRange('A1').setValue('External');
-  listsSheet.getRange('A2').setFormula(
-    '=FILTER(' + Config.SHEETS.ACCOUNTS + '!A2:A, ' + Config.SHEETS.ACCOUNTS + '!A2:A<>"")'
-  );
+  listsSheet.getRange('A1').setValue('Forecast Start');
+  listsSheet.getRange('B1').setValue('Forecast End');
+  listsSheet.getRange('A2').setFormula('=TODAY()');
+  listsSheet.getRange('B2').setFormula('=EDATE(TODAY(),24)');
 
-  spreadsheet.setNamedRange(
-    Config.NAMED_RANGES.ACCOUNT_NAMES,
-    accountsSheet.getRange('A2:A')
-  );
-  spreadsheet.setNamedRange(
-    Config.NAMED_RANGES.ACCOUNT_NAMES_WITH_EXTERNAL,
-    listsSheet.getRange('A1:A')
-  );
 }
 
 function ensureCategoryRange_(spreadsheet) {
@@ -124,7 +114,7 @@ function ensureCategoryRange_(spreadsheet) {
     listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
   }
 
-  listsSheet.getRange('A1').setValue('Expense Category');
+  listsSheet.getRange('C1').setValue('Expense Category');
   var categories = [
     '01. Utilities',
     '02. Living',
@@ -136,13 +126,32 @@ function ensureCategoryRange_(spreadsheet) {
     '08. Investment - Locked',
   ];
 
-  listsSheet.getRange(2, 1, categories.length, 1).setValues(
+  listsSheet.getRange(2, 3, categories.length, 1).setValues(
     categories.map(function (value) {
       return [value];
     })
   );
 
-  spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('A1:A'));
+  spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('C2:C'));
+}
+
+function getAccountNames_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!sheet) {
+    return [];
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  return values
+    .map(function (row) {
+      return row[0];
+    })
+    .filter(function (value) {
+      return value !== '' && value !== null;
+    });
 }
 
 function reorderSheets_(spreadsheet) {

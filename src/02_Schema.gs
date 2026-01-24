@@ -13,6 +13,7 @@ const Schema = {
           description: 'Cash / Credit',
           enumValues: Object.values(Config.ACCOUNT_TYPES),
         },
+        { name: 'Forecast', type: 'boolean', required: false, description: 'Include running balance in Journal' },
       ],
     },
     {
@@ -42,7 +43,7 @@ const Schema = {
           name: 'Behavior',
           type: 'enum',
           required: true,
-          description: 'Scheduled / Planned / One-time / Budget Limit (no spend)',
+          description: 'Scheduled / Planned / Internal Transfer / One-time / Budget Limit (no spend)',
           enumValues: Object.values(Config.BEHAVIOR_LABELS),
         },
         { name: 'Category', type: 'category', required: false, description: 'Reporting' },
@@ -56,17 +57,10 @@ const Schema = {
           enumValues: Object.values(Config.FREQUENCIES),
         },
         {
-          name: 'Anchor Date',
-          type: 'date',
-          required: false,
-          description: 'Required for Scheduled / Provision',
-          format: 'yyyy-mm-dd',
-        },
-        {
           name: 'Start Date',
           type: 'date',
           required: false,
-          description: 'Required for OneOff',
+          description: 'Required for Scheduled / Planned / One-time',
           format: 'yyyy-mm-dd',
         },
         {
@@ -92,13 +86,11 @@ const Schema = {
       name: Config.SHEETS.JOURNAL,
       columns: [
         { name: 'Date', type: 'date', required: true, description: 'Event date', format: 'yyyy-mm-dd' },
-        { name: 'Kind', type: 'enum', required: true, description: 'Income / Expense / Transfer' },
-        { name: 'Behavior', type: 'enum', required: true, description: 'Behavior' },
+        { name: 'Account', type: 'string', required: false, description: 'Debited/credited account' },
+        { name: 'Type', type: 'enum', required: true, description: 'Income / Expense / Transfer' },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
-        { name: 'Category', type: 'string', required: false, description: 'Reporting' },
-        { name: 'From', type: 'string', required: false, description: 'Source account' },
-        { name: 'To', type: 'string', required: false, description: 'Destination account' },
         { name: 'Amount', type: 'number', required: true, description: 'Event amount', format: '0.00' },
+        { name: 'Behavior', type: 'enum', required: true, description: 'Behavior' },
       ],
     },
     {

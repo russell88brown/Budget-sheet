@@ -2,9 +2,9 @@
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Budget Forecast')
-    .addItem('Setup spreadsheet', 'setupSpreadsheet')
     .addItem('Run forecast', 'runForecast')
     .addItem('Clear logs', 'clearLogs')
+    .addItem('Setup spreadsheet', 'setupSpreadsheet')
     .addToUi();
 }
 

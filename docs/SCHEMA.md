@@ -11,6 +11,7 @@ Generated from `src/02_Schema.gs`.
 | Account Name | string | Yes | Unique identifier |
 | Balance | number | Yes | Starting balance |
 | Type | enum | Yes | Cash / Credit |
+| Forecast | boolean | Optional | Include running balance in Journal |
 
 ---
 
@@ -34,13 +35,12 @@ Generated from `src/02_Schema.gs`.
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
 | Active | boolean | Yes | Include in forecast |
-| Behavior | enum | Yes | Scheduled / Planned / One-time / Budget Limit (no spend) |
+| Behavior | enum | Yes | Scheduled / Planned / Internal Transfer / One-time / Budget Limit (no spend) |
 | Category | category | Optional | Reporting |
 | Name | string | Yes | Label |
 | Amount | number | Yes | >= 0 |
 | Frequency | enum | Optional | Required unless CapOnly / OneOff |
-| Anchor Date | date | Optional | Required for Scheduled / Provision |
-| Start Date | date | Optional | Required for OneOff |
+| Start Date | date | Optional | Required for Scheduled / Planned / One-time |
 | End Date | date | Optional | Optional stop date |
 | Paid From | ref | Optional | Required unless CapOnly |
 | Paid To | ref_or_external | Optional | Required for Scheduled / Provision |
@@ -55,13 +55,15 @@ Generated from `src/02_Schema.gs`.
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
 | Date | date | Yes | Event date |
-| Kind | enum | Yes | Income / Expense / Transfer |
-| Behavior | enum | Yes | Behavior |
+| Date | date | Yes | Event date |
+| Account | string | Optional | Debited/credited account |
+| Type | enum | Yes | Income / Expense / Transfer |
 | Name | string | Yes | Label |
-| Category | string | Optional | Reporting |
-| From | string | Optional | Source account |
-| To | string | Optional | Destination account |
 | Amount | number | Yes | Event amount |
+| Behavior | enum | Yes | Behavior |
+
+Additional columns:
+- One column per Account with Forecast checked (running balance per row)
 
 ---
 
@@ -74,6 +76,9 @@ Generated from `src/02_Schema.gs`.
 | Total Debt | number | Yes | Sum of credit balances |
 | Net Position | number | Yes | Cash minus debt |
 
+Additional columns:
+- One column per Account with Forecast checked (daily balance)
+
 ---
 
 ### Overview
@@ -82,6 +87,9 @@ Generated from `src/02_Schema.gs`.
 |-----|-----|---------|------------|
 | Metric | string | Yes | Label |
 | Value | string | Yes | Value |
+
+Additional columns:
+- One column per Account with Forecast checked (used in Forecast Balances section)
 
 ---
 

@@ -11,6 +11,7 @@ const Readers = {
           name: row['Account Name'],
           balance: toNumber_(row['Balance']),
           type: row['Type'],
+          forecast: toBoolean_(row['Forecast']),
         };
       });
   },
@@ -47,7 +48,6 @@ const Readers = {
           name: row['Name'],
           amount: toNumber_(row['Amount']),
           frequency: row['Frequency'],
-          anchorDate: toDate_(row['Anchor Date']),
           startDate: toDate_(row['Start Date']),
           endDate: toDate_(row['End Date']),
           paidFrom: row['Paid From'],

@@ -18,6 +18,7 @@ const Config = {
   BEHAVIOR_LABELS: {
     Scheduled: 'Scheduled',
     Provision: 'Planned',
+    Transfer: 'Internal Transfer',
     OneOff: 'One-time',
     CapOnly: 'Budget Limit (no spend)',
   },
@@ -35,8 +36,6 @@ const Config = {
     ONCE: 'Once',
   },
   NAMED_RANGES: {
-    ACCOUNT_NAMES: 'AccountNames',
-    ACCOUNT_NAMES_WITH_EXTERNAL: 'AccountNamesWithExternal',
     CATEGORIES: 'ExpenseCategories',
   },
   LISTS_SHEET: 'Reference',
