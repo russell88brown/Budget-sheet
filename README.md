@@ -1,44 +1,69 @@
-# Budget Forecast Engine
+﻿# Budget Forecast Engine
 
-Welcome! This is a simple, forward-looking budget planner that runs inside Google Sheets. It helps you see where your balances are heading based on the rules you set today.
+✨ Welcome! This is a fun, forward-looking budget planner that runs **inside Google Sheets**. You define your rules today, and it projects where your balances are heading tomorrow.
 
-## ? What this is
+## ✅ What this is
 - A **forecast** of future balances (cash + debt)
-- A **planner** you can re-run anytime as reality changes
+- A **planner** you can rerun anytime as life changes
 
-## ?? What this is not
-- It is **not** an accounting system
-- It does **not** track past transactions
+## ❌ What this is not
+- Not a full accounting system
+- Not a transaction tracker for the past
 
 ---
 
-## ? Quick Start (3 minutes)
+## 🚀 Quick Start (3 minutes)
 
-### 1) Set up your sheets
-Use **Budget Forecast ? Setup** to create or refresh all input sheets.
+### 1) Run Setup
+Use **Budget Forecast → Setup…** to create or refresh all sheets.
 
-Setup does three important things for you:
-- ? Rebuilds **header rows** so they match the model
-- ? Restores **data validation** (dropdowns, checkboxes)
-- ? Recreates **Reference** data ranges if missing
+Setup will:
+- 🧱 Rebuild **header rows**
+- ✅ Restore **dropdowns + checkboxes**
+- 🧭 Recreate **Reference** ranges
 
 ### 2) Fill in your inputs
-- **Accounts**: your current balances
+- **Accounts**: current balances
 - **Income**: money coming in
-- **Expense**: money going out or transfers
+- **Expense**: money going out (or transfers)
 
 ### 3) Run the forecast
-Use **Budget Forecast ? Run forecast** to generate the Journal.
+Use **Budget Forecast → Run forecast** to build the **Journal**.
 
-### 4) View summaries
-Use **Budget Forecast ? Run summary** to generate **Daily** and **Monthly** summaries.
+### 4) Generate summaries
+Use **Budget Forecast → Run summary** to create:
+- **Daily** (day-by-day balances)
+- **Monthly** (monthly stats)
+- **Dashboard** (visual overview)
 
 ### 5) Export
-Use **Budget Forecast ? Export** to send selected sheets to the Export tab.
+Use **Budget Forecast → Export** to export selected sheets into **Export**.
 
 ---
 
-## ?? Sheet Overview
+## 🧰 Menu Actions (Functions You Can Run)
+
+### ✅ Budget Forecast → Run forecast
+Builds the **Journal** by applying all income + expense rules in order.
+
+### 📊 Budget Forecast → Run summary
+Creates:
+- **Daily** (cash, debt, net position, account snapshots)
+- **Monthly** (min/max/change/ending per account)
+- **Dashboard** (charts + healthcheck + account blocks)
+
+### 📦 Budget Forecast → Export
+Creates a compact export in the **Export** sheet. Data is stored as lightweight TSV per row (easy to copy or parse).
+
+### 🧩 Budget Forecast → Setup…
+Opens a setup dialog with these actions:
+- **Setup** (rebuild headers + validation)
+- **Load default data**
+- **Clear logs**
+
+---
+
+## 📄 Sheet Overview
 
 ### Inputs (you edit these)
 - **Accounts**
@@ -46,32 +71,33 @@ Use **Budget Forecast ? Export** to send selected sheets to the Export tab.
 - **Expense**
 
 ### Outputs (auto-generated)
-- **Journal** (every forecasted event)
-- **Daily** (daily balances)
-- **Monthly** (monthly stats)
+- **Journal** (every forecasted event + running balances)
+- **Daily** (daily totals + account balances)
+- **Monthly** (monthly stats per account)
+- **Dashboard** (charts + insights)
 - **Logs** (engine logs)
 
 ### Other
-- **Reference** (helper lists and settings)
-- **Export** (your exported data)
+- **Reference** (helper lists + settings)
+- **Export** (compact export output)
 
 ---
 
-## ?? Reference data (what it�s for)
-The **Reference** sheet holds shared values and settings used by the model:
+## 🧪 Reference Sheet (what it does)
+The **Reference** sheet contains shared values used by the model:
 
-- **Forecast Start / End**: the date window to build summaries over
-- **Expense Category list**: used as dropdown options in Expenses
-- **Sink Fund settings**: which accounts are sink funds and how much to set aside per week
+- **Forecast Start / End** (summary window)
+- **Expense Categories** (dropdowns in Expense)
+- **Sink Fund settings** (weekly estimate)
 
-The engine also **summarizes a weekly sink fund estimate** into Reference. You can then create an **Expense** row (typically a Provision/Transfer) that uses that weekly amount to fund your sink account.
+The model will **populate sink funds marked in Accounts** and **calculate sink fund totals automatically** (weekly estimate).
 
-You usually don�t need to edit Reference manually � running **Setup** will create or repair it if needed.
+You usually don’t need to edit this manually — **Setup** will recreate it if needed.
 
 ---
 
-## ?? Sink funds (simple explanation)
-Sink funds are just **regular accounts** you use to park money for future spending.
+## 🪙 Sink Funds (simple version)
+Sink funds are just regular accounts you park money in for future spending.
 
 Examples:
 - Car Fund
@@ -79,31 +105,29 @@ Examples:
 - Emergency Fund
 
 How it works:
-- Mark the account as a **Sink Fund** in **Accounts**
-- Add a **Provision** or recurring transfer into that account in **Expense**
-- The engine **never auto-spends** sink funds � you update the balance when you spend in real life
-
-This keeps the forecast forward-only and honest.
+- Mark an account as **Sink Fund** in **Accounts**
+- Add a recurring transfer into that account in **Expense**
+- The engine never auto-spends sink funds — it just forecasts balances
 
 ---
 
-## ?? How to keep it accurate
+## 🔁 Keeping it accurate
 Whenever real life changes:
 1. Update **Accounts** balances
 2. Run **Run forecast** again
 3. (Optional) Run **Run summary**
 
-That�s it. The model is forward-only and always rebuilds outputs from scratch.
+That’s it. The model is forward-only and always rebuilds outputs from scratch.
 
 ---
 
-## ?? Tips
-- Use **Include** checkboxes to control what�s forecasted.
-- Use **Frequency** + **Start Date** to define recurring items.
+## 💡 Tips
+- Use **Include** checkboxes to control what gets forecasted.
+- Use **Frequency + Start Date** to schedule recurring items.
 - Use **One-off** for single future payments.
-- If headers or dropdowns look wrong, **run Setup** to fix them.
+- If headers or dropdowns look wrong, just run **Setup** again.
 
 ---
 
-## ??? Need the technical details?
+## 🛠 Want the technical details?
 See: `docs/TECHNICAL.md`

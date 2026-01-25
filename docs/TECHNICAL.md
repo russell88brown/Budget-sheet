@@ -1,15 +1,15 @@
-# Technical Reference
+﻿# Technical Reference
 
 This document describes the internal implementation and data model for the Budget Forecast Engine (Google Apps Script).
 
 ---
 
-## 1) High-level Architecture
+## 1) Architecture
 
-The system is split into two layers:
+Two layers:
 
 1. **Google Sheets workbook** (state + inputs + outputs)
-2. **Apps Script runtime** (forecast engine + writers)
+2. **Apps Script runtime** (forecast engine + writers + formatters)
 
 The workbook is the source of truth. Outputs are deterministically regenerated on each run; there is no hidden state in code.
 
@@ -22,8 +22,8 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 #### Accounts
 - Columns: Account Name, Balance, Type, Include, Sink Fund
 - Type: enum { Cash, Credit }
-- Include: boolean determines if account participates in forecast outputs
-- Sink Fund: boolean used for sink fund rollup
+- Include: boolean, controls whether account appears in forecast outputs
+- Sink Fund: boolean, used for sink fund rollup
 
 #### Income
 - Columns: Include, Name, Amount, Frequency, Start Date, End Date, To Account, Notes
@@ -31,9 +31,9 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Frequency: enum (Daily, Weekly, Fortnightly, Monthly, Bi-Monthly, Quarterly, SemiAnnually, Annually, One-off)
 
 #### Expense
-- Columns: Include, Transaction Type, Category, Name, Amount, Frequency, Start Date, End Date, From Account, To Account, Notes
+- Columns: Include, Transaction Type, Category, Name, Amount, Frequency, Start Date, End Date, From Account, To Account, Monthly Spend, Archive, Notes
 - Transaction Type: enum { Expense, Repayment, Transfer }
-- To Account can be an internal account or �External� (tracked as money leaving the model)
+- To Account can be an internal account or “External”
 
 ### Outputs
 
@@ -49,13 +49,18 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
   - One column per forecast account (running balance)
 
 #### Daily
-- Snapshot per day across the forecast window.
+- Snapshot per day from the Journal.
 - Columns: Date, Total Cash, Total Debt, Net Position, then one column per forecast account.
 
 #### Monthly
 - Aggregated stats per month.
-- For totals (Cash, Debt, Net): Min, Max, Net Change, End.
-- For each account: Min, Max, Net Change, End.
+- Header row 1 merges account names across 4 columns.
+- Header row 2 is the subheader: Min, Max, Net Change, Ending.
+
+#### Dashboard
+- Charts built from the Daily sheet (Cash vs Net, Debt).
+- “Financial Healthcheck” table with key stats.
+- Horizontal account blocks: Ending, Min, Max, Net Change.
 
 #### Logs
 - Timestamped engine logs (INFO / WARN / ERROR).
@@ -70,18 +75,23 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `Readers.readExpenses()`
 
 ### b) Generate events
-- Income rules -> income events
-- Expense rules -> expense/transfer events
+- Income rules → income events
+- Expense rules → expense/transfer events
 
 ### c) Build journal
-- `buildJournalRows_()` constructs event rows + running balances.
-- Each event is applied in chronological order with deterministic recurrence.
+- `buildJournalRows_()` applies events in chronological order and produces running balances.
+- Repayment transfers are capped to the remaining credit balance.
+- If a credit balance is already >= 0, repayment transfers are skipped and logged once per name.
 
 ### d) Write outputs
-- `Writers.writeJournal()` writes the Journal and applies formatting.
-- Summaries are built from the Journal:
-  - `buildDailySummaryFromJournal_()`
+- `Writers.writeJournal()` writes the Journal and applies formatting/filters.
+- Summary pipeline (from Journal):
+  - `buildDailySummary_()`
+  - `writeDailySummary_()`
   - `buildMonthlySummary_()`
+  - `writeMonthlySummary_()`
+  - `buildDashboardData_()`
+  - `writeDashboard_()`
 
 ---
 
@@ -105,9 +115,13 @@ Supported frequencies:
 - **Expense**: reduces account balance
 - **Transfer**: moves balance between accounts
 
-### Special behavior
-- **Repayment** transfers can auto-cap to the remaining credit balance.
-- **CapOnly** expenses do not affect balances.
+### Repayment handling
+- Repayments are capped to the remaining credit balance.
+- If a credit account is already paid off, the transfer is skipped.
+
+### Alerts
+- `NEGATIVE_CASH`: cash account went negative
+- `CREDIT_PAID_OFF`: credit account hit 0 from a repayment
 
 ---
 
@@ -116,20 +130,28 @@ Supported frequencies:
 ### Sheet ordering
 All major flows call a single ordering routine to ensure consistent tab order:
 
-Dashboard ? Accounts ? Income ? Expense ? Journal ? Daily ? Monthly ? Export ? Reference ? Logs
+Dashboard → Accounts → Income → Expense → Journal → Daily → Monthly → Export → Reference → Logs
 
-### Summary formatting
-- Group borders are vertical-only (no horizontal borders)
-- Account groups get unique background colors
-- Formatting is cleared and reapplied on each run
+### Daily formatting
+- Date column formatted as `yyyy-mm-dd`
+- Conditional formatting applies only to account balance columns
+
+### Journal formatting
+- Frozen header row
+- Filters applied to the header row
+- Conditional formatting:
+  - Credit accounts: green if >= 0
+  - Cash accounts: red if < 0
+  - Alerts: dark red font when `NEGATIVE_CASH`
 
 ---
 
 ## 7) Export Behavior
 
-- The Export dialog allows selecting which core sheets to export.
-- Data is written into the **Export** tab in a compact, tab-separated format.
-- Output is chunked if data exceeds per-cell limits.
+- Export dialog allows selecting which core sheets to export.
+- Output is written into the **Export** sheet.
+- Format is compact TSV (tab-separated), one row per sheet or per Journal month.
+- Output is chunked if a cell exceeds length limits.
 
 ---
 
@@ -137,13 +159,18 @@ Dashboard ? Accounts ? Income ? Expense ? Journal ? Daily ? Monthly ? Export ? R
 
 Main modules:
 - `00_Config.gs` (constants + names)
+- `01_Menu.gs` (menu wiring + setup dialog)
+- `02_Schema.gs` (schema definitions)
+- `05_Setup.gs` (sheet creation + validation)
+- `06_DefaultData.gs` (default seed data)
+- `07_Export.gs` (export routines)
 - `10_Readers.gs` (input parsing)
 - `20_Events.gs` (event generation)
 - `30_Recurrence.gs` (date stepping)
 - `40_Engine.gs` (forecast pipeline)
-- `50_Writers.gs` (output writing)
-- `60_Summary.gs` (daily/monthly summaries)
-- `07_Export.gs` (export routines)
+- `50_Writers.gs` (journal writer)
+- `60_Summary.gs` (daily/monthly/dashboard)
+- `99_Logger.gs` (structured logging)
 
 ---
 
