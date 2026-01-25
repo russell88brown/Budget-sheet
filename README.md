@@ -125,6 +125,7 @@ That’s it. The model is forward-only and always rebuilds outputs from scratch.
 - Use **Include** checkboxes to control what gets forecasted.
 - Use **Frequency + Start Date** to schedule recurring items.
 - Use **One-off** for single future payments.
+- Repayments with **Amount = 0** are treated as **“pay off the full balance”** at that time (only if the balance is negative).
 - If headers or dropdowns look wrong, just run **Setup** again.
 
 ---
