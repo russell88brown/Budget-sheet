@@ -15,6 +15,7 @@ function setupSpreadsheet() {
   });
 
   reorderSheets_(ss);
+  formatReferenceSheet_(ss);
 }
 
 function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
@@ -23,10 +24,12 @@ function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
     sheet = spreadsheet.insertSheet(sheetName);
   }
 
-  if (!hasHeaderRow_(sheet)) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  var lastCol = Math.max(sheet.getLastColumn(), headers.length);
+  if (lastCol > 0) {
+    sheet.getRange(1, 1, 1, lastCol).clearContent();
   }
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
 
   return sheet;
 }
@@ -89,6 +92,8 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
       range.setNumberFormat(column.format);
     }
   });
+
+  applyHeaderFormatting_(sheet, columns.length);
 }
 
 function ensureAccountNameRanges_(spreadsheet) {
@@ -148,6 +153,21 @@ function ensureCategoryRange_(spreadsheet) {
   );
 
   spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('C2:C'));
+}
+
+function formatReferenceSheet_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(Config.LISTS_SHEET);
+  if (!sheet) {
+    return;
+  }
+
+  var lastCol = Math.max(5, sheet.getLastColumn());
+  sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#e9eef7');
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, lastCol);
+
+  sheet.getRange('A2:B').setNumberFormat('yyyy-mm-dd');
+  sheet.getRange('E2:E').setNumberFormat('0.00');
 }
 
 function ensureSinkFundRange_(spreadsheet) {
@@ -221,14 +241,16 @@ function applyPaidToConditionalRule_(sheet, typeCol, paidToCol) {
 
 function reorderSheets_(spreadsheet) {
   var order = [
+    Config.SHEETS.DASHBOARD,
     Config.SHEETS.ACCOUNTS,
     Config.SHEETS.INCOME,
     Config.SHEETS.EXPENSE,
     Config.SHEETS.JOURNAL,
-    Config.SHEETS.DAILY_SUMMARY,
-    Config.SHEETS.OVERVIEW,
-    Config.SHEETS.LOGS,
+    Config.SHEETS.DAILY,
+    Config.SHEETS.MONTHLY,
+    Config.SHEETS.EXPORT,
     Config.LISTS_SHEET,
+    Config.SHEETS.LOGS,
   ];
 
   order.forEach(function (name, index) {
@@ -249,4 +271,14 @@ function columnToLetter_(column) {
     column = (column - temp - 1) / 26;
   }
   return letter;
+}
+
+function applyHeaderFormatting_(sheet, headerCount) {
+  if (!headerCount) {
+    return;
+  }
+  var range = sheet.getRange(1, 1, 1, headerCount);
+  range.setWrap(true);
+  range.setHorizontalAlignment('center');
+  range.setVerticalAlignment('middle');
 }

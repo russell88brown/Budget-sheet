@@ -1,12 +1,14 @@
 // Centralized configuration and enums for the forecast engine.
 const Config = {
   SHEETS: {
+    DASHBOARD: 'Dashboard',
     ACCOUNTS: 'Accounts',
     INCOME: 'Income',
     EXPENSE: 'Expense',
-    JOURNAL: 'Forecast Journal',
-    DAILY_SUMMARY: 'Daily Summary',
-    OVERVIEW: 'Overview',
+    JOURNAL: 'Journal',
+    DAILY: 'Daily',
+    MONTHLY: 'Monthly',
+    EXPORT: 'Export',
     LOGS: 'Logs',
   },
   BEHAVIORS: {
@@ -25,13 +27,15 @@ const Config = {
     CREDIT: 'Credit',
   },
   FREQUENCIES: {
+    ONCE: 'One-off',
+    DAILY: 'Daily',
     WEEKLY: 'Weekly',
     FORTNIGHTLY: 'Fortnightly',
     MONTHLY: 'Monthly',
+    BIMONTHLY: 'Bi-Monthly',
     QUARTERLY: 'Quarterly',
     SEMI_ANNUALLY: 'SemiAnnually',
     ANNUALLY: 'Annually',
-    ONCE: 'Once',
   },
   NAMED_RANGES: {
     CATEGORIES: 'ExpenseCategories',

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        margin: 16px;
+        color: #1f1f1f;
+      }
+      p {
+        margin: 0 0 12px 0;
+      }
+      .list {
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        max-height: 220px;
+        overflow-y: auto;
+        background: #fafafa;
+      }
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+      }
+      .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      button {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #1a73e8;
+        background: #1a73e8;
+        color: #ffffff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #ffffff;
+        color: #1a73e8;
+      }
+      #status {
+        margin-top: 10px;
+        color: #5f6368;
+        min-height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="export-form">
+      <p>Select sheets to export.</p>
+      <div class="list">
+        <? for (var i = 0; i < sheetNames.length; i++) { var name = sheetNames[i]; ?>
+          <label class="item">
+            <input type="checkbox" name="sheet" value="<?= name ?>" checked>
+            <span><?= name ?></span>
+          </label>
+        <? } ?>
+      </div>
+      <div class="actions">
+        <button type="submit">Export</button>
+        <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
+      </div>
+      <div id="status"></div>
+    </form>
+    <script>
+      (function () {
+        var form = document.getElementById('export-form');
+        var statusEl = document.getElementById('status');
+
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var selected = Array.prototype.slice
+            .call(form.querySelectorAll('input[name="sheet"]:checked'))
+            .map(function (el) {
+              return el.value;
+            });
+
+          if (!selected.length) {
+            statusEl.textContent = 'Select at least one sheet.';
+            return;
+          }
+
+          statusEl.textContent = 'Exporting...';
+          google.script.run
+            .withSuccessHandler(function () {
+              statusEl.textContent = 'Export complete.';
+              setTimeout(function () {
+                google.script.host.close();
+              }, 500);
+            })
+            .withFailureHandler(function (err) {
+              statusEl.textContent = err && err.message ? err.message : 'Export failed.';
+            })
+            .runExportWithSelection(selected);
+        });
+      })();
+    </script>
+  </body>
+</html>

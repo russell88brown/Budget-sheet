@@ -15,6 +15,25 @@ const Recurrence = {
     var today = normalizeDate_(new Date());
 
     var windowStart = window.start > today ? window.start : today;
+    if (endDate && anchor.getTime() === end.getTime()) {
+      if (anchor < windowStart) {
+        return [];
+      }
+      if (anchor > window.end) {
+        return [];
+      }
+      return [new Date(anchor.getTime())];
+    }
+    if (frequency === Config.FREQUENCIES.ONCE) {
+      if (anchor < windowStart) {
+        return [];
+      }
+      if (anchor > end || anchor > window.end) {
+        return [];
+      }
+      return [new Date(anchor.getTime())];
+    }
+
     var start = alignToWindow_(anchor, frequency, windowStart);
     if (!start) {
       return [];
@@ -42,12 +61,16 @@ const Recurrence = {
 
   stepForward: function (date, frequency) {
     switch (frequency) {
+      case Config.FREQUENCIES.DAILY:
+        return addDays_(date, 1);
       case Config.FREQUENCIES.WEEKLY:
         return addDays_(date, 7);
       case Config.FREQUENCIES.FORTNIGHTLY:
         return addDays_(date, 14);
       case Config.FREQUENCIES.MONTHLY:
         return addMonthsClamped_(date, 1);
+      case Config.FREQUENCIES.BIMONTHLY:
+        return addMonthsClamped_(date, 2);
       case Config.FREQUENCIES.QUARTERLY:
         return addMonthsClamped_(date, 3);
       case Config.FREQUENCIES.SEMI_ANNUALLY:
@@ -114,12 +137,21 @@ function alignToWindow_(anchor, frequency, windowStart) {
     return anchor;
   }
 
-  if (frequency === Config.FREQUENCIES.WEEKLY || frequency === Config.FREQUENCIES.FORTNIGHTLY) {
-    var stepDays = frequency === Config.FREQUENCIES.WEEKLY ? 7 : 14;
+  if (
+    frequency === Config.FREQUENCIES.DAILY ||
+    frequency === Config.FREQUENCIES.WEEKLY ||
+    frequency === Config.FREQUENCIES.FORTNIGHTLY
+  ) {
+    var stepDays = 1;
+    if (frequency === Config.FREQUENCIES.WEEKLY) {
+      stepDays = 7;
+    } else if (frequency === Config.FREQUENCIES.FORTNIGHTLY) {
+      stepDays = 14;
+    }
     var daysDiff = Math.floor((windowStart.getTime() - anchor.getTime()) / 86400000);
     var steps = Math.floor(daysDiff / stepDays);
     var candidate = addDays_(anchor, steps * stepDays);
-    if (candidate <= windowStart) {
+    if (candidate < windowStart) {
       candidate = addDays_(candidate, stepDays);
     }
     return candidate;
@@ -129,6 +161,9 @@ function alignToWindow_(anchor, frequency, windowStart) {
   switch (frequency) {
     case Config.FREQUENCIES.MONTHLY:
       stepMonths = 1;
+      break;
+    case Config.FREQUENCIES.BIMONTHLY:
+      stepMonths = 2;
       break;
     case Config.FREQUENCIES.QUARTERLY:
       stepMonths = 3;
@@ -149,7 +184,7 @@ function alignToWindow_(anchor, frequency, windowStart) {
     (windowStart.getMonth() - anchor.getMonth());
   var stepsMonths = Math.floor(monthsDiff / stepMonths);
   var candidate = addMonthsClamped_(anchor, stepsMonths * stepMonths);
-  if (candidate <= windowStart) {
+  if (candidate < windowStart) {
     candidate = addMonthsClamped_(candidate, stepMonths);
   }
   return candidate;

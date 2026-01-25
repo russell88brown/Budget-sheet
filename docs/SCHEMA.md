@@ -51,7 +51,7 @@ Generated from `src/02_Schema.gs`.
 
 ## Outputs
 
-### Forecast Journal
+### Journal
 
 | Column | Type | Required | Description |
 |-----|-----|---------|------------|
@@ -65,32 +65,6 @@ Generated from `src/02_Schema.gs`.
 
 Additional columns:
 - One column per Account with Forecast checked (running balance per row)
-
----
-
-### Daily Summary
-
-| Column | Type | Required | Description |
-|-----|-----|---------|------------|
-| Date | date | Yes | Day |
-| Total Cash | number | Yes | Sum of cash balances |
-| Total Debt | number | Yes | Sum of credit balances |
-| Net Position | number | Yes | Cash minus debt |
-
-Additional columns:
-- One column per Account with Forecast checked (daily balance)
-
----
-
-### Overview
-
-| Column | Type | Required | Description |
-|-----|-----|---------|------------|
-| Metric | string | Yes | Label |
-| Value | string | Yes | Value |
-
-Additional columns:
-- One column per Account with Forecast checked (used in Forecast Balances section)
 
 ---
 

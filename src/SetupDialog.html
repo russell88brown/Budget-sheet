@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 13px; padding: 12px; }
+      h3 { margin: 0 0 10px; font-size: 14px; }
+      .option { margin: 8px 0; }
+      .actions { margin-top: 16px; display: flex; gap: 8px; }
+      button { padding: 6px 10px; cursor: pointer; }
+      .note { margin-top: 10px; color: #555; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h3>Choose setup actions</h3>
+    <div class="option"><label><input type="checkbox" value="setup"> Setup spreadsheet</label></div>
+    <div class="option"><label><input type="checkbox" value="defaults"> Load default data</label></div>
+    <div class="option"><label><input type="checkbox" value="clearLogs"> Clear logs</label></div>
+    <div class="actions">
+      <button onclick="runActions()">Run</button>
+      <button onclick="google.script.host.close()">Cancel</button>
+    </div>
+    <div class="note" id="status"></div>
+    <script>
+      function runActions() {
+        var checks = Array.prototype.slice.call(document.querySelectorAll('input[type=checkbox]:checked'));
+        var actions = checks.map(function (c) { return c.value; });
+        if (!actions.length) {
+          document.getElementById('status').textContent = 'Select at least one action.';
+          return;
+        }
+        document.getElementById('status').textContent = 'Running…';
+        google.script.run.withSuccessHandler(function (msg) {
+          document.getElementById('status').textContent = msg || 'Done.';
+          setTimeout(function () { google.script.host.close(); }, 700);
+        }).runSetupActions(actions);
+      }
+    </script>
+  </body>
+</html>

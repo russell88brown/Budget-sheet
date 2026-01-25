@@ -27,7 +27,7 @@ const Readers = {
         return {
           name: row['Name'],
           amount: toNumber_(row['Amount']),
-          frequency: row['Frequency'],
+          frequency: normalizeFrequency_(row['Frequency']),
           startDate: toDate_(row['Start Date']),
           endDate: toDate_(row['End Date']),
           paidTo: row['To Account'],
@@ -44,11 +44,11 @@ const Readers = {
       })
       .map(function (row) {
         return {
-          behavior: row['Transaction Type'],
+          behavior: normalizeBehavior_(row['Transaction Type']),
           category: row['Category'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
-          frequency: row['Frequency'],
+          frequency: normalizeFrequency_(row['Frequency']),
           startDate: toDate_(row['Start Date']),
           endDate: toDate_(row['End Date']),
           paidFrom: row['From Account'],
@@ -110,4 +110,35 @@ function toDate_(value) {
   }
   var parsed = new Date(value);
   return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizeFrequency_(value) {
+  if (!value) {
+    return value;
+  }
+  if (value === 'Once' || value === 'One-off') {
+    return Config.FREQUENCIES.ONCE;
+  }
+  return value;
+}
+
+function normalizeBehavior_(value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  var cleaned = String(value).trim();
+  if (!cleaned) {
+    return cleaned;
+  }
+  var lower = cleaned.toLowerCase();
+  if (lower === 'repayment') {
+    return 'Repayment';
+  }
+  if (lower === 'transfer') {
+    return 'Transfer';
+  }
+  if (lower === 'expense') {
+    return 'Expense';
+  }
+  return cleaned;
 }

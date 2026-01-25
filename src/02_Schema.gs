@@ -78,6 +78,14 @@ const Schema = {
           required: false,
           description: 'Destination account or External',
         },
+        {
+          name: 'Monthly Spend',
+          type: 'number',
+          required: false,
+          description: 'Derived monthly equivalent',
+          format: '0.00',
+        },
+        { name: 'Archive', type: 'boolean', required: false, description: 'Hide in views' },
         { name: 'Notes', type: 'string', required: false, description: 'Optional' },
       ],
     },
@@ -91,23 +99,7 @@ const Schema = {
         { name: 'Transaction Type', type: 'enum', required: true, description: 'Income / Expense / Transfer' },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: 'Event amount', format: '0.00' },
-        { name: 'Behavior', type: 'enum', required: true, description: 'Income / Expense / Repayment / Transfer' },
-      ],
-    },
-    {
-      name: Config.SHEETS.DAILY_SUMMARY,
-      columns: [
-        { name: 'Date', type: 'date', required: true, description: 'Day', format: 'yyyy-mm-dd' },
-        { name: 'Total Cash', type: 'number', required: true, description: 'Sum of cash balances', format: '0.00' },
-        { name: 'Total Debt', type: 'number', required: true, description: 'Sum of credit balances', format: '0.00' },
-        { name: 'Net Position', type: 'number', required: true, description: 'Cash minus debt', format: '0.00' },
-      ],
-    },
-    {
-      name: Config.SHEETS.OVERVIEW,
-      columns: [
-        { name: 'Metric', type: 'string', required: true, description: 'Label' },
-        { name: 'Value', type: 'string', required: true, description: 'Value' },
+        { name: 'Alerts', type: 'string', required: false, description: 'Engine flags' },
       ],
     },
     {

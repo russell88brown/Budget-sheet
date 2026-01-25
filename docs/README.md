@@ -46,9 +46,7 @@ Spreadsheet
 | |- Expense
 |
 |- Outputs (generated)
-| |- Forecast Journal
-| |- Daily Summary
-| |- Overview
+| |- Journal
 | `- Logs
 ```
 
