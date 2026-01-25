@@ -389,6 +389,8 @@ function writeDashboard_(dashboard) {
         .addRange(netRange)
         .setOption('title', 'Cash vs Net Position')
         .setOption('legend', { position: 'bottom' })
+        .setOption('width', 520)
+        .setOption('height', 260)
         .setPosition(3, 1, 0, 0)
         .build();
       sheet.insertChart(cashChart);
@@ -400,6 +402,8 @@ function writeDashboard_(dashboard) {
         .addRange(debtRange)
         .setOption('title', 'Total Debt')
         .setOption('legend', { position: 'bottom' })
+        .setOption('width', 520)
+        .setOption('height', 220)
         .setPosition(20, 1, 0, 0)
         .build();
       sheet.insertChart(debtChart);
