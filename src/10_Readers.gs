@@ -13,6 +13,11 @@ const Readers = {
           type: row['Type'],
           forecast: toBoolean_(row['Include']),
           sinkFund: toBoolean_(row['Sink Fund']),
+          interestRate: toNumber_(row['Interest Rate (APR %)']),
+          interestMethod: row['Interest Method'],
+          interestFrequency: normalizeFrequency_(row['Interest Frequency']),
+          interestStartDate: toDate_(row['Interest Start Date']),
+          interestEndDate: toDate_(row['Interest End Date']),
         };
       });
   },

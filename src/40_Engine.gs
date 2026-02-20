@@ -6,11 +6,7 @@ const Engine = {
     resetRunState_();
     toastStep_('Checking active expenses...');
     deactivateExpiredExpenses_();
-    toastStep_('Updating monthly spend values...');
-    updateMonthlySpend_();
-    toastStep_('Sorting expenses...');
-    sortExpenseSheet_();
-    toastStep_('Styling expense rows...');
+    toastStep_('Styling inactive expenses...');
     styleExpenseRows_();
     toastStep_('Updating sink fund reference...');
     updateSinkFundReference_();
@@ -26,9 +22,9 @@ const Engine = {
 
     toastStep_('Building events...');
     Logger.info('Building events...');
-    var events = Events.buildIncomeEvents(incomeRules).concat(
-      Events.buildExpenseEvents(expenseRules)
-    );
+    var events = Events.buildIncomeEvents(incomeRules)
+      .concat(Events.buildExpenseEvents(expenseRules))
+      .concat(Events.buildInterestEvents(accounts));
     Logger.info('Events built: ' + events.length);
 
     toastStep_('Sorting events by date...');
@@ -149,52 +145,6 @@ function deactivateExpiredExpenses_() {
   }
 }
 
-function sortExpenseSheet_() {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
-  if (!sheet) {
-    return;
-  }
-
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  if (lastRow < 3 || lastCol < 1) {
-    return;
-  }
-
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var categoryIndex = headers.indexOf('Category') + 1;
-  var amountIndex = headers.indexOf('Amount') + 1;
-  var startDateIndex = headers.indexOf('Start Date') + 1;
-  var archiveIndex = headers.indexOf('Archive') + 1;
-  var nameIndex = headers.indexOf('Name') + 1;
-  if (!categoryIndex || !amountIndex || !startDateIndex || !archiveIndex || !nameIndex) {
-    Logger.warn('Expense sort skipped: missing Archive, Category, Amount, Start Date, or Name header.');
-    return;
-  }
-
-  clearSheetFilter_(sheet);
-  var archiveRange = sheet.getRange(2, archiveIndex, lastRow - 1, 1);
-  var archiveValues = archiveRange.getValues();
-  var archiveUpdated = false;
-  archiveValues.forEach(function (row, idx) {
-    if (row[0] === '' || row[0] === null) {
-      archiveValues[idx][0] = false;
-      archiveUpdated = true;
-    }
-  });
-  if (archiveUpdated) {
-    archiveRange.setValues(archiveValues);
-  }
-  var range = sheet.getRange(2, 1, lastRow - 1, lastCol);
-  range.sort([
-    { column: archiveIndex, ascending: true },
-    { column: categoryIndex, ascending: true },
-    { column: startDateIndex, ascending: true },
-    { column: nameIndex, ascending: true },
-    { column: amountIndex, ascending: false },
-  ]);
-}
-
 function styleExpenseRows_() {
   var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
   if (!sheet) {
@@ -207,7 +157,6 @@ function styleExpenseRows_() {
   }
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIndex = headers.indexOf('Include');
-  var archiveIndex = headers.indexOf('Archive');
   if (includeIndex === -1) {
     Logger.warn('Expense row styling skipped: missing Include header.');
     return;
@@ -217,13 +166,7 @@ function styleExpenseRows_() {
   var values = dataRange.getValues();
   var backgrounds = values.map(function (row) {
     var active = row[includeIndex] === true;
-    var archived = archiveIndex !== -1 ? row[archiveIndex] === true : false;
-    var color = '#ffffff';
-    if (!active) {
-      color = '#f2f2f2';
-    } else if (archived) {
-      color = '#e0e0e0';
-    }
+    var color = active ? '#ffffff' : '#f2f2f2';
     return row.map(function () {
       return color;
     });
@@ -231,204 +174,6 @@ function styleExpenseRows_() {
   dataRange.setBackgrounds(backgrounds);
 }
 
-function updateMonthlySpend_() {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
-  if (!sheet) {
-    return;
-  }
-
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return;
-  }
-
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var notesIndex = headers.indexOf('Notes');
-  var monthlyIndex = headers.indexOf('Monthly Spend');
-  var archiveIndex = headers.indexOf('Archive');
-
-  if (notesIndex !== -1 && monthlyIndex === -1) {
-    sheet.insertColumnBefore(notesIndex + 1);
-    sheet.getRange(1, notesIndex + 1).setValue('Monthly Spend').setFontWeight('bold');
-    lastCol += 1;
-    headers.splice(notesIndex, 0, 'Monthly Spend');
-    monthlyIndex = notesIndex;
-  }
-
-  if (notesIndex !== -1 && archiveIndex === -1 && monthlyIndex !== -1) {
-    sheet.insertColumnAfter(monthlyIndex + 1);
-    sheet.getRange(1, monthlyIndex + 2).setValue('Archive').setFontWeight('bold');
-    lastCol += 1;
-    headers.splice(monthlyIndex + 1, 0, 'Archive');
-    archiveIndex = monthlyIndex + 1;
-  }
-
-  if (monthlyIndex !== -1 && archiveIndex !== -1 && archiveIndex !== monthlyIndex + 1) {
-    var fromRange = sheet.getRange(1, archiveIndex + 1, sheet.getMaxRows(), 1);
-    sheet.moveColumns(fromRange, monthlyIndex + 2);
-    headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    archiveIndex = headers.indexOf('Archive');
-    monthlyIndex = headers.indexOf('Monthly Spend');
-  }
-
-  if (monthlyIndex === -1) {
-    Logger.warn('Monthly Spend update skipped: column not found.');
-    return;
-  }
-
-  var amountIndex = headers.indexOf('Amount');
-  var frequencyIndex = headers.indexOf('Frequency');
-  var includeIndex = headers.indexOf('Include');
-  if (amountIndex === -1 || frequencyIndex === -1 || includeIndex === -1) {
-    Logger.warn('Monthly Spend update skipped: missing Include, Amount, or Frequency header.');
-    return;
-  }
-
-  var rowCount = lastRow - 1;
-  if (rowCount <= 0) {
-    return;
-  }
-
-  var includeCol = columnToLetter_(includeIndex + 1);
-  var amountCol = columnToLetter_(amountIndex + 1);
-  var freqCol = columnToLetter_(frequencyIndex + 1);
-  var sep = getFormulaSeparator_();
-
-  var formulas = [];
-  for (var i = 0; i < rowCount; i++) {
-    var rowNumber = i + 2;
-    var formula =
-      '=IF($' +
-      includeCol +
-      rowNumber +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.DAILY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '*30.44' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.WEEKLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '*(52/12)' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.FORTNIGHTLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '*(26/12)' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.MONTHLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.BIMONTHLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '/2' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.QUARTERLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '/3' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.SEMI_ANNUALLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '/6' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.ANNUALLY +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '/12' +
-      sep +
-      'IF($' +
-      freqCol +
-      rowNumber +
-      '=\"' +
-      Config.FREQUENCIES.ONCE +
-      '\"' +
-      sep +
-      '$' +
-      amountCol +
-      rowNumber +
-      '/12' +
-      sep +
-      '\"\"' +
-      ')))))))))' +
-      sep +
-      '\"\"' +
-      ')';
-    formulas.push([formula]);
-  }
-
-  var targetRange = sheet.getRange(2, monthlyIndex + 1, rowCount, 1);
-  targetRange.setFormulas(formulas);
-  targetRange.setNumberFormat('0.00');
-  sheet.getRange(1, monthlyIndex + 1, rowCount + 1, 1).setBackground('#fff4cc');
-
-  if (archiveIndex !== -1) {
-    var archiveRange = sheet.getRange(2, archiveIndex + 1, rowCount, 1);
-    var archiveRule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-    archiveRange.setDataValidation(archiveRule);
-  }
-}
 
 function monthlyFactorForFrequency_(frequency) {
   switch (frequency) {
@@ -732,6 +477,16 @@ function applyEvent_(balances, event) {
     return;
   }
 
+  if (event.kind === 'Interest') {
+    var interestAccount = event.account;
+    var interestAmount = computeInterestAmount_(balances, event);
+    event.appliedAmount = interestAmount;
+    if (interestAccount) {
+      balances[interestAccount] = roundUpCents_((balances[interestAccount] || 0) + interestAmount);
+    }
+    return;
+  }
+
   if (event.kind === 'Transfer') {
     if (event.behavior === 'Repayment') {
       var target = event.to ? balances[event.to] || 0 : 0;
@@ -822,7 +577,12 @@ function buildJournalEventRows_(
     });
   }
 
-  var accountName = event.kind === 'Income' ? event.to : event.from;
+  var accountName;
+  if (event.kind === 'Interest') {
+    accountName = event.account;
+  } else {
+    accountName = event.kind === 'Income' ? event.to : event.from;
+  }
   var cashNegative =
     accountTypes[accountName] !== Config.ACCOUNT_TYPES.CREDIT &&
     balancesAfterTo[accountName] < 0;
@@ -873,6 +633,20 @@ function applyEventWithSnapshots_(balances, event) {
     return { afterFrom: cloneBalances_(balances), afterTo: cloneBalances_(balances) };
   }
 
+  if (event.kind === 'Interest') {
+    var interestAccount = event.account;
+    var interestAmount = computeInterestAmount_(balances, event);
+    event.appliedAmount = interestAmount;
+    if (interestAmount === 0) {
+      event.skipJournal = true;
+      return { afterFrom: pre, afterTo: pre };
+    }
+    if (interestAccount) {
+      balances[interestAccount] = roundUpCents_((balances[interestAccount] || 0) + interestAmount);
+    }
+    return { afterFrom: cloneBalances_(balances), afterTo: cloneBalances_(balances) };
+  }
+
   if (event.kind === 'Transfer') {
     if (event.behavior === 'Repayment') {
       var target = event.to ? balances[event.to] || 0 : 0;
@@ -908,6 +682,35 @@ function applyEventWithSnapshots_(balances, event) {
   }
 
   return { afterFrom: pre, afterTo: pre };
+}
+
+function computeInterestAmount_(balances, event) {
+  if (!event) {
+    return 0;
+  }
+  var account = event.account;
+  if (!account) {
+    return 0;
+  }
+  var rate = event.rate;
+  if (rate === null || rate === undefined || rate === '') {
+    return 0;
+  }
+  var frequency = event.frequency;
+  var periodsPerYear = frequencyToAnnualFactor_(frequency);
+  if (!periodsPerYear) {
+    return 0;
+  }
+  var annualRate = rate / 100;
+  var periodRate = annualRate / periodsPerYear;
+  if (event.method === Config.INTEREST_METHODS.APY_COMPOUND) {
+    periodRate = Math.pow(1 + annualRate, 1 / periodsPerYear) - 1;
+  }
+  var balance = balances[account] || 0;
+  if (!balance) {
+    return 0;
+  }
+  return roundUpCents_(balance * periodRate);
 }
 
 function cloneBalances_(balances) {

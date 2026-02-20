@@ -33,8 +33,13 @@ const Events = {
 
       return dates.map(function (date) {
         var to = rule.paidTo;
+        var hasInternalTo = to && to !== 'External';
         var kind =
-          rule.behavior === 'Transfer' || rule.behavior === 'Repayment' ? 'Transfer' : 'Expense';
+          rule.behavior === 'Transfer' || rule.behavior === 'Repayment'
+            ? 'Transfer'
+            : hasInternalTo
+              ? 'Transfer'
+              : 'Expense';
         return {
           date: date,
           kind: kind,
@@ -44,6 +49,40 @@ const Events = {
           from: rule.paidFrom,
           to: to,
           amount: rule.amount,
+        };
+      });
+    });
+  },
+
+  buildInterestEvents: function (accounts) {
+    return accounts.flatMap(function (account) {
+      if (!account) {
+        return [];
+      }
+      if (!account.interestFrequency || !account.interestRate) {
+        return [];
+      }
+      var window = getForecastWindow_();
+      var startDate = account.interestStartDate || window.start;
+      var endDate = account.interestEndDate || null;
+      var dates = Recurrence.expand({
+        startDate: startDate,
+        frequency: account.interestFrequency,
+        endDate: endDate,
+      });
+      if (!dates.length) {
+        return [];
+      }
+      return dates.map(function (date) {
+        return {
+          date: date,
+          kind: 'Interest',
+          behavior: 'Interest',
+          name: 'Interest',
+          account: account.name,
+          rate: account.interestRate,
+          method: account.interestMethod,
+          frequency: account.interestFrequency,
         };
       });
     });

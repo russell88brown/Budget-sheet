@@ -26,6 +26,10 @@ const Config = {
     CASH: 'Cash',
     CREDIT: 'Credit',
   },
+  INTEREST_METHODS: {
+    APR_SIMPLE: 'APR (Simple)',
+    APY_COMPOUND: 'APY (Compound)',
+  },
   FREQUENCIES: {
     ONCE: 'One-off',
     DAILY: 'Daily',

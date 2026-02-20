@@ -5,6 +5,7 @@ function setupSpreadsheet() {
   ensureAccountNameRanges_(ss);
   ensureCategoryRange_(ss);
   ensureSinkFundRange_(ss);
+  removeExpenseColumns_(ss, ['Monthly Spend', 'Archive']);
 
   Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
@@ -16,6 +17,32 @@ function setupSpreadsheet() {
 
   reorderSheets_(ss);
   formatReferenceSheet_(ss);
+}
+
+function removeExpenseColumns_(spreadsheet, columnNames) {
+  var sheet = spreadsheet.getSheetByName(Config.SHEETS.EXPENSE);
+  if (!sheet || !columnNames || !columnNames.length) {
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var indices = [];
+  columnNames.forEach(function (name) {
+    var idx = headers.indexOf(name);
+    if (idx !== -1) {
+      indices.push(idx + 1);
+    }
+  });
+  indices
+    .sort(function (a, b) {
+      return b - a;
+    })
+    .forEach(function (colIndex) {
+      sheet.deleteColumn(colIndex);
+    });
 }
 
 function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
