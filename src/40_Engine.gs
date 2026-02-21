@@ -784,6 +784,12 @@ function eventSortPriority_(event) {
   if (!event || !event.kind) {
     return 50;
   }
+  if (
+    event.kind === 'Transfer' &&
+    (event.transferBehavior || event.behavior) === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT
+  ) {
+    return 99;
+  }
   if (event.kind === 'Income') {
     return 0;
   }

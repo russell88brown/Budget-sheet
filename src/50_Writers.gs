@@ -161,7 +161,33 @@ function applyJournalConditionalFormatting_(sheet, forecastAccounts, accountType
 
     newRules.push(
       SpreadsheetApp.newConditionalFormatRule()
-        .whenFormulaSatisfied('=$B' + startRow + '=' + colLetter + '$1')
+        .whenFormulaSatisfied(
+          '=AND($B' +
+            startRow +
+            '=' +
+            colLetter +
+            '$1,OR(ROW()=' +
+            startRow +
+            ',NOT(AND(ISNUMBER(' +
+            colLetter +
+            startRow +
+            '),ISNUMBER(' +
+            colLetter +
+            (startRow - 1) +
+            '),OR(AND(' +
+            colLetter +
+            startRow +
+            '<0,' +
+            colLetter +
+            (startRow - 1) +
+            '>=0),AND(' +
+            colLetter +
+            startRow +
+            '>=0,' +
+            colLetter +
+            (startRow - 1) +
+            '<0))))))'
+        )
         .setFontColor('#0b57d0')
         .setRanges([columnRange])
         .build()
