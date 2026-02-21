@@ -95,6 +95,13 @@ const Schema = {
       name: Config.SHEETS.INCOME,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
+        {
+          name: 'Monthly Total',
+          type: 'number',
+          required: false,
+          description: 'Computed monthly equivalent for this row',
+          format: '0.00',
+        },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: '> 0', format: '0.00' },
         {
@@ -121,6 +128,13 @@ const Schema = {
       name: Config.SHEETS.EXPENSE,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
+        {
+          name: 'Monthly Total',
+          type: 'number',
+          required: false,
+          description: 'Computed monthly equivalent for this row',
+          format: '0.00',
+        },
         { name: 'Category', type: 'category', required: false, description: 'Reporting' },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: '>= 0', format: '0.00' },
@@ -155,10 +169,10 @@ const Schema = {
         { name: 'From Account', type: 'ref', required: true, description: 'Source account' },
         { name: 'Notes', type: 'string', required: false, description: 'Optional' },
         {
-          name: 'Monthly Average',
+          name: 'Monthly Total',
           type: 'number',
           required: false,
-          description: 'Computed monthly average for recurring rows',
+          description: 'Computed monthly equivalent for this row',
           format: '0.00',
         },
       ],
@@ -167,6 +181,13 @@ const Schema = {
       name: Config.SHEETS.TRANSFERS,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
+        {
+          name: 'Monthly Total',
+          type: 'number',
+          required: false,
+          description: 'Computed monthly equivalent for fixed transfer rows',
+          format: '0.00',
+        },
         {
           name: 'Transfer Type',
           type: 'enum',

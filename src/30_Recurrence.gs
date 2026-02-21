@@ -121,7 +121,20 @@ const Recurrence = {
   },
 };
 
+var forecastWindowCache_ = null;
+
+function resetForecastWindowCache_() {
+  forecastWindowCache_ = null;
+}
+
 function getForecastWindow_() {
+  if (forecastWindowCache_) {
+    return {
+      start: new Date(forecastWindowCache_.start.getTime()),
+      end: new Date(forecastWindowCache_.end.getTime()),
+    };
+  }
+
   var defaults = {
     start: normalizeDate_(new Date()),
     end: addMonthsClamped_(normalizeDate_(new Date()), 6),
@@ -129,7 +142,11 @@ function getForecastWindow_() {
   var ss = SpreadsheetApp.getActive();
   var sheet = ss.getSheetByName(Config.LISTS_SHEET);
   if (!sheet) {
-    return defaults;
+    forecastWindowCache_ = { start: defaults.start, end: defaults.end };
+    return {
+      start: new Date(defaults.start.getTime()),
+      end: new Date(defaults.end.getTime()),
+    };
   }
   var startRange = ss.getRangeByName(Config.NAMED_RANGES.FORECAST_START);
   var endRange = ss.getRangeByName(Config.NAMED_RANGES.FORECAST_END);
@@ -138,9 +155,14 @@ function getForecastWindow_() {
   var start = startValue ? normalizeDate_(startValue) : defaults.start;
   var end = endValue ? normalizeDate_(endValue) : defaults.end;
   if (start > end) {
-    return defaults;
+    forecastWindowCache_ = { start: defaults.start, end: defaults.end };
+    return {
+      start: new Date(defaults.start.getTime()),
+      end: new Date(defaults.end.getTime()),
+    };
   }
-  return { start: start, end: end };
+  forecastWindowCache_ = { start: start, end: end };
+  return { start: new Date(start.getTime()), end: new Date(end.getTime()) };
 }
 
 function normalizeDate_(value) {
