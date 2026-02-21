@@ -430,7 +430,6 @@ function reorderSheets_(spreadsheet) {
     Config.SHEETS.DASHBOARD,
     Config.SHEETS.EXPORT,
     Config.LISTS_SHEET,
-    Config.SHEETS.LOGS,
   ];
 
   var targetPosition = 1;

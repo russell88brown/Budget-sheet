@@ -14,20 +14,6 @@ const Writers = {
     applyJournalSort_(sheet);
     applyJournalConditionalFormatting_(sheet, forecastAccounts || [], accountTypes || {}, rows.length);
   },
-
-  writeLogs: function (rows) {
-    var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.LOGS);
-    if (!sheet) {
-      return;
-    }
-    if (rows.length) {
-      var sorted = rows.slice().sort(function (a, b) {
-        return b[0].getTime() - a[0].getTime();
-      });
-      sheet.insertRows(2, sorted.length);
-      sheet.getRange(2, 1, sorted.length, sorted[0].length).setValues(sorted);
-    }
-  },
 };
 
 function getOrMigrateJournalSheet_(spreadsheet) {

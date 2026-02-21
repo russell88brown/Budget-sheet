@@ -15,7 +15,6 @@ function loadDefaultData() {
 
   if (!accountsSheet || !policiesSheet || !goalsSheet || !riskSheet || !incomeSheet || !expenseSheet || !transfersSheet) {
     var missingMsg = 'Default data not loaded: required sheets missing.';
-    Logger.warn(missingMsg);
     return { ok: false, message: missingMsg };
   }
 
@@ -29,7 +28,6 @@ function loadDefaultData() {
     !isSheetEmpty_(transfersSheet)
   ) {
     var existingMsg = 'Default data not loaded: existing data detected.';
-    Logger.warn(existingMsg);
     return { ok: false, message: existingMsg };
   }
 
@@ -396,7 +394,6 @@ function loadDefaultData() {
   writeRowsByHeader_(transfersSheet, transfers);
   ensureInputSheetFormatting_();
 
-  Logger.info('Default data loaded.');
   return { ok: true, message: 'Default data loaded.' };
 }
 

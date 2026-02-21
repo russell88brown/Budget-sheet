@@ -32,7 +32,6 @@ function runJournalPipeline_(options) {
 
   try {
     toastStep_(options.startToast || 'Running...');
-    Logger.info(modeLabel + ' started');
     resetRunState_();
 
     if (preprocessInputs) {
@@ -40,37 +39,26 @@ function runJournalPipeline_(options) {
     }
 
     toastStep_('Reading input sheets...');
-    Logger.info('Reading inputs...');
     var accounts = Readers.readAccounts();
-    Logger.info('Accounts read: ' + accounts.length);
     var accountTypes = buildAccountTypeMap_(accounts);
     var incomeRules = Readers.readIncome();
-    Logger.info('Income rules read: ' + incomeRules.length);
     var transferRules = Readers.readTransfers();
-    Logger.info('Transfer rules read: ' + transferRules.length);
     var expenseRules = Readers.readExpenses();
-    Logger.info('Expense rules read: ' + expenseRules.length);
     var policies = Readers.readPolicies();
-    Logger.info('Policy rules read: ' + policies.length);
     var goals = Readers.readGoals();
-    Logger.info('Goal rules read: ' + goals.length);
     var riskSettings = Readers.readRiskSettings();
-    Logger.info('Risk rows read: ' + riskSettings.length);
 
     if (refreshSummaries) {
       refreshAccountSummaries_();
     }
 
     toastStep_('Building events...');
-    Logger.info('Building events...');
     var events = Events.buildIncomeEvents(incomeRules)
       .concat(Events.buildTransferEvents(transferRules))
       .concat(Events.buildExpenseEvents(expenseRules))
       .concat(Events.buildInterestEvents(accounts));
-    Logger.info('Events built: ' + events.length);
 
     toastStep_('Sorting events by date...');
-    Logger.info('Sorting events...');
     events.sort(function (a, b) {
       var dateDiff = normalizeDate_(a.date).getTime() - normalizeDate_(b.date).getTime();
       if (dateDiff !== 0) {
@@ -90,19 +78,12 @@ function runJournalPipeline_(options) {
       }
       return 0;
     });
-    Logger.info('Events sorted');
 
-    Logger.info('Building outputs...');
     toastStep_('Building journal...');
     var journalData = buildJournalRows_(accounts, events, policies, riskSettings);
     toastStep_('Writing journal...');
-    Logger.info('Writing outputs...');
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
-    Logger.info('Outputs built');
-    toastStep_('Writing logs...');
-    Writers.writeLogs(Logger.flush());
     toastStep_(options.completionToast || 'Run complete.');
-    Logger.info(modeLabel + ' completed');
   } finally {
     resetForecastWindowCache_();
   }
@@ -219,7 +200,6 @@ function validateAccountsSheet_() {
       reasons.push('invalid balance');
     }
     if (reasons.length) {
-      Logger.warn('Account invalid: row ' + (idx + 2) + ' [' + reasons.join(', ') + ']');
     }
   });
 
@@ -257,7 +237,6 @@ function validatePoliciesSheet_(validAccounts) {
     idx.trigger === -1 ||
     idx.funding === -1
   ) {
-    Logger.warn('Policy validation skipped: missing required headers.');
     return;
   }
 
@@ -315,12 +294,10 @@ function validatePoliciesSheet_(validAccounts) {
     }
     row[idx.include] = false;
     updated += 1;
-    Logger.warn('Policy deactivated (invalid): row ' + (rowIndex + 2) + ' [' + reasons.join(', ') + ']');
   });
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-    Logger.info('Policies deactivated for validation issues: ' + updated);
   }
 }
 
@@ -355,7 +332,6 @@ function validateGoalsSheet_(validAccounts) {
     idx.fundingAccount === -1 ||
     idx.fundingPolicy === -1
   ) {
-    Logger.warn('Goal validation skipped: missing required headers.');
     return;
   }
 
@@ -413,12 +389,10 @@ function validateGoalsSheet_(validAccounts) {
     }
     row[idx.include] = false;
     updated += 1;
-    Logger.warn('Goal deactivated (invalid): row ' + (rowIndex + 2) + ' [' + reasons.join(', ') + ']');
   });
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-    Logger.info('Goals deactivated for validation issues: ' + updated);
   }
 }
 
@@ -443,7 +417,6 @@ function validateRiskSheet_(validAccounts) {
     expenseShock: headers.indexOf('Expense Shock Percent'),
   };
   if (idx.include === -1 || idx.scenario === -1) {
-    Logger.warn('Risk validation skipped: missing required headers.');
     return;
   }
 
@@ -481,12 +454,10 @@ function validateRiskSheet_(validAccounts) {
     }
     row[idx.include] = false;
     updated += 1;
-    Logger.warn('Risk row deactivated (invalid): row ' + (rowIndex + 2) + ' [' + reasons.join(', ') + ']');
   });
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-    Logger.info('Risk rows deactivated for validation issues: ' + updated);
   }
 }
 
@@ -624,7 +595,6 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
     indexes.frequency === -1 ||
     indexes.start === -1
   ) {
-    Logger.warn(label + ' validation skipped: missing required headers.');
     return;
   }
 
@@ -640,12 +610,10 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
     }
     row[indexes.include] = false;
     updated += 1;
-    Logger.warn(label + ' deactivated (invalid): row ' + (idx + 2) + ' [' + reasons.join(', ') + ']');
   });
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-    Logger.info(label + 's deactivated for validation issues: ' + updated);
   }
 }
 
@@ -711,7 +679,6 @@ function flagExpiredRows_(sheetName, label) {
   var nameIndex = headers.indexOf('Name');
 
   if (includeIndex === -1 || startDateIndex === -1) {
-    Logger.warn(label + ' date-flagging skipped: missing Include or Start Date header.');
     return;
   }
 
@@ -733,9 +700,7 @@ function flagExpiredRows_(sheetName, label) {
 
     if (endKey && startKey && endKey < startKey) {
       if (nameIndex !== -1) {
-        Logger.warn(label + ' date range invalid (end before start): ' + row[nameIndex]);
       } else {
-        Logger.warn(label + ' date range invalid (end before start) at row ' + (idx + 2));
       }
       return;
     }
@@ -743,15 +708,12 @@ function flagExpiredRows_(sheetName, label) {
     if (endKey && endKey < todayKey) {
       flagged += 1;
       if (nameIndex !== -1) {
-        Logger.warn(label + ' inactive by date (review Include): ' + row[nameIndex]);
       } else {
-        Logger.warn(label + ' inactive by date (review Include) at row ' + (idx + 2));
       }
     }
   });
 
   if (flagged > 0) {
-    Logger.info(label + 's flagged as inactive by date: ' + flagged);
   }
 }
 
@@ -2024,7 +1986,6 @@ function resolveTransferAmount_(balances, event, amount) {
     event.appliedAmount = 0;
     event.skipJournal = true;
     if (!runState_.creditPaidOffWarned[event.name]) {
-      Logger.warn('Credit paid off, skipping repayment: ' + event.name);
       runState_.creditPaidOffWarned[event.name] = true;
     }
     return { amount: 0, skip: true };

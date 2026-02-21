@@ -13,7 +13,6 @@ const Config = {
     DAILY: 'Daily',
     MONTHLY: 'Monthly',
     EXPORT: 'Export',
-    LOGS: 'Logs',
   },
   BEHAVIORS: {
     SCHEDULED: 'Scheduled',

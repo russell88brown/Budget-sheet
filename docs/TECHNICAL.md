@@ -76,16 +76,13 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - “Financial Healthcheck” table with key stats.
 - Horizontal account blocks: Ending, Min, Max, Net Change.
 
-#### Logs
-- Timestamped engine logs (INFO / WARN / ERROR).
-
 ---
 
 ## 3) Forecast Pipeline
 
 ### a) Preprocess + validate inputs
 - Normalize rows and recurrence fields.
-- Validate each input sheet; invalid rows are deactivated and logged.
+- Validate each input sheet; invalid rows are deactivated.
 - Flag rules that are out of date.
 
 ### b) Read inputs
@@ -111,7 +108,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `buildJournalRows_()` ([src/40_Engine.gs](../src/40_Engine.gs)) applies events in chronological order and produces running balances.
 - Interest accrues daily per account and posts in bulk on configured posting dates.
 - Repayment transfers are capped to the remaining credit balance.
-- If a credit balance is already >= 0, repayment transfers are skipped and logged once per name.
+- If a credit balance is already >= 0, repayment transfers are skipped once per name.
 - `Transfer - Everything Except` keeps the specified amount in the source account and moves any excess.
 - Auto deficit cover policies insert transfers to prevent cash accounts from dropping below a threshold.
 - Emergency buffer settings can reserve a minimum balance from deficit coverage.
@@ -164,7 +161,7 @@ Supported frequencies:
 ### Sheet ordering
 All major flows call a single ordering routine to ensure consistent tab order:
 
-Accounts → Income → Transfers → Expense → Journal → Daily → Monthly → Dashboard → Export → Settings → Logs
+Accounts → Income → Transfers → Expense → Journal → Daily → Monthly → Dashboard → Export → Settings
 
 ### Daily formatting
 - Date column formatted as `yyyy-mm-dd`
@@ -204,7 +201,6 @@ Main modules:
 - [`40_Engine.gs`](../src/40_Engine.gs) (forecast pipeline)
 - [`50_Writers.gs`](../src/50_Writers.gs) (journal writer)
 - [`60_Summary.gs`](../src/60_Summary.gs) (daily/monthly/dashboard)
-- [`99_Logger.gs`](../src/99_Logger.gs) (structured logging)
 
 ---
 

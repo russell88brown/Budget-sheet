@@ -15,8 +15,6 @@ function onOpen() {
 function runForecast() {
   if (Engine && Engine.runForecast) {
     Engine.runForecast();
-  } else if (Logger && Logger.warn) {
-    Logger.warn('Engine.runForecast is not implemented yet.');
   }
 }
 
@@ -36,19 +34,6 @@ function summariseAccounts() {
 
 function validateTransfersExpenses() {
   summariseAccounts();
-}
-
-function clearLogs() {
-  if (Logger && Logger.clear) {
-    Logger.clear();
-  }
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.LOGS);
-  if (sheet) {
-    var lastRow = sheet.getLastRow();
-    if (lastRow > 1) {
-      sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).clearContent();
-    }
-  }
 }
 
 function showSetupDialog() {
@@ -82,13 +67,7 @@ function showActionDialog_(action, title) {
 function getActionStages_(action) {
   if (action === 'summarise') {
     return [
-      'Reset run state',
-      'Normalize input rows',
       'Review and cleanup inputs',
-      'Flag inactive income by date',
-      'Flag inactive transfers by date',
-      'Flag inactive expenses by date',
-      'Flag inactive policies by date',
       'Recompute account monthly summaries',
     ];
   }
@@ -107,36 +86,16 @@ function getActionStages_(action) {
 
 function runActionStage_(action, stageIndex) {
   if (action === 'summarise') {
-    switch (stageIndex) {
-      case 0:
-        resetRunState_();
-        return 'Run state reset.';
-      case 1:
-        normalizeAccountRows_();
-        normalizeTransferRows_();
-        normalizeRecurrenceRows_();
-        return 'Inputs normalized.';
-      case 2:
-        reviewAndCleanupInputSheets_();
-        return 'Inputs reviewed and cleaned.';
-      case 3:
-        flagExpiredIncome_();
-        return 'Inactive income flagged.';
-      case 4:
-        flagExpiredTransfers_();
-        return 'Inactive transfers flagged.';
-      case 5:
-        flagExpiredExpenses_();
-        return 'Inactive expenses flagged.';
-      case 6:
-        flagExpiredPolicies_();
-        return 'Inactive policies flagged.';
-      case 7:
-        refreshAccountSummaries_();
-        return 'Account summaries updated.';
-      default:
-        return 'Done.';
+    if (stageIndex === 0) {
+      resetRunState_();
+      preprocessInputSheets_();
+      return 'Inputs reviewed and cleaned.';
     }
+    if (stageIndex === 1) {
+      refreshAccountSummaries_();
+      return 'Account summaries updated.';
+    }
+    return 'Done.';
   }
 
   if (action === 'journal') {

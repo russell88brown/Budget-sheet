@@ -309,14 +309,6 @@ const Schema = {
         { name: 'Alerts', type: 'string', required: false, description: 'Engine flags' },
       ],
     },
-    {
-      name: Config.SHEETS.LOGS,
-      columns: [
-        { name: 'Timestamp', type: 'date', required: true, description: 'Logged time', format: 'yyyy-mm-dd hh:mm' },
-        { name: 'Level', type: 'string', required: true, description: 'INFO / WARN / ERROR' },
-        { name: 'Message', type: 'string', required: true, description: 'Log message' },
-      ],
-    },
   ],
   toMarkdown: function () {
     var lines = [];

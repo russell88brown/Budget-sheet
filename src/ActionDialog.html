@@ -64,6 +64,22 @@
       var action = <?= JSON.stringify(action) ?>;
       var stages = <?= JSON.stringify(stages || []) ?>;
       var hasStarted = false;
+      if (typeof stages === 'string') {
+        try {
+          stages = JSON.parse(stages);
+        } catch (err) {
+          stages = [stages];
+        }
+      }
+      if (!Array.isArray(stages)) {
+        stages = [String(stages)];
+      }
+      stages = stages.map(function (stage) {
+        if (stage && stage.label) {
+          return stage.label;
+        }
+        return String(stage);
+      });
 
       function line_(text, cls) {
         var el = document.createElement('div');
@@ -99,13 +115,23 @@
         }
         var stageLabel = stages[index];
         line_((index + 1) + '. ' + stageLabel, 'running');
+        var statusLine = line_('  -> Running... (0s)', 'pending');
+        var startedAt = Date.now();
+        var timer = setInterval(function () {
+          var elapsed = Math.floor((Date.now() - startedAt) / 1000);
+          statusLine.textContent = '  -> Running... (' + elapsed + 's)';
+        }, 1000);
         google.script.run
           .withSuccessHandler(function (msg) {
-            line_('  -> ' + (msg || 'Done.'), 'done');
+            clearInterval(timer);
+            statusLine.textContent = '  -> ' + (msg || 'Done.');
+            statusLine.className = 'line done';
             runNext_(index + 1);
           })
           .withFailureHandler(function (err) {
-            line_('  -> ' + (err && err.message ? err.message : 'Failed.'), 'error');
+            clearInterval(timer);
+            statusLine.textContent = '  -> ' + (err && err.message ? err.message : 'Failed.');
+            statusLine.className = 'line error';
             var closeBtn = document.getElementById('close-btn');
             closeBtn.disabled = false;
           })

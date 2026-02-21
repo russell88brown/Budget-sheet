@@ -84,7 +84,6 @@ Opens a setup dialog with these actions:
 - **Daily** (daily totals + account balances)
 - **Monthly** (monthly stats per account)
 - **Dashboard** (charts + insights)
-- **Logs** (engine logs)
 
 ### Other
 - **Settings** (helper lists + settings)
