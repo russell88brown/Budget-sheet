@@ -130,5 +130,26 @@ That’s it. The model is forward-only and always rebuilds outputs from scratch.
 
 ---
 
-## 🛠 Want the technical details?
+## 🧑‍💻 Development (clasp sync)
+
+Prerequisites:
+- Node.js LTS + npm
+- Access to the target Apps Script project
+
+Setup:
+1. Install clasp: `npm install -g @google/clasp`
+2. Login: `clasp login`
+3. Create local config: `Copy-Item .clasp.example.json .clasp.json`
+4. Edit `.clasp.json` and set your `scriptId`
+
+Common commands:
+- `clasp pull`
+- `clasp push`
+- `clasp open`
+
+Detailed setup guide: `docs/CLASP.md`
+
+---
+
+## 🛠 Technical details
 See: `docs/TECHNICAL.md`
