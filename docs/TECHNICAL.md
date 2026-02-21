@@ -20,7 +20,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 ### Inputs
 
 #### Accounts
-- Columns: Account Name, Balance, Type, Include, Expense Avg / Month, Income Avg / Month, Net Cash Flow / Month, Interest Rate (APR %), Interest Method, Interest Frequency, Interest Repeat Every, Interest Start Date, Interest End Date
+- Columns: Account Name, Balance, Type, Include, Expense Avg / Month, Income Avg / Month, Net Cash Flow / Month, Interest Rate (APR %), Interest Fee / Month, Interest Method, Interest Frequency, Interest Repeat Every, Interest Start Date, Interest End Date
 - Type: enum { Cash, Credit }
 - Include: boolean, controls whether account appears in forecast outputs
 
@@ -83,6 +83,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 
 ### c) Build journal
 - `buildJournalRows_()` applies events in chronological order and produces running balances.
+- Interest accrues daily per account and posts in bulk on configured posting dates.
 - Repayment transfers are capped to the remaining credit balance.
 - If a credit balance is already >= 0, repayment transfers are skipped and logged once per name.
 - `Transfer - Everything Except` keeps the specified amount in the source account and moves any excess.

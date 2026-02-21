@@ -29,7 +29,23 @@ const Engine = {
     toastStep_('Sorting events by date...');
     Logger.info('Sorting events...');
     events.sort(function (a, b) {
-      return a.date.getTime() - b.date.getTime();
+      var dateDiff = a.date.getTime() - b.date.getTime();
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      var priorityDiff = eventSortPriority_(a) - eventSortPriority_(b);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      var nameA = a.name || '';
+      var nameB = b.name || '';
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      return 0;
     });
     Logger.info('Events sorted');
 
@@ -48,6 +64,7 @@ const Engine = {
 };
 
 function preprocessInputSheets_() {
+  normalizeAccountRows_();
   toastStep_('Checking active transfers...');
   deactivateExpiredTransfers_();
   normalizeTransferRows_();
@@ -82,10 +99,16 @@ function toastStep_(message, delayMs) {
   }
 }
 
-var runState_ = { creditPaidOffWarned: {} };
+var runState_ = {
+  creditPaidOffWarned: {},
+  interest: {},
+};
 
 function resetRunState_() {
-  runState_ = { creditPaidOffWarned: {} };
+  runState_ = {
+    creditPaidOffWarned: {},
+    interest: {},
+  };
 }
 
 function deactivateExpiredExpenses_() {
@@ -340,6 +363,171 @@ function mapLegacyFrequency_(frequencyValue, repeatEveryValue, startDateValue, e
     repeatEvery: repeatEvery,
     endDate: endDate,
   };
+}
+
+function normalizeAccountRows_() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var typeIdx = headers.indexOf('Type');
+  var includeIdx = headers.indexOf('Include');
+  var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
+  var incomeAvgIdx = headers.indexOf('Income Avg / Month');
+  var netFlowIdx = headers.indexOf('Net Cash Flow / Month');
+  var rateIdx = headers.indexOf('Interest Rate (APR %)');
+  var feeIdx = headers.indexOf('Interest Fee / Month');
+  var methodIdx = headers.indexOf('Interest Method');
+  var freqIdx = headers.indexOf('Interest Frequency');
+  var repeatIdx = headers.indexOf('Interest Repeat Every');
+  if (typeIdx === -1 || includeIdx === -1 || methodIdx === -1 || freqIdx === -1 || repeatIdx === -1) {
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = false;
+  values.forEach(function (row) {
+    var method = normalizeInterestMethod_(row[methodIdx]);
+    var frequency = normalizeInterestFrequency_(row[freqIdx]);
+    var methodLooksLikeFrequency = normalizeInterestFrequency_(row[methodIdx]);
+    var frequencyLooksLikeMethod = normalizeInterestMethod_(row[freqIdx]);
+    if (!method && !frequency && methodLooksLikeFrequency && frequencyLooksLikeMethod) {
+      method = frequencyLooksLikeMethod;
+      frequency = methodLooksLikeFrequency;
+    }
+
+    if (typeIdx !== -1 && row[typeIdx]) {
+      var normalizedType = normalizeAccountType_(row[typeIdx]);
+      if (normalizedType && normalizedType !== row[typeIdx]) {
+        row[typeIdx] = normalizedType;
+        updated = true;
+      }
+    }
+    if (includeIdx !== -1 && row[includeIdx] !== '' && row[includeIdx] !== null) {
+      var include = toBoolean_(row[includeIdx]);
+      if (include !== row[includeIdx]) {
+        row[includeIdx] = include;
+        updated = true;
+      }
+    }
+    if (expenseAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[expenseAvgIdx])) {
+      row[expenseAvgIdx] = '';
+      updated = true;
+    }
+    if (incomeAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[incomeAvgIdx])) {
+      row[incomeAvgIdx] = '';
+      updated = true;
+    }
+    if (netFlowIdx !== -1 && !isValidAccountSummaryNumber_(row[netFlowIdx])) {
+      row[netFlowIdx] = '';
+      updated = true;
+    }
+    if (rateIdx !== -1 && !isValidNumberOrBlank_(row[rateIdx])) {
+      row[rateIdx] = '';
+      updated = true;
+    }
+    if (feeIdx !== -1 && !isValidNumberOrBlank_(row[feeIdx])) {
+      row[feeIdx] = '';
+      updated = true;
+    }
+    if (method !== row[methodIdx]) {
+      row[methodIdx] = method || '';
+      updated = true;
+    }
+    if (frequency !== row[freqIdx]) {
+      row[freqIdx] = frequency || '';
+      updated = true;
+    }
+
+    var repeatEvery = toPositiveInt_(row[repeatIdx]);
+    var normalizedRepeat = frequency ? (repeatEvery || 1) : '';
+    if (normalizedRepeat !== row[repeatIdx]) {
+      row[repeatIdx] = normalizedRepeat;
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
+}
+
+function normalizeInterestMethod_(value) {
+  if (value === '' || value === null || value === undefined) {
+    return '';
+  }
+  var lower = String(value).trim().toLowerCase();
+  if (lower === String(Config.INTEREST_METHODS.APR_SIMPLE).toLowerCase()) {
+    return Config.INTEREST_METHODS.APR_SIMPLE;
+  }
+  if (lower === String(Config.INTEREST_METHODS.APY_COMPOUND).toLowerCase()) {
+    return Config.INTEREST_METHODS.APY_COMPOUND;
+  }
+  return '';
+}
+
+function normalizeInterestFrequency_(value) {
+  if (value === '' || value === null || value === undefined) {
+    return '';
+  }
+  var lower = String(value).trim().toLowerCase();
+  if (lower === String(Config.FREQUENCIES.DAILY).toLowerCase()) {
+    return Config.FREQUENCIES.DAILY;
+  }
+  if (lower === String(Config.FREQUENCIES.WEEKLY).toLowerCase()) {
+    return Config.FREQUENCIES.WEEKLY;
+  }
+  if (lower === String(Config.FREQUENCIES.MONTHLY).toLowerCase()) {
+    return Config.FREQUENCIES.MONTHLY;
+  }
+  if (lower === String(Config.FREQUENCIES.YEARLY).toLowerCase()) {
+    return Config.FREQUENCIES.YEARLY;
+  }
+  return '';
+}
+
+function normalizeAccountType_(value) {
+  var lower = String(value).trim().toLowerCase();
+  if (lower === String(Config.ACCOUNT_TYPES.CASH).toLowerCase()) {
+    return Config.ACCOUNT_TYPES.CASH;
+  }
+  if (lower === String(Config.ACCOUNT_TYPES.CREDIT).toLowerCase()) {
+    return Config.ACCOUNT_TYPES.CREDIT;
+  }
+  return value;
+}
+
+function isValidNumberOrBlank_(value) {
+  if (value === '' || value === null || value === undefined) {
+    return true;
+  }
+  return toNumber_(value) !== null;
+}
+
+function isValidAccountSummaryNumber_(value) {
+  if (value === '' || value === null || value === undefined) {
+    return true;
+  }
+  return typeof value === 'number' && !isNaN(value);
+}
+
+function eventSortPriority_(event) {
+  if (!event || !event.kind) {
+    return 50;
+  }
+  if (event.kind === 'Interest' && event.interestAccrual === true) {
+    return 20;
+  }
+  if (event.kind === 'Interest') {
+    return 30;
+  }
+  return 10;
 }
 
 function updateExpenseMonthlyAverages_() {
@@ -793,29 +981,62 @@ function computeInterestAmount_(balances, event) {
   if (!event) {
     return 0;
   }
+  if (event.interestAccrual) {
+    accrueDailyInterest_(balances, event);
+    return 0;
+  }
   var account = event.account;
   if (!account) {
     return 0;
   }
+  var bucket = getInterestBucket_(account);
+  var accrued = bucket.accrued || 0;
+  var fee = computeInterestFeePerPosting_(event);
+  bucket.accrued = 0;
+  bucket.lastPostingDate = event.date ? normalizeDate_(event.date) : null;
+  return roundUpCents_(accrued - fee);
+}
+
+function accrueDailyInterest_(balances, event) {
+  var account = event.account;
+  if (!account) {
+    return;
+  }
   var rate = event.rate;
   if (rate === null || rate === undefined || rate === '') {
-    return 0;
-  }
-  var frequency = event.frequency;
-  var periodsPerYear = Recurrence.periodsPerYear(frequency, event.repeatEvery);
-  if (!periodsPerYear) {
-    return 0;
-  }
-  var annualRate = rate / 100;
-  var periodRate = annualRate / periodsPerYear;
-  if (event.method === Config.INTEREST_METHODS.APY_COMPOUND) {
-    periodRate = Math.pow(1 + annualRate, 1 / periodsPerYear) - 1;
+    return;
   }
   var balance = balances[account] || 0;
   if (!balance) {
+    return;
+  }
+  var annualRate = rate / 100;
+  var dailyRate = annualRate / 365;
+  if (event.method === Config.INTEREST_METHODS.APY_COMPOUND) {
+    dailyRate = Math.pow(1 + annualRate, 1 / 365) - 1;
+  }
+  var bucket = getInterestBucket_(account);
+  bucket.accrued = (bucket.accrued || 0) + balance * dailyRate;
+}
+
+function computeInterestFeePerPosting_(event) {
+  var monthlyFee = toNumber_(event.monthlyFee);
+  if (monthlyFee === null || monthlyFee <= 0) {
     return 0;
   }
-  return roundUpCents_(balance * periodRate);
+  var periodsPerYear = Recurrence.periodsPerYear(event.frequency, event.repeatEvery);
+  if (!periodsPerYear) {
+    return monthlyFee;
+  }
+  return monthlyFee * (12 / periodsPerYear);
+}
+
+function getInterestBucket_(accountName) {
+  runState_.interest = runState_.interest || {};
+  if (!runState_.interest[accountName]) {
+    runState_.interest[accountName] = { accrued: 0, lastPostingDate: null };
+  }
+  return runState_.interest[accountName];
 }
 
 function cloneBalances_(balances) {

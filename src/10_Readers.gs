@@ -19,11 +19,12 @@ const Readers = {
           type: row['Type'],
           forecast: toBoolean_(row['Include']),
           interestRate: toNumber_(row['Interest Rate (APR %)']),
+          interestMonthlyFee: toNumber_(row['Interest Fee / Month']),
           interestMethod: row['Interest Method'],
-          interestFrequency: interestRecurrence.frequency,
-          interestRepeatEvery: interestRecurrence.repeatEvery,
-          interestStartDate: interestRecurrence.startDate,
-          interestEndDate: interestRecurrence.endDate,
+          interestPostingFrequency: interestRecurrence.frequency,
+          interestPostingRepeatEvery: interestRecurrence.repeatEvery,
+          interestPostingStartDate: interestRecurrence.startDate,
+          interestPostingEndDate: interestRecurrence.endDate,
         };
       });
   },

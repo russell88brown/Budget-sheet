@@ -75,22 +75,41 @@ const Events = {
       if (!account) {
         return [];
       }
-      if (!account.interestFrequency || !account.interestRate) {
+      if (!account.interestPostingFrequency || !account.interestRate) {
         return [];
       }
       var window = getForecastWindow_();
-      var startDate = account.interestStartDate || window.start;
-      var endDate = account.interestEndDate || null;
-      var dates = Recurrence.expand({
+      var startDate = account.interestPostingStartDate || window.start;
+      var endDate = account.interestPostingEndDate || null;
+      var postingDates = Recurrence.expand({
         startDate: startDate,
-        frequency: account.interestFrequency,
-        repeatEvery: account.interestRepeatEvery,
+        frequency: account.interestPostingFrequency,
+        repeatEvery: account.interestPostingRepeatEvery,
         endDate: endDate,
       });
-      if (!dates.length) {
+      if (!postingDates.length) {
         return [];
       }
-      return dates.map(function (date) {
+      var accrualDates = Recurrence.expand({
+        startDate: startDate,
+        frequency: Config.FREQUENCIES.DAILY,
+        repeatEvery: 1,
+        endDate: endDate,
+      });
+      var accrualEvents = accrualDates.map(function (date) {
+        return {
+          date: date,
+          kind: 'Interest',
+          behavior: 'Interest Accrual',
+          name: 'Interest Accrual',
+          account: account.name,
+          rate: account.interestRate,
+          method: account.interestMethod,
+          interestAccrual: true,
+          skipJournal: true,
+        };
+      });
+      var postingEvents = postingDates.map(function (date) {
         return {
           date: date,
           kind: 'Interest',
@@ -98,11 +117,13 @@ const Events = {
           name: 'Interest',
           account: account.name,
           rate: account.interestRate,
+          monthlyFee: account.interestMonthlyFee,
           method: account.interestMethod,
-          frequency: account.interestFrequency,
-          repeatEvery: account.interestRepeatEvery,
+          frequency: account.interestPostingFrequency,
+          repeatEvery: account.interestPostingRepeatEvery,
         };
       });
+      return accrualEvents.concat(postingEvents);
     });
   },
 };

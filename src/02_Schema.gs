@@ -43,6 +43,13 @@ const Schema = {
           format: '0.00',
         },
         {
+          name: 'Interest Fee / Month',
+          type: 'number',
+          required: false,
+          description: 'Monthly fee charged to the account',
+          format: '0.00',
+        },
+        {
           name: 'Interest Method',
           type: 'enum',
           required: false,
