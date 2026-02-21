@@ -88,17 +88,43 @@
 
           statusEl.textContent = 'Exporting...';
           google.script.run
-            .withSuccessHandler(function () {
-              statusEl.textContent = 'Export complete.';
+            .withSuccessHandler(function (result) {
+              if (!result || !result.base64) {
+                statusEl.textContent = 'Export completed, but no file was returned.';
+                return;
+              }
+              downloadBase64_(result.base64, result.fileName || 'budget-export.zip', result.mimeType || 'application/zip');
+              var count = result.fileCount || 0;
+              statusEl.textContent = 'Download started' + (count ? ' (' + count + ' JSON files).' : '.');
               setTimeout(function () {
                 google.script.host.close();
-              }, 500);
+              }, 900);
             })
             .withFailureHandler(function (err) {
               statusEl.textContent = err && err.message ? err.message : 'Export failed.';
             })
             .runExportWithSelection(selected);
         });
+
+        function downloadBase64_(base64, fileName, mimeType) {
+          var binary = atob(base64);
+          var len = binary.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i += 1) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          var blob = new Blob([bytes], { type: mimeType });
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(function () {
+            URL.revokeObjectURL(url);
+          }, 1500);
+        }
       })();
     </script>
   </body>

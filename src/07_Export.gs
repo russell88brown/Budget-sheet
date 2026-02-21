@@ -7,8 +7,7 @@ function showExportDialog() {
 }
 
 function runExportWithSelection(sheetNames) {
-  var rows = exportAllSheetsToJson(sheetNames);
-  return rows.length;
+  return buildExportZipPayload_(sheetNames);
 }
 
 function getExportableSheetNames_() {
@@ -59,6 +58,163 @@ function exportAllSheetsToJson(selectedSheetNames) {
   }
 
   return rows;
+}
+
+function buildExportZipPayload_(selectedSheetNames) {
+  var files = buildExportJsonFiles_(selectedSheetNames);
+  if (!files.length) {
+    throw new Error('No exportable data found for the selected sheets.');
+  }
+
+  var blobs = files.map(function (file) {
+    return Utilities.newBlob(file.content, 'application/json', file.fileName);
+  });
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var stamp = Utilities.formatDate(new Date(), tz, 'yyyyMMdd-HHmmss');
+  var zipName = 'budget-export-' + stamp + '.zip';
+  var zipBlob = Utilities.zip(blobs, zipName);
+
+  return {
+    fileName: zipName,
+    mimeType: 'application/zip',
+    base64: Utilities.base64Encode(zipBlob.getBytes()),
+    fileCount: files.length,
+  };
+}
+
+function buildExportJsonFiles_(selectedSheetNames) {
+  var ss = SpreadsheetApp.getActive();
+  var allowed = getExportableSheetNames_();
+  var sheetNames = Array.isArray(selectedSheetNames) && selectedSheetNames.length
+    ? selectedSheetNames
+    : allowed.slice();
+  sheetNames = sheetNames.filter(function (name) {
+    return allowed.indexOf(name) !== -1;
+  });
+
+  var files = [];
+  var exportedAt = new Date().toISOString();
+  sheetNames.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      return;
+    }
+    if (name === Config.SHEETS.JOURNAL) {
+      files = files.concat(buildJournalJsonFiles_(sheet, exportedAt));
+      return;
+    }
+
+    var exportData = exportSheetRows_(sheet, name);
+    var payload = {
+      sheet: name,
+      exportedAt: exportedAt,
+      headers: exportData.headers,
+      rows: rowsToObjects_(exportData.headers, exportData.rows),
+    };
+    files.push({
+      fileName: toExportFileName_(name) + '.json',
+      content: JSON.stringify(payload, null, 2),
+    });
+  });
+
+  return files;
+}
+
+function buildJournalJsonFiles_(sheet, exportedAt) {
+  var files = [];
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length === 0) {
+    return files;
+  }
+  var headers = data[0] || [];
+  var dateIndex = headers.indexOf('Date');
+  if (dateIndex === -1) {
+    var fallbackRows = data.slice(1).filter(function (row) {
+      return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
+    });
+    files.push({
+      fileName: toExportFileName_(Config.SHEETS.JOURNAL) + '.json',
+      content: JSON.stringify(
+        {
+          sheet: Config.SHEETS.JOURNAL,
+          exportedAt: exportedAt,
+          headers: headers,
+          rows: rowsToObjects_(headers, fallbackRows),
+        },
+        null,
+        2
+      ),
+    });
+    return files;
+  }
+
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var groups = {};
+  data
+    .slice(1)
+    .filter(function (row) {
+      return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
+    })
+    .forEach(function (row) {
+      var date = row[dateIndex];
+      var key = 'unknown';
+      if (date instanceof Date) {
+        key = Utilities.formatDate(date, tz, 'yyyy-MM');
+      }
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(row);
+    });
+
+  Object.keys(groups)
+    .sort()
+    .forEach(function (monthKey) {
+      var payload = {
+        sheet: Config.SHEETS.JOURNAL,
+        month: monthKey,
+        exportedAt: exportedAt,
+        headers: headers,
+        rows: rowsToObjects_(headers, groups[monthKey]),
+      };
+      files.push({
+        fileName: toExportFileName_(Config.SHEETS.JOURNAL + '-' + monthKey) + '.json',
+        content: JSON.stringify(payload, null, 2),
+      });
+    });
+
+  return files;
+}
+
+function rowsToObjects_(headers, rows) {
+  if (!headers || !headers.length || !rows || !rows.length) {
+    return [];
+  }
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  return rows.map(function (row) {
+    var obj = {};
+    headers.forEach(function (header, idx) {
+      if (!header) {
+        return;
+      }
+      var value = row[idx];
+      if (value instanceof Date) {
+        obj[header] = Utilities.formatDate(value, tz, 'yyyy-MM-dd');
+        return;
+      }
+      obj[header] = value;
+    });
+    return obj;
+  });
+}
+
+function toExportFileName_(name) {
+  return String(name || 'sheet')
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase() || 'sheet';
 }
 
 function exportSheetRows_(sheet, sheetName) {
