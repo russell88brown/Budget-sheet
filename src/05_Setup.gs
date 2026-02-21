@@ -44,6 +44,7 @@ function setupStageTheme_() {
   }));
   applyReferenceTheme_(ss);
   applyAccountsTheme_(ss);
+  applyMonthlyTotalHeaderTheme_(ss);
   applyInputActivityTheme_(ss);
 }
 
@@ -550,6 +551,29 @@ function applyReferenceTheme_(spreadsheet) {
   var lastCol = Math.max(4, sheet.getLastColumn());
   sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#f1f3f4');
   sheet.setFrozenRows(1);
+}
+
+function applyMonthlyTotalHeaderTheme_(spreadsheet) {
+  [Config.SHEETS.INCOME, Config.SHEETS.TRANSFERS, Config.SHEETS.EXPENSE].forEach(function (sheetName) {
+    var sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      return;
+    }
+    var lastCol = sheet.getLastColumn();
+    if (lastCol < 1) {
+      return;
+    }
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var idx = headers.indexOf('Monthly Total');
+    if (idx === -1) {
+      return;
+    }
+    sheet
+      .getRange(1, idx + 1)
+      .setBackground('#fff3cd')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center');
+  });
 }
 
 function applyInputActivityTheme_(spreadsheet) {
