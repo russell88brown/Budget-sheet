@@ -302,21 +302,38 @@ function formatReferenceSheet_(spreadsheet) {
 
   setupReferenceLayout_(spreadsheet, sheet);
 
-  var lastCol = Math.max(8, sheet.getLastColumn());
-  sheet.getRange('A1:B1').setFontWeight('bold').setBackground('#e9eef7');
+  var lastCol = Math.max(14, sheet.getLastColumn());
+  sheet.getRange('A1:C1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('D1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('F1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('H1').setFontWeight('bold').setBackground('#e9eef7');
+  sheet.getRange('J1:N1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.setFrozenRows(1);
   sheet.autoResizeColumns(1, lastCol);
 
   sheet.getRange('B2:B3').setNumberFormat('yyyy-mm-dd');
   sheet.getRange('A2:A3').setFontWeight('bold');
+  sheet.getRange('A5:A7').setFontWeight('bold');
   sheet.getRange('A2:B3').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange('A5:C7').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange('D1:D').setHorizontalAlignment('left');
   // Input boxes for expected user-edited values.
   sheet.getRange('B2:B3').setBorder(true, true, true, true, false, false, '#1a73e8', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.getRange('B2:B3').setBackground('#eef5ff');
+  sheet.getRange('B5:C7').setBackground('#f8f9fa');
+  var runLogBoxRows = Math.max(8, sheet.getLastRow());
+  sheet.getRange(2, 10, runLogBoxRows - 1, 5).setBorder(
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    '#1a73e8',
+    SpreadsheetApp.BorderStyle.SOLID_MEDIUM
+  );
+  sheet.getRange(2, 10, runLogBoxRows - 1, 5).setBackground('#f8f9fa');
+  sheet.getRange('J2:J').setNumberFormat('yyyy-mm-dd hh:mm');
   var categoryBoxRows = Math.max(12, sheet.getLastRow());
   sheet.getRange(2, 4, categoryBoxRows - 1, 1).setBorder(
     true,
@@ -358,11 +375,20 @@ function formatReferenceSheet_(spreadsheet) {
 function setupReferenceLayout_(spreadsheet, sheet) {
   sheet.getRange('A1').setValue('Setting');
   sheet.getRange('B1').setValue('Value');
+  sheet.getRange('C1').setValue('Status');
   sheet.getRange('A2').setValue('Forecast Start');
   sheet.getRange('A3').setValue('Forecast End');
+  sheet.getRange('A5').setValue('Last Run Mode');
+  sheet.getRange('A6').setValue('Last Run Scenario');
+  sheet.getRange('A7').setValue('Last Run At');
   sheet.getRange('D1').setValue('Expense Type');
   sheet.getRange('F1').setValue('Income Type');
   sheet.getRange('H1').setValue('Scenario');
+  sheet.getRange('J1').setValue('Run At');
+  sheet.getRange('K1').setValue('Mode');
+  sheet.getRange('L1').setValue('Scenario');
+  sheet.getRange('M1').setValue('Status');
+  sheet.getRange('N1').setValue('Notes');
 
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_START, sheet.getRange('B2'));
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_END, sheet.getRange('B3'));
@@ -388,6 +414,15 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
     var endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 24);
     endCell.setValue(endDate);
+  }
+  if (!sheet.getRange('B5').getValue()) {
+    sheet.getRange('B5').setValue('-');
+  }
+  if (!sheet.getRange('B6').getValue()) {
+    sheet.getRange('B6').setValue(Config.SCENARIOS.DEFAULT);
+  }
+  if (!sheet.getRange('B7').getValue()) {
+    sheet.getRange('B7').setValue('-');
   }
 
   var lastRow = Math.max(sheet.getLastRow(), 2);

@@ -22,7 +22,11 @@ function runSummaryForScenario(scenarioId) {
     toastStep_('Writing dashboard...');
     writeDashboard_(dashboard);
 
+    recordLastRunMetadata_('Summaries', activeScenarioId, 'Success');
     toastStep_('Summary complete.');
+  } catch (err) {
+    recordLastRunMetadata_('Summaries', activeScenarioId, 'Failed');
+    throw err;
   } finally {
     endRunProgress_();
   }

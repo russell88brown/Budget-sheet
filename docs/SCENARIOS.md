@@ -22,3 +22,11 @@ This document describes how scenario support is integrated into setup and defaul
 - Journal and summaries can be run for a selected scenario from the menu.
 - Scenario runs filter inputs before event generation.
 - Journal output includes `Scenario` to preserve traceability in exports and summaries.
+- Setup now exposes run metadata fields in `Settings`:
+  - `Last Run Mode` (`B5`)
+  - `Last Run Scenario` (`B6`)
+  - `Last Run At` (`B7`)
+  - `Status` (`C5`)
+- Run history log is appended in `Settings` (no extra sheet):
+  - Headers in `J1:N1`
+  - Data rows appended from `J2:N` (`Run At`, `Mode`, `Scenario`, `Status`, `Notes`)

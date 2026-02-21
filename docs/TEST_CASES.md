@@ -46,6 +46,16 @@ This file defines manual regression tests for the scenario-enabled planning engi
 - Expected:
   - Row is auto-disabled (`Include=false`).
   - Run completes without crash.
+  - Toast indicates rows were disabled for unknown scenario values.
+
+6. Run metadata tracking
+- Run `Run journal for scenario...` with `Stress`.
+- Expected in `Settings`:
+  - `B5 = Journal` or `Forecast` (depending on action)
+  - `B6 = Stress`
+  - `B7` timestamp updated
+  - `C5 = Success`
+  - New row appended in run log area `J:N` with matching mode/scenario/status.
 
 ## Setup Data Integration Tests
 

@@ -88,7 +88,11 @@ function summariseAccounts() {
     preprocessInputSheets_();
     toastStep_('Refreshing account summary values...');
     refreshAccountSummaries_();
+    recordLastRunMetadata_('Account Summaries', Config.SCENARIOS.DEFAULT, 'Success');
     toastStep_('Account summaries complete.');
+  } catch (err) {
+    recordLastRunMetadata_('Account Summaries', Config.SCENARIOS.DEFAULT, 'Failed');
+    throw err;
   } finally {
     endRunProgress_();
   }

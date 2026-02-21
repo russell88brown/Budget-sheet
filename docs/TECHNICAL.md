@@ -1,4 +1,4 @@
-Subject: Budget Forecast Engine Full Technical Reference
+ÔªøSubject: Budget Forecast Engine Full Technical Reference
 
 # Technical Reference
 
@@ -75,7 +75,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 
 #### Dashboard
 - Charts built from the Daily sheet (Cash vs Net, Debt).
-- ìFinancial Healthcheckî table with key stats.
+- ‚ÄúFinancial Healthcheck‚Äù table with key stats.
 - Horizontal account blocks: Ending, Min, Max, Net Change.
 
 ---
@@ -240,3 +240,106 @@ Main modules:
 - Outputs are fully reproducible.
 - Inputs are the only state.
 - Rerunning forecast always regenerates Journal and downstream summaries.
+---
+
+## 12) Schema Demonstration (Canonical)
+
+Canonical schema source is `src/02_Schema.gs` (`Schema.inputs`, `Schema.outputs`).
+
+### Sample input schema shapes
+
+`Accounts`:
+- `Account Name` (string, required)
+- `Balance` (number, required)
+- `Type` (enum: `Cash|Credit`, required)
+- `Include` (boolean)
+- `Scenario` (scenario, optional, defaults to `Base`)
+- `Money In / Month` (number, computed)
+- `Money Out / Month` (number, computed)
+- `Net Interest / Month` (number, computed)
+- `Net Change / Month` (number, computed)
+- `Interest Rate (APR %)` (number)
+- `Interest Fee / Month` (number)
+- `Interest Method` (enum)
+- `Interest Frequency` (enum)
+- `Interest Repeat Every` (positive_int)
+- `Interest Start Date` (date)
+
+`Income`:
+- `Include` (boolean, required)
+- `Scenario` (scenario, optional, defaults to `Base`)
+- `Monthly Total` (number, computed)
+- `Type` (income_type, required)
+- `Name` (string, required)
+- `Amount` (number, required)
+- `Frequency` (enum, required)
+- `Repeat Every` (positive_int)
+- `Start Date` (date, required)
+- `End Date` (date)
+- `To Account` (ref, required)
+- `Notes` (string)
+
+`Expense` and `Transfers` use the same recurrence pattern and include `Scenario` and `Monthly Total`.
+
+`Policies`, `Goals`, `Risk`:
+- Include `Scenario` as optional selector for scenario-specific rules.
+- Are validated and filtered by scenario before journal build.
+
+### Output schema shape
+
+`Journal` base columns:
+- `Date`
+- `Scenario`
+- `Account`
+- `Transaction Type`
+- `Name`
+- `Amount`
+- `Alerts`
+- Dynamic trailing columns: one per forecast account.
+
+### Runtime schema notes
+
+- `Scenario` is normalized by reader logic; blank values resolve to `Base`.
+- Setup applies data-validation lists and named ranges based on schema.
+- Writers compose final Journal headers from schema + dynamic account columns.
+
+---
+
+## 13) Document and Function Index
+
+### Document library
+
+- `README.md`: project overview and top-level doc index.
+- `docs/CLASP.md`: setup/sync paths (manual Apps Script copy or clasp).
+- `docs/CODEX.md`: local Codex development configuration notes.
+- `docs/SCENARIOS.md`: scenario setup/runtime integration notes.
+- `docs/TEST_CASES.md`: manual regression test scenarios.
+- `docs/TECHNICAL.md`: full functional and behavior reference (this file).
+
+### Function index (entrypoints and core modules)
+
+Menu/UI entrypoints (`src/01_Menu.gs`):
+- `onOpen`
+- `runForecast`
+- `runJournal`
+- `runJournalForScenarioPrompt`
+- `runSummaryForScenarioPrompt`
+- `runScenarioAction`
+- `summariseAccounts`
+- `showSetupDialog`
+- `runSetupActions`
+
+Export entrypoints (`src/07_Export.gs`):
+- `showExportDialog`
+- `runExportWithSelection`
+- `exportAllSheetsToJson`
+
+Summary entrypoints (`src/60_Summary.gs`):
+- `runSummary`
+- `runSummaryForScenario`
+
+Core module APIs:
+- `Engine.runForecast`, `Engine.runForecastForScenario`, `Engine.runJournalOnly`, `Engine.runJournalForScenario` (`src/40_Engine.gs`)
+- `Readers.readAccounts`, `Readers.readIncome`, `Readers.readExpenses`, `Readers.readTransfers`, `Readers.readPolicies`, `Readers.readGoals`, `Readers.readRiskSettings`, `Readers.readScenarios` (`src/10_Readers.gs`)
+- `Writers.writeJournal` (`src/50_Writers.gs`)
+- `Recurrence.expand`, `Recurrence.stepForward`, `Recurrence.periodsPerYear` (`src/30_Recurrence.gs`)

@@ -39,6 +39,7 @@ function runJournalPipeline_(options) {
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
   var totalSteps = preprocessInputs ? 10 : 7;
+  var preprocessReport = null;
   resetForecastWindowCache_();
   getForecastWindow_();
 
@@ -48,7 +49,7 @@ function runJournalPipeline_(options) {
     resetRunState_();
 
     if (preprocessInputs) {
-      preprocessInputSheets_();
+      preprocessReport = preprocessInputSheets_();
     }
 
     toastStep_('Reading input sheets...');
@@ -96,7 +97,11 @@ function runJournalPipeline_(options) {
     var journalData = buildJournalRows_(accounts, events, policies, riskSettings, scenarioId);
     toastStep_('Writing journal...');
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
+    recordLastRunMetadata_(modeLabel, scenarioId, 'Success', preprocessReport);
     toastStep_(options.completionToast || 'Run complete.');
+  } catch (err) {
+    recordLastRunMetadata_(modeLabel, scenarioId, 'Failed', preprocessReport);
+    throw err;
   } finally {
     endRunProgress_();
     resetForecastWindowCache_();
@@ -124,17 +129,29 @@ function preprocessInputSheets_() {
   normalizeTransferRows_();
   normalizeRecurrenceRows_();
   toastStep_('Reviewing and validating input sheets...');
-  reviewAndCleanupInputSheets_();
+  var validationReport = reviewAndCleanupInputSheets_();
   toastStep_('Applying date-based include flags...');
   flagExpiredIncome_();
   flagExpiredTransfers_();
   flagExpiredExpenses_();
   flagExpiredPolicies_();
+  return {
+    scenarioValidation: validationReport && validationReport.scenarioValidation
+      ? validationReport.scenarioValidation
+      : { totalDisabled: 0, bySheet: {} },
+  };
 }
 
 function reviewAndCleanupInputSheets_() {
   var validScenarios = buildScenarioLookup_();
-  validateScenariosAcrossInputs_(validScenarios);
+  var scenarioValidation = validateScenariosAcrossInputs_(validScenarios);
+  if (scenarioValidation.totalDisabled > 0) {
+    toastStep_(
+      'Disabled ' +
+        scenarioValidation.totalDisabled +
+        ' row(s) with unknown scenario values.'
+    );
+  }
   var validAccounts = validateAccountsSheet_();
   validatePoliciesSheet_(validAccounts);
   validateGoalsSheet_(validAccounts);
@@ -142,6 +159,9 @@ function reviewAndCleanupInputSheets_() {
   validateIncomeSheet_(validAccounts);
   validateTransferSheet_(validAccounts);
   validateExpenseSheet_(validAccounts);
+  return {
+    scenarioValidation: scenarioValidation,
+  };
 }
 
 function buildScenarioLookup_() {
@@ -164,30 +184,37 @@ function validateScenariosAcrossInputs_(validScenarios) {
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.EXPENSE,
   ];
+  var summary = { totalDisabled: 0, bySheet: {} };
   inputSheets.forEach(function (sheetName) {
-    disableRowsWithUnknownScenario_(sheetName, validScenarios);
+    var disabledCount = disableRowsWithUnknownScenario_(sheetName, validScenarios);
+    if (disabledCount > 0) {
+      summary.bySheet[sheetName] = disabledCount;
+      summary.totalDisabled += disabledCount;
+    }
   });
+  return summary;
 }
 
 function disableRowsWithUnknownScenario_(sheetName, validScenarios) {
   var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
   if (!sheet) {
-    return;
+    return 0;
   }
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   if (lastRow < 2 || lastCol < 1) {
-    return;
+    return 0;
   }
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIdx = headers.indexOf('Include');
   var scenarioIdx = headers.indexOf('Scenario');
   if (includeIdx === -1 || scenarioIdx === -1) {
-    return;
+    return 0;
   }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
+  var disabledCount = 0;
   values.forEach(function (row) {
     if (!toBoolean_(row[includeIdx])) {
       return;
@@ -196,12 +223,54 @@ function disableRowsWithUnknownScenario_(sheetName, validScenarios) {
     if (!validScenarios[scenarioId]) {
       row[includeIdx] = false;
       updated = true;
+      disabledCount += 1;
     }
   });
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
   }
+  return disabledCount;
+}
+
+function recordLastRunMetadata_(modeLabel, scenarioId, status, details) {
+  var ss = SpreadsheetApp.getActive();
+  var settingsSheet = ss.getSheetByName(Config.LISTS_SHEET);
+  if (!settingsSheet) {
+    return;
+  }
+  setupReferenceLayout_(ss, settingsSheet);
+  settingsSheet.getRange('B5').setValue(modeLabel || 'Run');
+  settingsSheet.getRange('B6').setValue(resolveScenarioId_(scenarioId));
+  settingsSheet.getRange('B7').setValue(new Date());
+  settingsSheet.getRange('C5').setValue(status || '');
+  settingsSheet.getRange('B7').setNumberFormat('yyyy-mm-dd hh:mm');
+  appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, details);
+}
+
+function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, details) {
+  if (!settingsSheet) {
+    return;
+  }
+  var scenarioValidation = details && details.scenarioValidation ? details.scenarioValidation : null;
+  var notes = '';
+  if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
+    notes = 'Disabled unknown scenario rows: ' + scenarioValidation.totalDisabled;
+  }
+
+  var row = 2;
+  var maxRows = settingsSheet.getMaxRows();
+  while (row <= maxRows && settingsSheet.getRange(row, 10).getValue() !== '') {
+    row += 1;
+  }
+  if (row > maxRows) {
+    settingsSheet.insertRowsAfter(maxRows, 1);
+    row = maxRows + 1;
+  }
+  settingsSheet.getRange(row, 10, 1, 5).setValues([
+    [new Date(), modeLabel || 'Run', resolveScenarioId_(scenarioId), status || '', notes],
+  ]);
+  settingsSheet.getRange(row, 10).setNumberFormat('yyyy-mm-dd hh:mm');
 }
 
 function buildAccountLookup_() {
