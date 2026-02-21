@@ -884,6 +884,7 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
   var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
   var balanceIdx = headers.indexOf('Balance');
+  var includeIdx = headers.indexOf('Include');
   var interestAvgIdx = headers.indexOf('Interest Avg / Month');
   var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
   var incomeAvgIdx = headers.indexOf('Income Avg / Month');
@@ -898,16 +899,24 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
 
   var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var interestAvgValues = rows.map(function (row) {
+    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
+    if (!included) {
+      return [''];
+    }
     var rate = rateIdx === -1 ? null : toNumber_(row[rateIdx]);
     var balance = balanceIdx === -1 ? null : toNumber_(row[balanceIdx]);
     var frequency = frequencyIdx === -1 ? null : row[frequencyIdx];
     var method = methodIdx === -1 ? '' : row[methodIdx];
     if (rate === null || balance === null || !frequency) {
-      return [''];
+      return [0];
     }
     return [computeEstimatedMonthlyInterest_(balance, rate, method)];
   });
   var expenseAvgValues = rows.map(function (row) {
+    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
+    if (!included) {
+      return [''];
+    }
     var name = row[nameIdx];
     var value = expenseTotalsByAccount[name];
     var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
@@ -915,25 +924,27 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
     if (fee !== null && fee > 0) {
       total = roundUpCents_(total + fee);
     }
-    if (value === undefined && (fee === null || fee <= 0)) {
-      return [''];
-    }
     return [total];
   });
   var incomeAvgValues = rows.map(function (row) {
+    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
+    if (!included) {
+      return [''];
+    }
     var name = row[nameIdx];
     var value = incomeTotalsByAccount[name];
-    return [value === undefined ? '' : value];
+    return [value === undefined ? 0 : value];
   });
   var netFlowValues = rows.map(function (row) {
+    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
+    if (!included) {
+      return [''];
+    }
     var name = row[nameIdx];
     var expense = expenseTotalsByAccount[name];
     var income = incomeTotalsByAccount[name];
     var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
     var hasFee = fee !== null && fee > 0;
-    if (expense === undefined && income === undefined && !hasFee) {
-      return [''];
-    }
     var expenseValue = expense === undefined ? 0 : expense;
     if (hasFee) {
       expenseValue = roundUpCents_(expenseValue + fee);
