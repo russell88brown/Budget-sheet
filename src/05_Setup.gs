@@ -2,6 +2,7 @@
 function setupSpreadsheet() {
   setupStageStructure_();
   setupStageValidationAndSettings_();
+  setupStageTheme_();
 }
 
 function setupStageStructure_() {
@@ -22,6 +23,7 @@ function setupStageValidationAndSettings_() {
 
   ensureAccountNameRanges_(ss);
   ensureCategoryRange_(ss);
+  setupStageSeedCategories_();
 
   Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
@@ -33,6 +35,15 @@ function setupStageValidationAndSettings_() {
 
   applyAccountsFormatting_(ss);
   formatReferenceSheet_(ss);
+}
+
+function setupStageTheme_() {
+  var ss = SpreadsheetApp.getActive();
+  applyStandardHeaderTheme_(ss, Schema.inputs.concat(Schema.outputs).map(function (spec) {
+    return spec.name;
+  }));
+  applyReferenceTheme_(ss);
+  applyAccountsTheme_(ss);
 }
 
 function applySchemaFormatsForSheet_(sheetName) {
@@ -441,4 +452,102 @@ function applyAccountsFormatting_(spreadsheet) {
     .build();
 
   sheet.setConditionalFormatRules(filtered.concat([negativeRule]));
+}
+
+function applyAccountsTheme_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!sheet) {
+    return;
+  }
+
+  var lastCol = sheet.getLastColumn();
+  var lastRow = sheet.getLastRow();
+  if (lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var coreHeaders = ['Account Name', 'Balance', 'Type', 'Include'];
+  var summaryHeaders = [
+    'Interest Avg / Month',
+    'Expense Avg / Month',
+    'Income Avg / Month',
+    'Net Cash Flow / Month',
+  ];
+  var interestHeaders = [
+    'Interest Rate (APR %)',
+    'Interest Fee / Month',
+    'Interest Method',
+    'Interest Frequency',
+    'Interest Repeat Every',
+    'Interest Start Date',
+  ];
+
+  colorHeaderGroup_(sheet, headers, coreHeaders, '#e8f0fe');
+  colorHeaderGroup_(sheet, headers, summaryHeaders, '#e6f4ea');
+  colorHeaderGroup_(sheet, headers, interestHeaders, '#fef7e0');
+
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setHorizontalAlignment('center');
+  sheet.autoResizeColumns(1, lastCol);
+
+  if (lastRow > 2) {
+    var includeCol = getHeaderColIndex_(headers, 'Include');
+    var typeCol = getHeaderColIndex_(headers, 'Type');
+    var nameCol = getHeaderColIndex_(headers, 'Account Name');
+    if (includeCol && typeCol && nameCol) {
+      var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+      dataRange.sort([
+        { column: includeCol, ascending: false },
+        { column: typeCol, ascending: true },
+        { column: nameCol, ascending: true },
+      ]);
+    }
+  }
+}
+
+function colorHeaderGroup_(sheet, headers, headerNames, color) {
+  headerNames.forEach(function (name) {
+    var idx = headers.indexOf(name);
+    if (idx === -1) {
+      return;
+    }
+    sheet.getRange(1, idx + 1).setBackground(color);
+  });
+}
+
+function getHeaderColIndex_(headers, name) {
+  var index = headers.indexOf(name);
+  return index === -1 ? null : index + 1;
+}
+
+function applyStandardHeaderTheme_(spreadsheet, sheetNames) {
+  (sheetNames || []).forEach(function (sheetName) {
+    var sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      return;
+    }
+    var lastCol = sheet.getLastColumn();
+    if (lastCol < 1) {
+      return;
+    }
+    var headerRange = sheet.getRange(1, 1, 1, lastCol);
+    headerRange
+      .setFontWeight('bold')
+      .setBackground('#f1f3f4')
+      .setWrap(true)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+    sheet.setFrozenRows(1);
+  });
+}
+
+function applyReferenceTheme_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(Config.LISTS_SHEET);
+  if (!sheet) {
+    return;
+  }
+  var lastCol = Math.max(4, sheet.getLastColumn());
+  sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#f1f3f4');
+  sheet.setFrozenRows(1);
 }

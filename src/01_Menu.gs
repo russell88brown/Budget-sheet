@@ -71,7 +71,7 @@ function runSetupActions(actions) {
     selected[action] = true;
   });
 
-  var orderedActions = ['structure', 'validation', 'categories', 'defaults'];
+  var orderedActions = ['structure', 'validation', 'theme', 'defaults', 'categories'];
   orderedActions.forEach(function (action) {
     if (!selected[action]) {
       return;
@@ -87,15 +87,23 @@ function runSetupActions(actions) {
         setupStageValidationAndSettings_();
         messages.push('Validation + settings complete');
         break;
-      case 'categories':
-        ss.toast('Seeding categories if empty...', 'Setup');
-        setupStageSeedCategories_();
-        messages.push('Categories seeded (if empty)');
+      case 'theme':
+        ss.toast('Applying theme formatting...', 'Setup');
+        setupStageTheme_();
+        messages.push('Theme complete');
         break;
       case 'defaults':
         ss.toast('Loading default data...', 'Setup');
         var result = loadDefaultData();
         messages.push(result && result.message ? result.message : 'Default data loaded.');
+        break;
+      case 'categories':
+        // Backward compatibility: category stage has moved into validation setup.
+        if (!selected.validation) {
+          ss.toast('Applying validations + settings...', 'Setup');
+          setupStageValidationAndSettings_();
+          messages.push('Validation + settings complete');
+        }
         break;
       default:
         messages.push('Unknown action: ' + action);
