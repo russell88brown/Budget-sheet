@@ -58,12 +58,12 @@
     <p class="desc">Runs with stage-by-stage commentary.</p>
     <div id="list" class="list"></div>
     <div class="actions">
-      <button id="run-btn" onclick="runStages()">Run</button>
-      <button onclick="google.script.host.close()">Close</button>
+      <button id="close-btn" onclick="google.script.host.close()">Close</button>
     </div>
     <script>
       var action = <?= JSON.stringify(action) ?>;
       var stages = <?= JSON.stringify(stages || []) ?>;
+      var hasStarted = false;
 
       function line_(text, cls) {
         var el = document.createElement('div');
@@ -75,10 +75,15 @@
       }
 
       function runStages() {
-        var runBtn = document.getElementById('run-btn');
-        runBtn.disabled = true;
+        if (hasStarted) {
+          return;
+        }
+        hasStarted = true;
+        var closeBtn = document.getElementById('close-btn');
+        closeBtn.disabled = true;
         if (!stages.length) {
           line_('No stages configured.', 'error');
+          closeBtn.disabled = false;
           return;
         }
         line_('Starting...', 'running');
@@ -88,6 +93,8 @@
       function runNext_(index) {
         if (index >= stages.length) {
           line_('Completed.', 'done');
+          var closeBtn = document.getElementById('close-btn');
+          closeBtn.disabled = false;
           return;
         }
         var stageLabel = stages[index];
@@ -99,9 +106,13 @@
           })
           .withFailureHandler(function (err) {
             line_('  -> ' + (err && err.message ? err.message : 'Failed.'), 'error');
+            var closeBtn = document.getElementById('close-btn');
+            closeBtn.disabled = false;
           })
           .runActionStage_(action, index);
       }
+
+      window.addEventListener('load', runStages);
     </script>
   </body>
 </html>
