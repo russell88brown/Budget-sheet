@@ -35,7 +35,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 
 #### Transfers
 - Columns: Include, Transfer Type, Name, Amount, Frequency, Repeat Every, Start Date, End Date, From Account, To Account, Notes
-- Transfer Type: enum { Transfer, Repayment }
+- Transfer Type: enum { Repayment - Amount, Repayment - All, Transfer - Amount, Transfer - Everything Except }
 
 ### Outputs
 
@@ -86,6 +86,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `buildJournalRows_()` applies events in chronological order and produces running balances.
 - Repayment transfers are capped to the remaining credit balance.
 - If a credit balance is already >= 0, repayment transfers are skipped and logged once per name.
+- `Transfer - Everything Except` keeps the specified amount in the source account and moves any excess.
 
 ### d) Write outputs
 - `Writers.writeJournal()` writes the Journal and applies formatting/filters.
@@ -121,7 +122,8 @@ Supported frequencies:
 - **Transfer**: moves balance between accounts
 
 ### Repayment handling
-- Repayments are capped to the remaining credit balance.
+- `Repayment - Amount`: pays the specified amount, capped to outstanding debt.
+- `Repayment - All`: always pays outstanding debt in full.
 - If a credit account is already paid off, the transfer is skipped.
 
 ### Alerts
@@ -135,7 +137,7 @@ Supported frequencies:
 ### Sheet ordering
 All major flows call a single ordering routine to ensure consistent tab order:
 
-Dashboard → Accounts → Transfers → Income → Expense → Journal → Daily → Monthly → Export → Settings → Logs
+Accounts → Income → Transfers → Expense → Journal → Daily → Monthly → Dashboard → Export → Settings → Logs
 
 ### Daily formatting
 - Date column formatted as `yyyy-mm-dd`

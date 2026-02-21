@@ -31,6 +31,7 @@ function validateTransfersExpenses() {
   toastStep_('Validating transfers and expenses...');
   resetRunState_();
   deactivateExpiredTransfers_();
+  normalizeTransferRows_();
   deactivateExpiredExpenses_();
   styleTransferRows_();
   styleExpenseRows_();

@@ -23,6 +23,12 @@ const Config = {
     Repayment: 'Repayment',
     Transfer: 'Transfer',
   },
+  TRANSFER_TYPES: {
+    REPAYMENT_AMOUNT: 'Repayment - Amount',
+    REPAYMENT_ALL: 'Repayment - All',
+    TRANSFER_AMOUNT: 'Transfer - Amount',
+    TRANSFER_EVERYTHING_EXCEPT: 'Transfer - Everything Except',
+  },
   ACCOUNT_TYPES: {
     CASH: 'Cash',
     CREDIT: 'Credit',

@@ -153,12 +153,12 @@ function formatReferenceSheet_(spreadsheet) {
   sheet.autoResizeColumns(1, lastCol);
 
   sheet.getRange('B2:B3').setNumberFormat('yyyy-mm-dd');
-  sheet.getRange('A2:A6').setFontWeight('bold');
-  sheet.getRange('A2:B6').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange('A2:A3').setFontWeight('bold');
+  sheet.getRange('A2:B3').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange('D1:D').setHorizontalAlignment('left');
   // Input boxes for expected user-edited values.
-  sheet.getRange('B2:B6').setBorder(true, true, true, true, false, false, '#1a73e8', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  sheet.getRange('B2:B6').setBackground('#eef5ff');
+  sheet.getRange('B2:B3').setBorder(true, true, true, true, false, false, '#1a73e8', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.getRange('B2:B3').setBackground('#eef5ff');
   var categoryBoxRows = Math.max(12, sheet.getLastRow());
   sheet.getRange(2, 4, categoryBoxRows - 1, 1).setBorder(
     true,
@@ -171,18 +171,13 @@ function formatReferenceSheet_(spreadsheet) {
     SpreadsheetApp.BorderStyle.SOLID_MEDIUM
   );
   sheet.getRange(2, 4, categoryBoxRows - 1, 1).setBackground('#eef5ff');
-
-  applyBooleanSettingsValidation_(sheet);
 }
 
 function setupReferenceLayout_(spreadsheet, sheet) {
-  sheet.getRange('A1').setValue('Settings / Policies');
-  sheet.getRange('B1').setValue('Policy Setting');
+  sheet.getRange('A1').setValue('Setting');
+  sheet.getRange('B1').setValue('Value');
   sheet.getRange('A2').setValue('Forecast Start');
   sheet.getRange('A3').setValue('Forecast End');
-  sheet.getRange('A4').setValue('Auto-deactivate expired rows');
-  sheet.getRange('A5').setValue('Transfers before expenses');
-  sheet.getRange('A6').setValue('Cap repayments to outstanding');
   sheet.getRange('D1').setValue('Expense Category');
 
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_START, sheet.getRange('B2'));
@@ -210,15 +205,6 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
     endDate.setMonth(endDate.getMonth() + 24);
     endCell.setValue(endDate);
   }
-  if (!sheet.getRange('B4').getValue()) {
-    sheet.getRange('B4').setValue('TRUE');
-  }
-  if (!sheet.getRange('B5').getValue()) {
-    sheet.getRange('B5').setValue('TRUE');
-  }
-  if (!sheet.getRange('B6').getValue()) {
-    sheet.getRange('B6').setValue('TRUE');
-  }
 
   var lastRow = Math.max(sheet.getLastRow(), 2);
   var existingCategories = sheet.getRange(2, 4, lastRow - 1, 1).getValues();
@@ -245,13 +231,6 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.CATEGORIES, sheet.getRange('D2:D'));
 }
 
-function applyBooleanSettingsValidation_(sheet) {
-  var boolRange = sheet.getRange('B4:B6');
-  var boolBuilder = SpreadsheetApp.newDataValidation().requireValueInList(['TRUE', 'FALSE'], true);
-  boolBuilder.setAllowInvalid(false);
-  boolRange.setDataValidation(boolBuilder.build());
-}
-
 function getAccountNames_(spreadsheet) {
   var sheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
   if (!sheet) {
@@ -273,14 +252,14 @@ function getAccountNames_(spreadsheet) {
 
 function reorderSheets_(spreadsheet) {
   var order = [
-    Config.SHEETS.DASHBOARD,
     Config.SHEETS.ACCOUNTS,
-    Config.SHEETS.TRANSFERS,
     Config.SHEETS.INCOME,
+    Config.SHEETS.TRANSFERS,
     Config.SHEETS.EXPENSE,
     Config.SHEETS.JOURNAL,
     Config.SHEETS.DAILY,
     Config.SHEETS.MONTHLY,
+    Config.SHEETS.DASHBOARD,
     Config.SHEETS.EXPORT,
     Config.LISTS_SHEET,
     Config.SHEETS.LOGS,

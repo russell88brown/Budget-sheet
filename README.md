@@ -108,7 +108,7 @@ That’s it. The model is forward-only and always rebuilds outputs from scratch.
 ## 💡 Tips
 - Use **Include** checkboxes to control what gets forecasted.
 - Use **Frequency + Repeat Every + Start Date** to schedule recurring items.
-- Repayments with **Amount = 0** are treated as **“pay off the full balance”** at that time (only if the balance is negative).
+- Use **Transfer Type** on `Transfers` to choose repayment/transfer behavior explicitly (`Repayment - Amount`, `Repayment - All`, `Transfer - Amount`, `Transfer - Everything Except`).
 - If headers or dropdowns look wrong, just run **Setup** again.
 
 ---

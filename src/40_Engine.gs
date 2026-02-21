@@ -6,6 +6,7 @@ const Engine = {
     resetRunState_();
     toastStep_('Checking active transfers...');
     deactivateExpiredTransfers_();
+    normalizeTransferRows_();
     toastStep_('Checking active expenses...');
     deactivateExpiredExpenses_();
     toastStep_('Styling inactive transfers...');
@@ -190,6 +191,44 @@ function styleInactiveRows_(sheetName, label) {
     });
   });
   dataRange.setBackgrounds(backgrounds);
+}
+
+function normalizeTransferRows_() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.TRANSFERS);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var typeIdx = headers.indexOf('Transfer Type');
+  var amountIdx = headers.indexOf('Amount');
+  if (typeIdx === -1 || amountIdx === -1) {
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = false;
+  values.forEach(function (row) {
+    var amount = toNumber_(row[amountIdx]);
+    var canonicalType = normalizeTransferType_(row[typeIdx], amount);
+    if (canonicalType && canonicalType !== row[typeIdx]) {
+      row[typeIdx] = canonicalType;
+      updated = true;
+    }
+    if (canonicalType === Config.TRANSFER_TYPES.REPAYMENT_ALL && amount !== 0) {
+      row[amountIdx] = 0;
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
 }
 
 function updateExpenseMonthlyAverages_() {
@@ -567,7 +606,33 @@ function applyEventWithSnapshots_(balances, event) {
 }
 
 function resolveTransferAmount_(balances, event, amount) {
-  if (event.behavior !== 'Repayment') {
+  var transferType = event.behavior;
+
+  if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+    var sourceBalance = event.from ? balances[event.from] || 0 : 0;
+    var keepAmount = amount || 0;
+    var moveAmount = roundUpCents_(Math.max(0, sourceBalance - keepAmount));
+    if (moveAmount <= 0) {
+      event.appliedAmount = 0;
+      event.skipJournal = true;
+      return { amount: 0, skip: true };
+    }
+    return { amount: moveAmount, skip: false };
+  }
+
+  if (transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
+    if (amount <= 0) {
+      event.appliedAmount = 0;
+      event.skipJournal = true;
+      return { amount: 0, skip: true };
+    }
+    return { amount: amount, skip: false };
+  }
+
+  if (
+    transferType !== Config.TRANSFER_TYPES.REPAYMENT_AMOUNT &&
+    transferType !== Config.TRANSFER_TYPES.REPAYMENT_ALL
+  ) {
     return { amount: amount, skip: false };
   }
 
@@ -584,7 +649,13 @@ function resolveTransferAmount_(balances, event, amount) {
 
   var required = Math.abs(target);
   var resolvedAmount = amount;
-  if (resolvedAmount === 0 || resolvedAmount > required) {
+  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
+    resolvedAmount = required;
+  } else if (resolvedAmount <= 0) {
+    event.appliedAmount = 0;
+    event.skipJournal = true;
+    return { amount: 0, skip: true };
+  } else if (resolvedAmount > required) {
     resolvedAmount = roundUpCents_(required);
   }
   return { amount: resolvedAmount, skip: false };

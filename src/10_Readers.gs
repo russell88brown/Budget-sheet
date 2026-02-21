@@ -97,10 +97,11 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
+        var amount = toNumber_(row['Amount']);
         return {
-          behavior: normalizeBehavior_(row['Transfer Type']),
+          behavior: normalizeTransferType_(row['Transfer Type'], amount),
           name: row['Name'],
-          amount: toNumber_(row['Amount']),
+          amount: amount,
           frequency: recurrence.frequency,
           repeatEvery: recurrence.repeatEvery,
           startDate: recurrence.startDate,
@@ -237,7 +238,7 @@ function toPositiveInt_(value) {
   return Math.floor(num);
 }
 
-function normalizeBehavior_(value) {
+function normalizeTransferType_(value, amountValue) {
   if (value === null || value === undefined) {
     return value;
   }
@@ -246,14 +247,30 @@ function normalizeBehavior_(value) {
     return cleaned;
   }
   var lower = cleaned.toLowerCase();
+  if (lower === String(Config.TRANSFER_TYPES.REPAYMENT_AMOUNT).toLowerCase()) {
+    return Config.TRANSFER_TYPES.REPAYMENT_AMOUNT;
+  }
+  if (lower === String(Config.TRANSFER_TYPES.REPAYMENT_ALL).toLowerCase()) {
+    return Config.TRANSFER_TYPES.REPAYMENT_ALL;
+  }
+  if (lower === String(Config.TRANSFER_TYPES.TRANSFER_AMOUNT).toLowerCase()) {
+    return Config.TRANSFER_TYPES.TRANSFER_AMOUNT;
+  }
+  if (lower === String(Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT).toLowerCase()) {
+    return Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT;
+  }
+
+  // Backward compatibility for legacy values.
   if (lower === 'repayment') {
-    return 'Repayment';
+    var amount = toNumber_(amountValue);
+    if (amount === 0) {
+      return Config.TRANSFER_TYPES.REPAYMENT_ALL;
+    }
+    return Config.TRANSFER_TYPES.REPAYMENT_AMOUNT;
   }
   if (lower === 'transfer') {
-    return 'Transfer';
+    return Config.TRANSFER_TYPES.TRANSFER_AMOUNT;
   }
-  if (lower === 'expense') {
-    return 'Expense';
-  }
+
   return cleaned;
 }

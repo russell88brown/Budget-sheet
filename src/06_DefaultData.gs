@@ -55,9 +55,9 @@ function loadDefaultData() {
   ];
 
   var transfers = [
-    [true, 'Repayment', 'Credit Card Repayment', 0, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', 'Credit Card', 'Auto-clear'],
-    [true, 'Repayment', 'Car Loan Repayment', 420, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', 'Car Loan', ''],
-    [true, 'Transfer', 'Weekly Buffer Transfer', 150, Config.FREQUENCIES.DAILY, 7, dateStr, '', 'Everyday', 'Savings', ''],
+    [true, Config.TRANSFER_TYPES.REPAYMENT_ALL, 'Credit Card Repayment', 0, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', 'Credit Card', 'Auto-clear'],
+    [true, Config.TRANSFER_TYPES.REPAYMENT_AMOUNT, 'Car Loan Repayment', 420, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', 'Car Loan', ''],
+    [true, Config.TRANSFER_TYPES.TRANSFER_AMOUNT, 'Weekly Buffer Transfer', 150, Config.FREQUENCIES.DAILY, 7, dateStr, '', 'Everyday', 'Savings', ''],
   ];
 
   accountsSheet.getRange(2, 1, accounts.length, accounts[0].length).setValues(accounts);
