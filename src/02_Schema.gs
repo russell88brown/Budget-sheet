@@ -14,7 +14,6 @@ const Schema = {
           enumValues: Object.values(Config.ACCOUNT_TYPES),
         },
         { name: 'Include', type: 'boolean', required: false, description: 'Include in forecast outputs' },
-        { name: 'Sink Fund', type: 'boolean', required: false, description: 'Mark as sinking fund' },
         {
           name: 'Expense Avg / Month',
           type: 'number',

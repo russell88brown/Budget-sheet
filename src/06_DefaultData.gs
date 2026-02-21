@@ -31,10 +31,10 @@ function loadDefaultData() {
   var dateStr = Utilities.formatDate(today, ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
 
   var accounts = [
-    ['Savings', 5000, Config.ACCOUNT_TYPES.CASH, true, false, '', '', '', '', '', '', '', '', ''],
-    ['Everyday', 1500, Config.ACCOUNT_TYPES.CASH, true, false, '', '', '', '', '', '', '', '', ''],
-    ['Credit Card', -1200, Config.ACCOUNT_TYPES.CREDIT, true, false, '', '', '', '', '', '', '', '', ''],
-    ['Car Loan', -15000, Config.ACCOUNT_TYPES.CREDIT, true, false, '', '', '', '', '', '', '', '', ''],
+    ['Savings', 5000, Config.ACCOUNT_TYPES.CASH, true, '', '', '', '', '', '', '', '', ''],
+    ['Everyday', 1500, Config.ACCOUNT_TYPES.CASH, true, '', '', '', '', '', '', '', '', ''],
+    ['Credit Card', -1200, Config.ACCOUNT_TYPES.CREDIT, true, '', '', '', '', '', '', '', '', ''],
+    ['Car Loan', -15000, Config.ACCOUNT_TYPES.CREDIT, true, '', '', '', '', '', '', '', '', ''],
   ];
 
   var income = [

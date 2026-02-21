@@ -18,7 +18,6 @@ const Readers = {
           balance: toNumber_(row['Balance']),
           type: row['Type'],
           forecast: toBoolean_(row['Include']),
-          sinkFund: toBoolean_(row['Sink Fund']),
           interestRate: toNumber_(row['Interest Rate (APR %)']),
           interestMethod: row['Interest Method'],
           interestFrequency: interestRecurrence.frequency,
