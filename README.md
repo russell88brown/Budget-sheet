@@ -11,6 +11,53 @@ You define accounts, income, expenses, transfers, and optional policies, then ru
 - Rebuilds outputs deterministically from sheet inputs.
 - Supports export output for external sharing/processing.
 
+## Menu Guide (What Each Button Does)
+
+From the Google Sheets menu: `Budget Forecast`
+
+- `Summarise Accounts`
+  - Recalculates monthly account flow summary fields on `Accounts`.
+- `Run journal (Base)`
+  - Builds `Journal` using scenario `Base`.
+- `Run journal for scenario...`
+  - Opens a scenario picker and builds `Journal` for the selected scenario.
+- `Run summaries (Base)`
+  - Rebuilds `Daily`, `Monthly`, and `Dashboard` from `Journal` for `Base`.
+- `Run summaries for scenario...`
+  - Opens a scenario picker and rebuilds summaries for selected scenario.
+- `Export`
+  - Opens export dialog and downloads selected sheet data as JSON zip.
+- `Setup actions...`
+  - Opens setup dialog for structure, validation/settings, theme, and default data.
+
+## Setup Dialog Guide
+
+Inside `Setup actions...`:
+
+- `Structure`
+  - Creates/updates sheet tabs and headers.
+- `Validation + settings`
+  - Applies validations and rebuilds Settings ranges/lists (including scenarios).
+- `Theme`
+  - Applies formatting/theme.
+- `Load default data`
+  - Loads sample input data if input sheets are empty.
+
+## Settings Sheet Guide
+
+Key areas in `Settings`:
+
+- `A:B`
+  - Forecast window and latest run snapshot.
+- `D`
+  - Expense category list.
+- `F`
+  - Income type list.
+- `H`
+  - Scenario catalog (`ScenarioList` named range).
+- `J:N`
+  - Run log history (append-only): `Run At`, `Mode`, `Scenario`, `Status`, `Notes`.
+
 ## Documentation Index
 
 ### Setup

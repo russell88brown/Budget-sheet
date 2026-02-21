@@ -22,6 +22,11 @@ This document describes how scenario support is integrated into setup and defaul
 - Journal and summaries can be run for a selected scenario from the menu.
 - Scenario runs filter inputs before event generation.
 - Journal output includes `Scenario` to preserve traceability in exports and summaries.
+- Scenario buttons in menu:
+  - `Run journal (Base)`: runs journal with `Base`.
+  - `Run journal for scenario...`: opens picker, runs journal for selected scenario.
+  - `Run summaries (Base)`: runs summaries for `Base`.
+  - `Run summaries for scenario...`: opens picker, runs summaries for selected scenario.
 - Setup now exposes run metadata fields in `Settings`:
   - `Last Run Mode` (`B5`)
   - `Last Run Scenario` (`B6`)
