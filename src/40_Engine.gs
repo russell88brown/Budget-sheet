@@ -23,7 +23,8 @@ const Engine = {
     Logger.info('Transfer rules read: ' + transferRules.length);
     var expenseRules = Readers.readExpenses();
     Logger.info('Expense rules read: ' + expenseRules.length);
-    updateExpenseMonthlyAverages_();
+    var expenseMonthlyTotals = updateExpenseMonthlyAverages_();
+    updateAccountMonthlyFlowAverages_(incomeRules, expenseMonthlyTotals);
 
     toastStep_('Building events...');
     Logger.info('Building events...');
@@ -194,15 +195,14 @@ function styleInactiveRows_(sheetName, label) {
 function updateExpenseMonthlyAverages_() {
   var ss = SpreadsheetApp.getActive();
   var expenseSheet = ss.getSheetByName(Config.SHEETS.EXPENSE);
-  var accountsSheet = ss.getSheetByName(Config.SHEETS.ACCOUNTS);
-  if (!expenseSheet || !accountsSheet) {
-    return;
+  if (!expenseSheet) {
+    return {};
   }
 
   var expenseLastRow = expenseSheet.getLastRow();
   var expenseLastCol = expenseSheet.getLastColumn();
   if (expenseLastRow < 2 || expenseLastCol < 1) {
-    return;
+    return {};
   }
 
   var expenseHeaders = expenseSheet.getRange(1, 1, 1, expenseLastCol).getValues()[0];
@@ -222,7 +222,7 @@ function updateExpenseMonthlyAverages_() {
     fromIdx === -1 ||
     avgIdx === -1
   ) {
-    return;
+    return {};
   }
 
   var expenseValues = expenseSheet.getRange(2, 1, expenseLastRow - 1, expenseLastCol).getValues();
@@ -256,10 +256,17 @@ function updateExpenseMonthlyAverages_() {
   });
 
   expenseSheet.getRange(2, avgIdx + 1, avgOut.length, 1).setValues(avgOut);
-  updateAccountExpenseAverageRollup_(accountsSheet, accountTotals);
+  return accountTotals;
 }
 
-function updateAccountExpenseAverageRollup_(accountsSheet, totalsByAccount) {
+function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) {
+  var accountsSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!accountsSheet) {
+    return;
+  }
+  expenseTotalsByAccount = expenseTotalsByAccount || {};
+  var incomeTotalsByAccount = computeIncomeMonthlyTotals_(incomeRules);
+
   var lastRow = accountsSheet.getLastRow();
   var lastCol = accountsSheet.getLastColumn();
   if (lastRow < 2 || lastCol < 1) {
@@ -267,17 +274,63 @@ function updateAccountExpenseAverageRollup_(accountsSheet, totalsByAccount) {
   }
   var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
-  var avgIdx = headers.indexOf('Expense Avg / Month');
-  if (nameIdx === -1 || avgIdx === -1) {
+  var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
+  var incomeAvgIdx = headers.indexOf('Income Avg / Month');
+  var netFlowIdx = headers.indexOf('Net Cash Flow / Month');
+  if (nameIdx === -1) {
     return;
   }
+
   var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var avgValues = rows.map(function (row) {
+  var expenseAvgValues = rows.map(function (row) {
     var name = row[nameIdx];
-    var value = totalsByAccount[name];
+    var value = expenseTotalsByAccount[name];
     return [value === undefined ? '' : value];
   });
-  accountsSheet.getRange(2, avgIdx + 1, avgValues.length, 1).setValues(avgValues);
+  var incomeAvgValues = rows.map(function (row) {
+    var name = row[nameIdx];
+    var value = incomeTotalsByAccount[name];
+    return [value === undefined ? '' : value];
+  });
+  var netFlowValues = rows.map(function (row) {
+    var name = row[nameIdx];
+    var expense = expenseTotalsByAccount[name];
+    var income = incomeTotalsByAccount[name];
+    if (expense === undefined && income === undefined) {
+      return [''];
+    }
+    var expenseValue = expense === undefined ? 0 : expense;
+    var incomeValue = income === undefined ? 0 : income;
+    return [roundUpCents_(incomeValue - expenseValue)];
+  });
+
+  if (expenseAvgIdx !== -1) {
+    accountsSheet.getRange(2, expenseAvgIdx + 1, expenseAvgValues.length, 1).setValues(expenseAvgValues);
+  }
+  if (incomeAvgIdx !== -1) {
+    accountsSheet.getRange(2, incomeAvgIdx + 1, incomeAvgValues.length, 1).setValues(incomeAvgValues);
+  }
+  if (netFlowIdx !== -1) {
+    accountsSheet.getRange(2, netFlowIdx + 1, netFlowValues.length, 1).setValues(netFlowValues);
+  }
+}
+
+function computeIncomeMonthlyTotals_(incomeRules) {
+  var totals = {};
+  (incomeRules || []).forEach(function (rule) {
+    if (!rule) {
+      return;
+    }
+    var amount = toNumber_(rule.amount);
+    var toAccount = rule.paidTo;
+    var recurring = isRecurringExpense_(rule.startDate, rule.endDate);
+    if (!recurring || amount === null || amount < 0 || !rule.frequency || !toAccount) {
+      return;
+    }
+    var monthlyAverage = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(rule.frequency, rule.repeatEvery));
+    totals[toAccount] = roundUpCents_((totals[toAccount] || 0) + monthlyAverage);
+  });
+  return totals;
 }
 
 function isRecurringExpense_(startDateValue, endDateValue) {

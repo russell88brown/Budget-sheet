@@ -6,16 +6,20 @@
       body { font-family: Arial, sans-serif; font-size: 13px; padding: 12px; }
       h3 { margin: 0 0 10px; font-size: 14px; }
       .option { margin: 8px 0; }
-      .actions { margin-top: 16px; display: flex; gap: 8px; }
+      .actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
       button { padding: 6px 10px; cursor: pointer; }
-      .note { margin-top: 10px; color: #555; font-size: 12px; }
+      .note { margin-top: 10px; color: #555; font-size: 12px; white-space: pre-line; }
+      .group { margin-bottom: 12px; }
     </style>
   </head>
   <body>
-    <h3>Choose setup actions</h3>
-    <div class="option"><label><input type="checkbox" value="setup"> Setup spreadsheet</label></div>
-    <div class="option"><label><input type="checkbox" value="defaults"> Load default data</label></div>
-    <div class="option"><label><input type="checkbox" value="clearLogs"> Clear logs</label></div>
+    <h3>Setup stages</h3>
+    <div class="group">
+      <div class="option"><label><input type="checkbox" value="structure"> Structure (sheets + headers)</label></div>
+      <div class="option"><label><input type="checkbox" value="validation"> Validation + settings ranges</label></div>
+      <div class="option"><label><input type="checkbox" value="categories"> Expense categories (seed if empty)</label></div>
+      <div class="option"><label><input type="checkbox" value="defaults"> Load default data (if inputs empty)</label></div>
+    </div>
     <div class="actions">
       <button onclick="runActions()">Run</button>
       <button onclick="google.script.host.close()">Cancel</button>
@@ -26,13 +30,13 @@
         var checks = Array.prototype.slice.call(document.querySelectorAll('input[type=checkbox]:checked'));
         var actions = checks.map(function (c) { return c.value; });
         if (!actions.length) {
-          document.getElementById('status').textContent = 'Select at least one action.';
+          document.getElementById('status').textContent = 'Select at least one stage.';
           return;
         }
-        document.getElementById('status').textContent = 'Running…';
+        document.getElementById('status').textContent = 'Running...';
         google.script.run.withSuccessHandler(function (msg) {
           document.getElementById('status').textContent = msg || 'Done.';
-          setTimeout(function () { google.script.host.close(); }, 700);
+          setTimeout(function () { google.script.host.close(); }, 900);
         }).runSetupActions(actions);
       }
     </script>

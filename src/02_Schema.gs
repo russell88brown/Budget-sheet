@@ -64,6 +64,20 @@ const Schema = {
           description: 'Computed from Expense by From Account',
           format: '0.00',
         },
+        {
+          name: 'Income Avg / Month',
+          type: 'number',
+          required: false,
+          description: 'Computed from Income by To Account',
+          format: '0.00',
+        },
+        {
+          name: 'Net Cash Flow / Month',
+          type: 'number',
+          required: false,
+          description: 'Income Avg / Month minus Expense Avg / Month',
+          format: '0.00',
+        },
       ],
     },
     {

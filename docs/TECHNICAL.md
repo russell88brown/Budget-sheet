@@ -20,7 +20,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 ### Inputs
 
 #### Accounts
-- Columns: Account Name, Balance, Type, Include, Sink Fund, Interest Rate (APR %), Interest Method, Interest Frequency, Interest Repeat Every, Interest Start Date, Interest End Date, Expense Avg / Month
+- Columns: Account Name, Balance, Type, Include, Sink Fund, Interest Rate (APR %), Interest Method, Interest Frequency, Interest Repeat Every, Interest Start Date, Interest End Date, Expense Avg / Month, Income Avg / Month, Net Cash Flow / Month
 - Type: enum { Cash, Credit }
 - Include: boolean, controls whether account appears in forecast outputs
 - Sink Fund: optional boolean flag available for user categorization

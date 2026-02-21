@@ -1,5 +1,23 @@
 // Spreadsheet setup utilities based on schema definitions.
 function setupSpreadsheet() {
+  setupStageStructure_();
+  setupStageValidationAndSettings_();
+}
+
+function setupStageStructure_() {
+  var ss = SpreadsheetApp.getActive();
+
+  Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
+    var headers = spec.columns.map(function (column) {
+      return column.name;
+    });
+    ensureSheetWithHeaders_(ss, spec.name, headers);
+  });
+
+  reorderSheets_(ss);
+}
+
+function setupStageValidationAndSettings_() {
   var ss = SpreadsheetApp.getActive();
 
   ensureAccountNameRanges_(ss);
@@ -13,8 +31,16 @@ function setupSpreadsheet() {
     applyColumnRules_(ss, sheet, spec.columns);
   });
 
-  reorderSheets_(ss);
   formatReferenceSheet_(ss);
+}
+
+function setupStageSeedCategories_() {
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(Config.LISTS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(Config.LISTS_SHEET);
+  }
+  setupReferenceLayout_(ss, sheet);
 }
 
 function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {

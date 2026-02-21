@@ -1,11 +1,17 @@
 // Entrypoints and menu wiring.
 function onOpen() {
-  SpreadsheetApp.getUi()
+  var ui = SpreadsheetApp.getUi();
+  var setupMenu = ui
+    .createMenu('Setup')
+    .addItem('Setup actions...', 'showSetupDialog');
+
+  ui
     .createMenu('Budget Forecast')
-    .addItem('Run forecast', 'runForecast')
-    .addItem('Run summary', 'runSummary')
+    .addItem('Validate transfers/expenses', 'validateTransfersExpenses')
+    .addItem('Run journal', 'runJournal')
+    .addItem('Run summaries', 'runSummary')
     .addItem('Export', 'showExportDialog')
-    .addItem('Setup…', 'showSetupDialog')
+    .addSubMenu(setupMenu)
     .addToUi();
 }
 
@@ -15,6 +21,23 @@ function runForecast() {
   } else if (Logger && Logger.warn) {
     Logger.warn('Engine.runForecast is not implemented yet.');
   }
+}
+
+function runJournal() {
+  runForecast();
+}
+
+function validateTransfersExpenses() {
+  toastStep_('Validating transfers and expenses...');
+  resetRunState_();
+  deactivateExpiredTransfers_();
+  deactivateExpiredExpenses_();
+  styleTransferRows_();
+  styleExpenseRows_();
+  var incomeRules = Readers.readIncome();
+  var expenseMonthlyTotals = updateExpenseMonthlyAverages_();
+  updateAccountMonthlyFlowAverages_(incomeRules, expenseMonthlyTotals || {});
+  toastStep_('Validation complete.');
 }
 
 function clearLogs() {
@@ -32,8 +55,8 @@ function clearLogs() {
 
 function showSetupDialog() {
   var html = HtmlService.createHtmlOutputFromFile('SetupDialog')
-    .setWidth(360)
-    .setHeight(320);
+    .setWidth(420)
+    .setHeight(340);
   SpreadsheetApp.getUi().showModalDialog(html, 'Setup Options');
 }
 
@@ -44,32 +67,41 @@ function runSetupActions(actions) {
 
   var ss = SpreadsheetApp.getActive();
   var messages = [];
-
+  var selected = {};
   actions.forEach(function (action) {
+    selected[action] = true;
+  });
+
+  var orderedActions = ['structure', 'validation', 'categories', 'defaults'];
+  orderedActions.forEach(function (action) {
+    if (!selected[action]) {
+      return;
+    }
     switch (action) {
-      case 'setup':
-        ss.toast('Running setup…', 'Setup');
-        setupSpreadsheet();
-        messages.push('Setup complete');
-        ss.toast('Setup complete', 'Setup');
+      case 'structure':
+        ss.toast('Applying sheet structure...', 'Setup');
+        setupStageStructure_();
+        messages.push('Structure complete');
+        break;
+      case 'validation':
+        ss.toast('Applying validations + settings...', 'Setup');
+        setupStageValidationAndSettings_();
+        messages.push('Validation + settings complete');
+        break;
+      case 'categories':
+        ss.toast('Seeding categories if empty...', 'Setup');
+        setupStageSeedCategories_();
+        messages.push('Categories seeded (if empty)');
         break;
       case 'defaults':
-        ss.toast('Loading default data…', 'Setup');
+        ss.toast('Loading default data...', 'Setup');
         loadDefaultData();
         messages.push('Default data loaded');
-        ss.toast('Default data loaded', 'Setup');
-        break;
-      case 'clearLogs':
-        ss.toast('Clearing logs…', 'Setup');
-        clearLogs();
-        messages.push('Logs cleared');
-        ss.toast('Logs cleared', 'Setup');
         break;
       default:
         messages.push('Unknown action: ' + action);
     }
   });
 
-  return messages.join(' • ');
+  return messages.join(' | ');
 }
-
