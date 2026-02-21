@@ -1,90 +1,65 @@
 # Budget Forecast Engine
 
-Budget Forecast Engine is a **Google Apps Script application for Google Sheets** that projects future balances from your budgeting rules.
+Budget Forecast Engine turns your Google Sheet into a forward-looking money simulator.
 
-You define accounts, income, expenses, transfers, and optional policies, then run the menu actions to regenerate forecast outputs (`Journal`, `Daily`, `Monthly`, `Dashboard`) from scratch.
+You define how money moves (income, expenses, transfers, policies), then run the menu actions to regenerate:
+- `Journal`
+- `Daily`
+- `Monthly`
+- `Dashboard`
 
-## What It Does
+## First 5 Clicks (Get Base Running)
 
-- Runs inside a Google Sheet via the **Budget Forecast** custom menu.
-- Forecasts cash/debt movement forward in time using recurrence rules.
-- Rebuilds outputs deterministically from sheet inputs.
-- Supports export output for external sharing/processing.
+1. Open menu `Budget Forecast -> Setup actions...`
+2. Select `Structure`, `Validation + settings`, and `Theme`, then click `Run`
+3. (Optional) In the same setup dialog, run `Load default data` for a working sample
+4. Click `Budget Forecast -> Run journal (Base)`
+5. Click `Budget Forecast -> Run summaries (Base)`
 
-## Menu Guide (What Each Button Does)
+You now have a complete base forecast.
 
-From the Google Sheets menu: `Budget Forecast`
+## Configure Scenarios (Simple Path)
 
-- `Summarise Accounts`
-  - Recalculates monthly account flow summary fields on `Accounts`.
-- `Run journal (Base)`
-  - Builds `Journal` using scenario `Base`.
-- `Run journal for scenario...`
-  - Opens a scenario picker and builds `Journal` for the selected scenario.
-- `Run summaries (Base)`
-  - Rebuilds `Daily`, `Monthly`, and `Dashboard` from `Journal` for `Base`.
-- `Run summaries for scenario...`
-  - Opens a scenario picker and rebuilds summaries for selected scenario.
-- `Export`
-  - Opens export dialog and downloads selected sheet data as JSON zip.
-- `Setup actions...`
-  - Opens setup dialog for structure, validation/settings, theme, and default data.
+1. Go to `Settings` sheet
+2. Add or edit scenario names in column `H` (`Base`, `Stress`, etc.)
+3. In input sheets (`Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`), set each row's `Scenario`
+4. Run:
+   - `Run journal for scenario...`
+   - `Run summaries for scenario...`
+5. Check run history in `Settings!J:N`
 
-## Setup Dialog Guide
+## Menu Buttons (Plain English)
 
-Inside `Setup actions...`:
+- `Summarise Accounts`: recalculates account monthly summary fields.
+- `Run journal (Base)`: builds Journal for the Base scenario.
+- `Run journal for scenario...`: scenario picker, then Journal for selected scenario.
+- `Run summaries (Base)`: builds Daily/Monthly/Dashboard for Base.
+- `Run summaries for scenario...`: scenario picker, then scenario-specific summaries.
+- `Export`: downloads selected sheets as JSON zip.
+- `Setup actions...`: structure, validation/settings, theme, default sample data.
 
-- `Structure`
-  - Creates/updates sheet tabs and headers.
-- `Validation + settings`
-  - Applies validations and rebuilds Settings ranges/lists (including scenarios).
-- `Theme`
-  - Applies formatting/theme.
-- `Load default data`
-  - Loads sample input data if input sheets are empty.
+## Scenario Case Studies
 
-## Settings Sheet Guide
+| Scenario | User Story | Implementation | Output |
+|---|---|---|---|
+| Base | "I just want my normal month-to-month plan." | Keep rows blank or set `Scenario=Base`. Run Base journal + summaries. | Standard forecast baseline in Journal/Daily/Monthly/Dashboard. |
+| Stress | "What if my income drops and expenses rise?" | Create/enable `Stress` rows for income/expenses/risk assumptions. Run scenario actions for `Stress`. | Alternate downside forecast, comparable against Base. |
+| Debt Sprint | "I want to test an aggressive debt payoff plan." | Duplicate transfer/policy rows with `Scenario=Debt Sprint` and higher repayments. | Shows payoff speed, cash pressure, and negative-cash risk under sprint strategy. |
+| Job Change | "I may switch jobs in 3 months." | Add new income pattern as `Scenario=Job Change` with updated start date. | Timeline impact on cash runway and account balances. |
+| Family Expansion | "We're planning for a new recurring cost stack." | Add new expense rows (`childcare`, etc.) in dedicated scenario. | Clear picture of affordability before committing. |
 
-Key areas in `Settings`:
+## Where To Look In Settings
 
-- `A:B`
-  - Forecast window and latest run snapshot.
-- `D`
-  - Expense category list.
-- `F`
-  - Income type list.
-- `H`
-  - Scenario catalog (`ScenarioList` named range).
-- `J:N`
-  - Run log history (append-only): `Run At`, `Mode`, `Scenario`, `Status`, `Notes`.
+- `A:B`: forecast window and latest run snapshot
+- `D`: expense categories
+- `F`: income types
+- `H`: scenario catalog (`ScenarioList`)
+- `J:N`: append-only run log (`Run At`, `Mode`, `Scenario`, `Status`, `Notes`)
 
-## Documentation Index
+## Documentation Map (Deeper Detail)
 
-### Setup
-
-- `docs/CLASP.md`: Apps Script project setup, including:
-  - Manual copy into the Apps Script editor
-  - `clasp` push/pull workflow for synced development
-
-### Development
-
-- `docs/TECHNICAL.md`: full technical reference (all implemented functionality and behavior).
-- `docs/CODEX.md`: local Codex development environment and repo hygiene notes.
-- `docs/TEST_CASES.md`: manual regression tests, including scenario and setup-data validation.
-- `docs/SCENARIOS.md`: how scenario support is integrated into setup/default data and runtime.
-
-## Tech Stack
-
-Mandatory to run:
-- Google Sheets
-- Google Apps Script (V8)
-- Source files from `src/` (including `src/appsscript.json`)
-
-For development and changes:
-- Node.js LTS + npm
-- `@google/clasp` (optional, for sync workflow)
-- Local `.clasp.json` (from `.clasp.example.json`)
-- Optional local Codex config in `codex/config.toml`
-
-Note:
-- `clasp` is not required to run the app. You can manually copy/upload files from `src/` into the Google Apps Script editor attached to your Google Sheet.
+- `docs/SCENARIOS.md`: scenario setup/runtime behavior
+- `docs/TEST_CASES.md`: manual regression test cases
+- `docs/TECHNICAL.md`: full technical reference
+- `docs/CLASP.md`: Apps Script/clasp setup
+- `docs/CODEX.md`: local development notes
