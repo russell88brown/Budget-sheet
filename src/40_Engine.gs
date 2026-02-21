@@ -369,8 +369,8 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
 
 function refreshAccountSummaries_() {
   var incomeMonthlyTotals = updateIncomeMonthlyTotals_();
-  var transferMonthlyTotals = updateTransferMonthlyTotals_();
   var expenseMonthlyTotals = updateExpenseMonthlyTotals_();
+  var transferMonthlyTotals = updateTransferMonthlyTotals_(incomeMonthlyTotals, expenseMonthlyTotals);
   updateAccountMonthlyFlowAverages_(incomeMonthlyTotals, transferMonthlyTotals, expenseMonthlyTotals);
 }
 
@@ -1067,7 +1067,7 @@ function updateIncomeMonthlyTotals_() {
   return credits;
 }
 
-function updateTransferMonthlyTotals_() {
+function updateTransferMonthlyTotals_(incomeTotalsByAccount, expenseTotalsByAccount) {
   var transferSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.TRANSFERS);
   if (!transferSheet) {
     return { credits: {}, debits: {} };
@@ -1103,10 +1103,15 @@ function updateTransferMonthlyTotals_() {
 
   var values = transferSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var accountBalanceLookup = buildAccountBalanceLookup_();
+  incomeTotalsByAccount = incomeTotalsByAccount || {};
+  expenseTotalsByAccount = expenseTotalsByAccount || {};
   var credits = {};
   var debits = {};
-  var out = [];
-  values.forEach(function (row) {
+  var out = values.map(function () {
+    return [''];
+  });
+  var everythingExceptRows = [];
+  values.forEach(function (row, rowIndex) {
     var include = toBoolean_(row[includeIdx]);
     var amount = toNumber_(row[amountIdx]);
     var recurrence = normalizeRecurrence_(
@@ -1134,18 +1139,34 @@ function updateTransferMonthlyTotals_() {
       fromAccount
     ) {
       if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-        var sourceBalance = lookupAccountBalance_(accountBalanceLookup, fromAccount);
-        var perOccurrence = Math.max(0, sourceBalance - amount);
-        monthlyTotal = roundUpCents_((perOccurrence || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery));
-        credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyTotal);
-        debits[fromAccount] = roundUpCents_((debits[fromAccount] || 0) + monthlyTotal);
+        everythingExceptRows.push({
+          rowIndex: rowIndex,
+          fromAccount: fromAccount,
+          toAccount: toAccount,
+          keepAmount: amount || 0,
+          factor: monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery),
+        });
       } else if (behavior !== Config.TRANSFER_TYPES.REPAYMENT_ALL) {
         monthlyTotal = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery));
         credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyTotal);
         debits[fromAccount] = roundUpCents_((debits[fromAccount] || 0) + monthlyTotal);
       }
     }
-    out.push([monthlyTotal === null ? '' : monthlyTotal]);
+    out[rowIndex] = [monthlyTotal === null ? '' : monthlyTotal];
+  });
+
+  everythingExceptRows.forEach(function (item) {
+    var sourceBalance = lookupAccountBalance_(accountBalanceLookup, item.fromAccount);
+    var openingExcess = Math.max(0, sourceBalance - item.keepAmount);
+    var baseIn = (incomeTotalsByAccount[item.fromAccount] || 0) + (credits[item.fromAccount] || 0);
+    var baseOut = (expenseTotalsByAccount[item.fromAccount] || 0) + (debits[item.fromAccount] || 0);
+    var estimatedMonthlySweep = roundUpCents_(Math.max(0, openingExcess + baseIn - baseOut));
+
+    if (estimatedMonthlySweep > 0) {
+      credits[item.toAccount] = roundUpCents_((credits[item.toAccount] || 0) + estimatedMonthlySweep);
+      debits[item.fromAccount] = roundUpCents_((debits[item.fromAccount] || 0) + estimatedMonthlySweep);
+    }
+    out[item.rowIndex] = [estimatedMonthlySweep === 0 ? '' : estimatedMonthlySweep];
   });
   transferSheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return { credits: credits, debits: debits };
