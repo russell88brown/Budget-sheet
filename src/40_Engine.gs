@@ -1273,6 +1273,15 @@ function buildJournalRows_(accounts, events) {
   rows = rows.concat(buildOpeningRows_(accounts, openingDate, forecastAccounts, balances));
 
   events.forEach(function (event) {
+    rows = rows.concat(
+      applyAutoDeficitCoverRowsBeforeEvent_(
+        balances,
+        event,
+        accountTypes,
+        coverDeficitFrom,
+        forecastAccounts
+      )
+    );
     var snapshots = applyEventWithSnapshots_(balances, event);
     if (event.skipJournal) {
       return;
@@ -1284,16 +1293,6 @@ function buildJournalRows_(accounts, events) {
         snapshots.afterTo,
         forecastAccounts,
         accountTypes
-      )
-    );
-    rows = rows.concat(
-      applyAutoCoverRows_(
-        balances,
-        event.date,
-        accounts,
-        accountTypes,
-        coverDeficitFrom,
-        forecastAccounts
       )
     );
   });
@@ -1391,7 +1390,7 @@ function buildJournalEventRows_(
         transactionType,
         event.name,
         rowAmount,
-        buildAlerts_(cashNegative, creditPaidOff),
+        buildAlerts_(cashNegative, creditPaidOff, event.alertTag),
       ].concat(snapshot);
     });
   }
@@ -1416,18 +1415,21 @@ function buildJournalEventRows_(
       transactionType,
       event.name,
       signedAmount,
-      buildAlerts_(cashNegative, creditPaidOff),
+      buildAlerts_(cashNegative, creditPaidOff, event.alertTag),
     ].concat(balanceSnapshotTo),
   ];
 }
 
-function buildAlerts_(cashNegative, creditPaidOff) {
+function buildAlerts_(cashNegative, creditPaidOff, explicitAlert) {
   var alerts = [];
   if (cashNegative) {
     alerts.push('NEGATIVE_CASH');
   }
   if (creditPaidOff) {
     alerts.push('CREDIT_PAID_OFF');
+  }
+  if (explicitAlert) {
+    alerts.push(explicitAlert);
   }
   return alerts.join(' | ');
 }
@@ -1502,7 +1504,7 @@ function deriveJournalTransactionType_(event) {
     return 'Expense';
   }
   if (event.kind === 'Transfer') {
-    var transferDetail = event.transferBehavior || event.behavior;
+    var transferDetail = event.behavior || event.transferBehavior;
     if (transferDetail) {
       return 'Transfer (' + transferDetail + ')';
     }
@@ -1514,80 +1516,119 @@ function deriveJournalTransactionType_(event) {
   return event.kind;
 }
 
-function applyAutoCoverRows_(
+function applyAutoDeficitCoverRowsBeforeEvent_(
   balances,
-  eventDate,
-  accounts,
+  event,
   accountTypes,
   coverDeficitFrom,
   forecastAccounts
 ) {
-  var rows = [];
-  var maxIterations = accounts.length * 2;
-  var iteration = 0;
-
-  while (iteration < maxIterations) {
-    var progressed = false;
-    for (var i = 0; i < accounts.length; i += 1) {
-      var account = accounts[i];
-      if (!account || !account.name) {
-        continue;
-      }
-      if (accountTypes[account.name] === Config.ACCOUNT_TYPES.CREDIT) {
-        continue;
-      }
-      var currentBalance = roundUpCents_(balances[account.name] || 0);
-      if (currentBalance >= 0) {
-        continue;
-      }
-      var sourceAccount = (coverDeficitFrom[account.name] || '').toString().trim();
-      if (!sourceAccount || sourceAccount === account.name) {
-        continue;
-      }
-      if (balances[sourceAccount] === undefined) {
-        continue;
-      }
-      var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
-      if (available <= 0) {
-        continue;
-      }
-      var needed = roundUpCents_(Math.abs(currentBalance));
-      var amount = roundUpCents_(Math.min(needed, available));
-      if (amount <= 0) {
-        continue;
-      }
-
-      var coverEvent = {
-        date: eventDate,
-        kind: 'Transfer',
-        behavior: 'Auto Cover Deficit',
-        transferBehavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
-        name: 'Auto cover ' + account.name,
-        from: sourceAccount,
-        to: account.name,
-        amount: amount,
-      };
-      var snapshots = applyEventWithSnapshots_(balances, coverEvent);
-      if (!coverEvent.skipJournal) {
-        rows = rows.concat(
-          buildJournalEventRows_(
-            coverEvent,
-            snapshots.afterFrom,
-            snapshots.afterTo,
-            forecastAccounts,
-            accountTypes
-          )
-        );
-      }
-      progressed = true;
-    }
-    if (!progressed) {
-      break;
-    }
-    iteration += 1;
+  var coverageNeed = getDeficitCoverageNeedForEvent_(balances, event, accountTypes);
+  if (!coverageNeed || !coverageNeed.account || coverageNeed.amount <= 0) {
+    return [];
   }
 
-  return rows;
+  var coveredAccount = coverageNeed.account;
+  var sourceAccount = (coverDeficitFrom[coveredAccount] || '').toString().trim();
+  if (!sourceAccount || sourceAccount === coveredAccount) {
+    return [];
+  }
+  if (balances[sourceAccount] === undefined) {
+    return [];
+  }
+
+  var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
+  if (available <= 0) {
+    return [];
+  }
+
+  var amount = roundUpCents_(Math.min(coverageNeed.amount, available));
+  if (amount <= 0) {
+    return [];
+  }
+
+  var coverEvent = {
+    date: event.date,
+    kind: 'Transfer',
+    behavior: 'Auto Deficit Cover',
+    transferBehavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+    name: 'Auto deficit cover - ' + coveredAccount,
+    from: sourceAccount,
+    to: coveredAccount,
+    amount: amount,
+    alertTag: 'AUTO_DEFICIT_COVER',
+  };
+  var snapshots = applyEventWithSnapshots_(balances, coverEvent);
+  if (coverEvent.skipJournal) {
+    return [];
+  }
+
+  return buildJournalEventRows_(
+    coverEvent,
+    snapshots.afterFrom,
+    snapshots.afterTo,
+    forecastAccounts,
+    accountTypes
+  );
+}
+
+function getDeficitCoverageNeedForEvent_(balances, event, accountTypes) {
+  if (!event || !event.kind) {
+    return null;
+  }
+  if (event.kind !== 'Expense' && event.kind !== 'Transfer') {
+    return null;
+  }
+  if (!event.from || accountTypes[event.from] === Config.ACCOUNT_TYPES.CREDIT) {
+    return null;
+  }
+  if ((event.transferBehavior || event.behavior) === 'Auto Deficit Cover') {
+    return null;
+  }
+
+  var outgoing = 0;
+  if (event.kind === 'Expense') {
+    outgoing = roundUpCents_(event.amount || 0);
+  } else {
+    outgoing = estimateTransferOutgoingAmount_(balances, event);
+  }
+
+  if (outgoing <= 0) {
+    return null;
+  }
+  var currentBalance = roundUpCents_(balances[event.from] || 0);
+  var needed = roundUpCents_(Math.max(0, outgoing - Math.max(0, currentBalance)));
+  if (needed <= 0) {
+    return null;
+  }
+  return {
+    account: event.from,
+    amount: needed,
+  };
+}
+
+function estimateTransferOutgoingAmount_(balances, event) {
+  var transferType = event.transferBehavior || event.behavior;
+  var amount = roundUpCents_(event.amount || 0);
+
+  if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+    return 0;
+  }
+  if (transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
+    return amount > 0 ? amount : 0;
+  }
+  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
+    var targetAll = event.to ? balances[event.to] || 0 : 0;
+    return targetAll < 0 ? roundUpCents_(Math.abs(targetAll)) : 0;
+  }
+  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT) {
+    var targetAmount = event.to ? balances[event.to] || 0 : 0;
+    if (targetAmount >= 0 || amount <= 0) {
+      return 0;
+    }
+    return roundUpCents_(Math.min(amount, Math.abs(targetAmount)));
+  }
+  return amount > 0 ? amount : 0;
 }
 
 function resolveTransferAmount_(balances, event, amount) {
