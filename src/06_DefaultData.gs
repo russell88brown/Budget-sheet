@@ -147,7 +147,31 @@ function loadDefaultData() {
       'Funding Policy': Config.GOAL_FUNDING_POLICIES.FIXED,
       'Amount Per Month': 200,
       'Percent Of Inflow': '',
-      Notes: 'Planning layer placeholder',
+      Notes: 'Fixed monthly contribution',
+    },
+    {
+      Include: true,
+      'Goal Name': 'Holiday fund',
+      'Target Amount': 3000,
+      'Target Date': new Date(startDate.getFullYear(), startDate.getMonth() + 9, startDate.getDate()),
+      Priority: 2,
+      'Funding Account': 'Savings',
+      'Funding Policy': Config.GOAL_FUNDING_POLICIES.PERCENT,
+      'Amount Per Month': '',
+      'Percent Of Inflow': 10,
+      Notes: 'Percent-of-inflow example',
+    },
+    {
+      Include: true,
+      'Goal Name': 'Car maintenance reserve',
+      'Target Amount': 1200,
+      'Target Date': new Date(startDate.getFullYear(), startDate.getMonth() + 6, startDate.getDate()),
+      Priority: 3,
+      'Funding Account': 'Everyday',
+      'Funding Policy': Config.GOAL_FUNDING_POLICIES.LEFTOVER,
+      'Amount Per Month': '',
+      'Percent Of Inflow': '',
+      Notes: 'Leftover policy example',
     },
   ];
 
@@ -161,6 +185,15 @@ function loadDefaultData() {
       'Expense Shock Percent': 0,
       Notes: 'Active baseline risk profile',
     },
+    {
+      Include: false,
+      'Scenario Name': 'Stress',
+      'Emergency Buffer Account': 'Savings',
+      'Emergency Buffer Minimum': 2000,
+      'Income Shock Percent': 20,
+      'Expense Shock Percent': 15,
+      Notes: 'Disabled by default; enable to test stress assumptions',
+    },
   ];
 
   var policies = [
@@ -173,8 +206,20 @@ function loadDefaultData() {
       'Trigger Account': 'Everyday',
       'Funding Account': 'Savings',
       Threshold: 0,
-      'Max Per Event': '',
-      Notes: 'Auto-cover only when an event would push Everyday below threshold',
+      'Max Per Event': 1500,
+      Notes: 'Primary protection source',
+    },
+    {
+      Include: true,
+      'Policy Type': Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+      Name: 'Everyday backup from High Yield',
+      Priority: 2,
+      'Start Date': startDate,
+      'Trigger Account': 'Everyday',
+      'Funding Account': 'High Yield',
+      Threshold: 100,
+      'Max Per Event': 500,
+      Notes: 'Secondary policy demonstrates priority and cap behavior',
     },
   ];
 
