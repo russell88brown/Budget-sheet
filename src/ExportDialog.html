@@ -32,6 +32,29 @@
         gap: 8px;
         justify-content: flex-end;
       }
+      .journal-options {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        background: #fff;
+      }
+      .journal-title {
+        font-weight: 600;
+        margin: 0 0 6px 0;
+      }
+      .hint {
+        color: #5f6368;
+        font-size: 12px;
+        margin: 0 0 8px 0;
+      }
+      .inline-input {
+        width: 88px;
+        padding: 3px 6px;
+        border: 1px solid #c6c6c6;
+        border-radius: 4px;
+        font-size: 12px;
+      }
       button {
         padding: 6px 12px;
         border-radius: 4px;
@@ -62,6 +85,25 @@
           </label>
         <? } ?>
       </div>
+      <div class="journal-options" id="journal-options">
+        <p class="journal-title">Journal export</p>
+        <p class="hint">
+          Current journal rows: <?= journalInfo.rows ?> |
+          Date range: <?= journalInfo.dateRangeLabel ?>
+        </p>
+        <label class="item">
+          <input type="radio" name="journalMode" value="single" checked>
+          <span>Full Journal in one file</span>
+        </label>
+        <label class="item">
+          <input type="radio" name="journalMode" value="entries">
+          <span>
+            Split by
+            <input id="entries-per-file" class="inline-input" type="number" min="1" step="1" value="1000">
+            entries per file
+          </span>
+        </label>
+      </div>
       <div class="actions">
         <button type="submit">Export</button>
         <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
@@ -72,6 +114,24 @@
       (function () {
         var form = document.getElementById('export-form');
         var statusEl = document.getElementById('status');
+        var journalOptionsEl = document.getElementById('journal-options');
+        var entriesInput = document.getElementById('entries-per-file');
+        var journalSheetName = '<?= journalSheetName ?>';
+
+        function updateJournalOptionsVisibility_() {
+          if (!journalOptionsEl || !journalSheetName) {
+            return;
+          }
+          var selected = !!form.querySelector('input[name="sheet"][value="' + journalSheetName + '"]:checked');
+          journalOptionsEl.style.display = selected ? 'block' : 'none';
+        }
+
+        form.addEventListener('change', function (event) {
+          if (event.target && event.target.name === 'sheet') {
+            updateJournalOptionsVisibility_();
+          }
+        });
+        updateJournalOptionsVisibility_();
 
         form.addEventListener('submit', function (event) {
           event.preventDefault();
@@ -85,6 +145,21 @@
             statusEl.textContent = 'Select at least one sheet.';
             return;
           }
+
+          var journalModeEl = form.querySelector('input[name="journalMode"]:checked');
+          var journalMode = journalModeEl ? journalModeEl.value : 'single';
+          var entriesPerFile = parseInt(entriesInput.value, 10);
+          if (!isFinite(entriesPerFile) || entriesPerFile < 1) {
+            entriesPerFile = 1000;
+          }
+
+          var payload = {
+            sheetNames: selected,
+            journal: {
+              mode: journalMode,
+              entriesPerFile: entriesPerFile
+            }
+          };
 
           statusEl.textContent = 'Exporting...';
           google.script.run
@@ -103,7 +178,7 @@
             .withFailureHandler(function (err) {
               statusEl.textContent = err && err.message ? err.message : 'Export failed.';
             })
-            .runExportWithSelection(selected);
+            .runExportWithSelection(payload);
         });
 
         function downloadBase64_(base64, fileName, mimeType) {
