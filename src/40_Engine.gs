@@ -232,10 +232,16 @@ function updateExpenseMonthlyAverages_() {
   expenseValues.forEach(function (row) {
     var include = row[includeIdx] === true;
     var amount = toNumber_(row[amountIdx]);
-    var frequency = row[freqIdx];
-    var repeatEvery = row[repeatIdx];
-    var startDate = startIdx !== -1 ? row[startIdx] : null;
-    var endDate = endIdx !== -1 ? row[endIdx] : null;
+    var recurrence = normalizeRecurrence_(
+      row[freqIdx],
+      row[repeatIdx],
+      startIdx !== -1 ? row[startIdx] : null,
+      endIdx !== -1 ? row[endIdx] : null
+    );
+    var frequency = recurrence.frequency;
+    var repeatEvery = recurrence.repeatEvery;
+    var startDate = recurrence.startDate;
+    var endDate = recurrence.endDate;
     var fromAccount = row[fromIdx];
 
     var recurring = isRecurringExpense_(startDate, endDate);
@@ -271,16 +277,7 @@ function updateAccountExpenseAverageRollup_(accountsSheet, totalsByAccount) {
     var value = totalsByAccount[name];
     return [value === undefined ? '' : value];
   });
-  var nameNotes = rows.map(function (row) {
-    var name = row[nameIdx];
-    var value = totalsByAccount[name];
-    if (value === undefined) {
-      return [''];
-    }
-    return ['Expense avg/month: ' + value];
-  });
   accountsSheet.getRange(2, avgIdx + 1, avgValues.length, 1).setValues(avgValues);
-  accountsSheet.getRange(2, nameIdx + 1, nameNotes.length, 1).setNotes(nameNotes);
 }
 
 function isRecurringExpense_(startDateValue, endDateValue) {

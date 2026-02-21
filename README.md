@@ -95,21 +95,6 @@ You usually don’t need to edit this manually — **Setup** will recreate it if
 
 ---
 
-## 🪙 Sink Funds (simple version)
-Sink funds are just regular accounts you park money in for future spending.
-
-Examples:
-- Car Fund
-- Holiday Fund
-- Emergency Fund
-
-How it works:
-- Mark an account as **Sink Fund** in **Accounts**
-- Add a recurring transfer into that account in **Transfers**
-- The engine never auto-spends sink funds — it just forecasts balances
-
----
-
 ## 🔁 Keeping it accurate
 Whenever real life changes:
 1. Update **Accounts** balances
