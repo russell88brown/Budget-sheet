@@ -23,6 +23,9 @@ const Recurrence = {
     if (frequency === Config.FREQUENCIES.DAILY) {
       return Recurrence.normalizeRepeatEvery(repeatEvery);
     }
+    if (frequency === Config.FREQUENCIES.WEEKLY) {
+      return Recurrence.normalizeRepeatEvery(repeatEvery) * 7;
+    }
     return null;
   },
 
@@ -31,6 +34,8 @@ const Recurrence = {
     switch (frequency) {
       case Config.FREQUENCIES.DAILY:
         return 365 / every;
+      case Config.FREQUENCIES.WEEKLY:
+        return 52 / every;
       case Config.FREQUENCIES.MONTHLY:
         return 12 / every;
       case Config.FREQUENCIES.YEARLY:

@@ -7,6 +7,7 @@ const Engine = {
     toastStep_('Checking active transfers...');
     deactivateExpiredTransfers_();
     normalizeTransferRows_();
+    normalizeRecurrenceRows_();
     toastStep_('Checking active expenses...');
     deactivateExpiredExpenses_();
     toastStep_('Styling inactive transfers...');
@@ -229,6 +230,107 @@ function normalizeTransferRows_() {
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
   }
+}
+
+function normalizeRecurrenceRows_() {
+  normalizeRecurrenceRowsForSheet_(Config.SHEETS.INCOME);
+  normalizeRecurrenceRowsForSheet_(Config.SHEETS.EXPENSE);
+  normalizeRecurrenceRowsForSheet_(Config.SHEETS.TRANSFERS);
+}
+
+function normalizeRecurrenceRowsForSheet_(sheetName) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var frequencyIdx = headers.indexOf('Frequency');
+  var repeatIdx = headers.indexOf('Repeat Every');
+  var startIdx = headers.indexOf('Start Date');
+  var endIdx = headers.indexOf('End Date');
+  if (frequencyIdx === -1 || repeatIdx === -1) {
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = false;
+
+  values.forEach(function (row) {
+    var mapped = mapLegacyFrequency_(row[frequencyIdx], row[repeatIdx], startIdx === -1 ? null : row[startIdx], endIdx === -1 ? null : row[endIdx]);
+    if (mapped.frequency !== row[frequencyIdx]) {
+      row[frequencyIdx] = mapped.frequency;
+      updated = true;
+    }
+    if (mapped.repeatEvery !== row[repeatIdx]) {
+      row[repeatIdx] = mapped.repeatEvery;
+      updated = true;
+    }
+    if (endIdx !== -1 && mapped.endDate !== row[endIdx]) {
+      row[endIdx] = mapped.endDate;
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
+}
+
+function mapLegacyFrequency_(frequencyValue, repeatEveryValue, startDateValue, endDateValue) {
+  var frequency = frequencyValue;
+  var repeatEvery = repeatEveryValue;
+  var endDate = endDateValue;
+  var lower = frequency ? String(frequency).trim().toLowerCase() : '';
+
+  if (lower === 'weekly') {
+    frequency = Config.FREQUENCIES.WEEKLY;
+  } else if (lower === 'biweekly' || lower === 'bi-weekly') {
+    frequency = Config.FREQUENCIES.WEEKLY;
+    repeatEvery = 2;
+  } else if (lower === 'fortnightly') {
+    frequency = Config.FREQUENCIES.WEEKLY;
+    repeatEvery = 2;
+  } else if (lower === 'bi-monthly' || lower === 'bimonthly') {
+    frequency = Config.FREQUENCIES.MONTHLY;
+    repeatEvery = 2;
+  } else if (lower === 'quarterly') {
+    frequency = Config.FREQUENCIES.MONTHLY;
+    repeatEvery = 3;
+  } else if (lower === 'semiannually' || lower === 'semi-annually') {
+    frequency = Config.FREQUENCIES.MONTHLY;
+    repeatEvery = 6;
+  } else if (lower === 'annually') {
+    frequency = Config.FREQUENCIES.YEARLY;
+    repeatEvery = 1;
+  } else if (lower === 'once' || lower === 'one-off') {
+    frequency = Config.FREQUENCIES.DAILY;
+    repeatEvery = 1;
+    if (startDateValue && !endDateValue) {
+      endDate = startDateValue;
+    }
+  } else if (lower === 'daily') {
+    frequency = Config.FREQUENCIES.DAILY;
+  } else if (lower === 'monthly') {
+    frequency = Config.FREQUENCIES.MONTHLY;
+  } else if (lower === 'yearly') {
+    frequency = Config.FREQUENCIES.YEARLY;
+  }
+
+  if (frequency && (repeatEvery === '' || repeatEvery === null || repeatEvery === undefined)) {
+    repeatEvery = 1;
+  }
+
+  return {
+    frequency: frequency,
+    repeatEvery: repeatEvery,
+    endDate: endDate,
+  };
 }
 
 function updateExpenseMonthlyAverages_() {

@@ -39,10 +39,12 @@ const Config = {
   },
   FREQUENCIES: {
     DAILY: 'Daily',
+    WEEKLY: 'Weekly',
     MONTHLY: 'Monthly',
     YEARLY: 'Yearly',
   },
   NAMED_RANGES: {
+    ACCOUNT_NAMES: 'AccountNames',
     CATEGORIES: 'ExpenseCategories',
     FORECAST_START: 'ForecastStartDate',
     FORECAST_END: 'ForecastEndDate',

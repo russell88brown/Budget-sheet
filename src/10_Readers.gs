@@ -196,31 +196,15 @@ function normalizeFrequency_(value) {
   if (lower === 'daily') {
     return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: null, isSingleOccurrence: false };
   }
+  if (lower === 'weekly') {
+    return { frequency: Config.FREQUENCIES.WEEKLY, repeatEvery: null, isSingleOccurrence: false };
+  }
   if (lower === 'monthly') {
     return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: null, isSingleOccurrence: false };
   }
   if (lower === 'yearly' || lower === 'annually') {
     return { frequency: Config.FREQUENCIES.YEARLY, repeatEvery: lower === 'annually' ? 1 : null, isSingleOccurrence: false };
   }
-  if (lower === 'weekly') {
-    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: 7, isSingleOccurrence: false };
-  }
-  if (lower === 'fortnightly') {
-    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: 14, isSingleOccurrence: false };
-  }
-  if (lower === 'bi-monthly' || lower === 'bimonthly') {
-    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: 2, isSingleOccurrence: false };
-  }
-  if (lower === 'quarterly') {
-    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: 3, isSingleOccurrence: false };
-  }
-  if (lower === 'semiannually' || lower === 'semi-annually') {
-    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: 6, isSingleOccurrence: false };
-  }
-  if (lower === 'once' || lower === 'one-off') {
-    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: 1, isSingleOccurrence: true };
-  }
-
   return { frequency: cleaned, repeatEvery: null, isSingleOccurrence: false };
 }
 

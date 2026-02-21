@@ -32,6 +32,7 @@ function validateTransfersExpenses() {
   resetRunState_();
   deactivateExpiredTransfers_();
   normalizeTransferRows_();
+  normalizeRecurrenceRows_();
   deactivateExpiredExpenses_();
   styleTransferRows_();
   styleExpenseRows_();

@@ -89,11 +89,18 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
       intBuilder.setAllowInvalid(!column.required);
       range.setDataValidation(intBuilder.build());
     } else if (column.type === 'ref') {
-      var accounts = getAccountNames_(spreadsheet);
-      if (accounts.length) {
-        var refBuilder = SpreadsheetApp.newDataValidation().requireValueInList(accounts, true);
+      var accountRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.ACCOUNT_NAMES);
+      if (accountRange) {
+        var refBuilder = SpreadsheetApp.newDataValidation().requireValueInRange(accountRange, true);
         refBuilder.setAllowInvalid(!column.required);
         range.setDataValidation(refBuilder.build());
+      } else {
+        var accounts = getAccountNames_(spreadsheet);
+        if (accounts.length) {
+          var refBuilder = SpreadsheetApp.newDataValidation().requireValueInList(accounts, true);
+          refBuilder.setAllowInvalid(!column.required);
+          range.setDataValidation(refBuilder.build());
+        }
       }
     } else if (column.type === 'category') {
       var categoriesRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.CATEGORIES);
@@ -127,6 +134,7 @@ function ensureAccountNameRanges_(spreadsheet) {
   }
 
   setupReferenceLayout_(spreadsheet, listsSheet);
+  bindNamedRange_(spreadsheet, Config.NAMED_RANGES.ACCOUNT_NAMES, accountsSheet.getRange('A2:A'));
 }
 
 function ensureCategoryRange_(spreadsheet) {
