@@ -13,8 +13,8 @@ You define how money moves (income, expenses, transfers, policies), then run the
 1. Open menu `Budget Forecast -> Setup actions...`
 2. Select `Structure`, `Validation + settings`, and `Theme`, then click `Run`
 3. (Optional) In the same setup dialog, run `Load default data` for a working sample
-4. Click `Budget Forecast -> Run journal (Base)`
-5. Click `Budget Forecast -> Run summaries (Base)`
+4. Click `Budget Forecast -> Run Main Scenario...`
+5. In popup, tick `Journal` and `Summaries`, then click `Run`
 
 You now have a complete base forecast.
 
@@ -23,18 +23,22 @@ You now have a complete base forecast.
 1. Go to `Settings` sheet
 2. Add or edit scenario names in column `H` (`Base`, `Stress`, etc.)
 3. In input sheets (`Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`), set each row's `Scenario`
-4. Run:
-   - `Run journal for scenario...`
-   - `Run summaries for scenario...`
+4. Open `Run Custom Scenario(s)...`
+5. Tick actions (`Journal`, `Summaries`) and multi-select one or more scenarios
 5. Check run history in `Settings!J:N`
 
 ## Menu Buttons (Plain English)
 
+- `Run Main Scenario...`:
+  - opens popup
+  - choose one or both actions with checkboxes (`Journal`, `Summaries`)
+  - runs against `Base`
+- `Run Custom Scenario(s)...`:
+  - opens popup
+  - choose one or both actions with checkboxes
+  - multi-select scenarios
+  - runs selected actions for each selected scenario
 - `Summarise Accounts`: recalculates account monthly summary fields.
-- `Run journal (Base)`: builds Journal for the Base scenario.
-- `Run journal for scenario...`: scenario picker, then Journal for selected scenario.
-- `Run summaries (Base)`: builds Daily/Monthly/Dashboard for Base.
-- `Run summaries for scenario...`: scenario picker, then scenario-specific summaries.
 - `Export`: downloads selected sheets as JSON zip.
 - `Setup actions...`: structure, validation/settings, theme, default sample data.
 
