@@ -47,7 +47,7 @@ function runJournalPipeline_(options) {
   Logger.info('Expense rules read: ' + expenseRules.length);
 
   if (refreshSummaries) {
-    refreshAccountSummaries_(incomeRules);
+    refreshAccountSummaries_(incomeRules, transferRules);
   }
 
   toastStep_('Building events...');
@@ -362,10 +362,12 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
   }
 }
 
-function refreshAccountSummaries_(incomeRules) {
-  var rules = incomeRules || Readers.readIncome();
+function refreshAccountSummaries_(incomeRules, transferRules) {
+  var income = incomeRules || Readers.readIncome();
+  var transfers = transferRules || Readers.readTransfers();
+  var transferMonthlyTotals = computeTransferMonthlyTotals_(transfers);
   var expenseMonthlyTotals = updateExpenseMonthlyAverages_();
-  updateAccountMonthlyFlowAverages_(rules, expenseMonthlyTotals);
+  updateAccountMonthlyFlowAverages_(income, transferMonthlyTotals, expenseMonthlyTotals);
 }
 
 function toast_(message) {
@@ -671,10 +673,11 @@ function normalizeAccountRows_() {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var typeIdx = headers.indexOf('Type');
   var includeIdx = headers.indexOf('Include');
-  var interestAvgIdx = headers.indexOf('Interest Avg / Month');
-  var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
-  var incomeAvgIdx = headers.indexOf('Income Avg / Month');
-  var netFlowIdx = headers.indexOf('Net Cash Flow / Month');
+  var summaryIndexes = getAccountSummaryHeaderIndexes_(headers);
+  var interestAvgIdx = summaryIndexes.interest;
+  var expenseAvgIdx = summaryIndexes.debits;
+  var incomeAvgIdx = summaryIndexes.credits;
+  var netFlowIdx = summaryIndexes.net;
   var rateIdx = headers.indexOf('Interest Rate (APR %)');
   var feeIdx = headers.indexOf('Interest Fee / Month');
   var methodIdx = headers.indexOf('Interest Method');
@@ -925,11 +928,14 @@ function updateExpenseMonthlyAverages_() {
   return accountTotals;
 }
 
-function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) {
+function updateAccountMonthlyFlowAverages_(incomeRules, transferTotals, expenseTotalsByAccount) {
   var accountsSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
   if (!accountsSheet) {
     return;
   }
+  transferTotals = transferTotals || { credits: {}, debits: {} };
+  var transferCreditsByAccount = transferTotals.credits || {};
+  var transferDebitsByAccount = transferTotals.debits || {};
   expenseTotalsByAccount = expenseTotalsByAccount || {};
   var incomeTotalsByAccount = computeIncomeMonthlyTotals_(incomeRules);
 
@@ -942,10 +948,11 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
   var nameIdx = headers.indexOf('Account Name');
   var balanceIdx = headers.indexOf('Balance');
   var includeIdx = headers.indexOf('Include');
-  var interestAvgIdx = headers.indexOf('Interest Avg / Month');
-  var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
-  var incomeAvgIdx = headers.indexOf('Income Avg / Month');
-  var netFlowIdx = headers.indexOf('Net Cash Flow / Month');
+  var summaryIndexes = getAccountSummaryHeaderIndexes_(headers);
+  var interestAvgIdx = summaryIndexes.interest;
+  var expenseAvgIdx = summaryIndexes.debits;
+  var incomeAvgIdx = summaryIndexes.credits;
+  var netFlowIdx = summaryIndexes.net;
   var rateIdx = headers.indexOf('Interest Rate (APR %)');
   var feeIdx = headers.indexOf('Interest Fee / Month');
   var methodIdx = headers.indexOf('Interest Method');
@@ -976,12 +983,13 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
     }
     var name = row[nameIdx];
     var value = expenseTotalsByAccount[name];
+    var transferDebit = transferDebitsByAccount[name];
     var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
-    var total = value === undefined ? 0 : value;
+    var total = (value === undefined ? 0 : value) + (transferDebit === undefined ? 0 : transferDebit);
     if (fee !== null && fee > 0) {
       total = roundUpCents_(total + fee);
     }
-    return [total];
+    return [roundUpCents_(total)];
   });
   var incomeAvgValues = rows.map(function (row) {
     var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
@@ -990,7 +998,9 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
     }
     var name = row[nameIdx];
     var value = incomeTotalsByAccount[name];
-    return [value === undefined ? 0 : value];
+    var transferCredit = transferCreditsByAccount[name];
+    var total = (value === undefined ? 0 : value) + (transferCredit === undefined ? 0 : transferCredit);
+    return [roundUpCents_(total)];
   });
   var netFlowValues = rows.map(function (row) {
     var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
@@ -1000,14 +1010,24 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
     var name = row[nameIdx];
     var expense = expenseTotalsByAccount[name];
     var income = incomeTotalsByAccount[name];
+    var transferCredit = transferCreditsByAccount[name];
+    var transferDebit = transferDebitsByAccount[name];
+    var rate = rateIdx === -1 ? null : toNumber_(row[rateIdx]);
+    var balance = balanceIdx === -1 ? null : toNumber_(row[balanceIdx]);
+    var frequency = frequencyIdx === -1 ? null : row[frequencyIdx];
+    var method = methodIdx === -1 ? '' : row[methodIdx];
+    var interest = 0;
+    if (rate !== null && balance !== null && frequency) {
+      interest = computeEstimatedMonthlyInterest_(balance, rate, method);
+    }
     var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
     var hasFee = fee !== null && fee > 0;
-    var expenseValue = expense === undefined ? 0 : expense;
+    var expenseValue = (expense === undefined ? 0 : expense) + (transferDebit === undefined ? 0 : transferDebit);
     if (hasFee) {
       expenseValue = roundUpCents_(expenseValue + fee);
     }
-    var incomeValue = income === undefined ? 0 : income;
-    return [roundUpCents_(incomeValue - expenseValue)];
+    var incomeValue = (income === undefined ? 0 : income) + (transferCredit === undefined ? 0 : transferCredit);
+    return [roundUpCents_(incomeValue + interest - expenseValue)];
   });
 
   if (expenseAvgIdx !== -1) {
@@ -1049,6 +1069,42 @@ function computeIncomeMonthlyTotals_(incomeRules) {
     totals[toAccount] = roundUpCents_((totals[toAccount] || 0) + monthlyAverage);
   });
   return totals;
+}
+
+function computeTransferMonthlyTotals_(transferRules) {
+  var credits = {};
+  var debits = {};
+  (transferRules || []).forEach(function (rule) {
+    if (!rule) {
+      return;
+    }
+    var amount = toNumber_(rule.amount);
+    var toAccount = rule.paidTo;
+    var fromAccount = rule.paidFrom;
+    var recurring = isRecurringForMonthlyAverage_(rule);
+    if (!recurring || amount === null || amount < 0 || !rule.frequency || !toAccount || !fromAccount) {
+      return;
+    }
+    if (
+      rule.behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL ||
+      rule.behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT
+    ) {
+      return;
+    }
+    var monthlyAverage = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(rule.frequency, rule.repeatEvery));
+    credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyAverage);
+    debits[fromAccount] = roundUpCents_((debits[fromAccount] || 0) + monthlyAverage);
+  });
+  return { credits: credits, debits: debits };
+}
+
+function getAccountSummaryHeaderIndexes_(headers) {
+  return {
+    credits: headers.indexOf('Money In / Month'),
+    debits: headers.indexOf('Money Out / Month'),
+    interest: headers.indexOf('Net Interest / Month'),
+    net: headers.indexOf('Net Change / Month'),
+  };
 }
 
 function isRecurringExpense_(startDateValue, endDateValue) {

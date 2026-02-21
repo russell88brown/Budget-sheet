@@ -335,8 +335,7 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
       '04. Car Expense',
       '05. Luxury',
       '06. Debt',
-      '07. Investment - Liquid',
-      '08. Investment - Locked',
+      '07. Savings',
     ];
     sheet.getRange(2, 4, categories.length, 1).setValues(
       categories.map(function (value) {
@@ -425,7 +424,7 @@ function applyAccountsFormatting_(spreadsheet) {
   }
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var netFlowIndex = headers.indexOf('Net Cash Flow / Month');
+  var netFlowIndex = headers.indexOf('Net Change / Month');
   if (netFlowIndex === -1) {
     return;
   }
@@ -469,10 +468,10 @@ function applyAccountsTheme_(spreadsheet) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var coreHeaders = ['Account Name', 'Balance', 'Type', 'Include'];
   var summaryHeaders = [
-    'Interest Avg / Month',
-    'Expense Avg / Month',
-    'Income Avg / Month',
-    'Net Cash Flow / Month',
+    'Money In / Month',
+    'Money Out / Month',
+    'Net Interest / Month',
+    'Net Change / Month',
   ];
   var interestHeaders = [
     'Interest Rate (APR %)',
