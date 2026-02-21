@@ -1,0 +1,9 @@
+# Repository-local Codex defaults (safe to commit).
+# Copy to codex/config.toml for a local, editable config.
+
+model = "gpt-5"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[tools]
+web_search = true
