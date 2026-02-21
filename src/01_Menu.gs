@@ -5,8 +5,10 @@ function onOpen() {
   ui
     .createMenu('Budget Forecast')
     .addItem('Summarise Accounts', 'summariseAccounts')
-    .addItem('Run journal', 'runJournal')
-    .addItem('Run summaries', 'runSummary')
+    .addItem('Run journal (Base)', 'runJournal')
+    .addItem('Run journal for scenario...', 'runJournalForScenarioPrompt')
+    .addItem('Run summaries (Base)', 'runSummary')
+    .addItem('Run summaries for scenario...', 'runSummaryForScenarioPrompt')
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
     .addToUi();
@@ -24,6 +26,55 @@ function runJournal() {
   } else {
     runForecast();
   }
+}
+
+function runJournalForScenarioPrompt() {
+  var scenarioId = promptScenarioId_('Run journal for scenario');
+  if (!scenarioId) {
+    return;
+  }
+  if (Engine && Engine.runJournalForScenario) {
+    Engine.runJournalForScenario(scenarioId);
+    return;
+  }
+  runJournal();
+}
+
+function runSummaryForScenarioPrompt() {
+  var scenarioId = promptScenarioId_('Run summaries for scenario');
+  if (!scenarioId) {
+    return;
+  }
+  runSummaryForScenario(scenarioId);
+}
+
+function promptScenarioId_(title) {
+  var ui = SpreadsheetApp.getUi();
+  var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
+    .map(function (value) {
+      return normalizeScenario_(value);
+    })
+    .filter(function (value, idx, arr) {
+      return value && arr.indexOf(value) === idx;
+    });
+  if (!available.length) {
+    available = [Config.SCENARIOS.DEFAULT];
+  }
+
+  var response = ui.prompt(
+    title || 'Scenario',
+    'Enter scenario id.\nAvailable: ' + available.join(', '),
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response.getSelectedButton() !== ui.Button.OK) {
+    return null;
+  }
+  var scenarioId = normalizeScenario_(response.getResponseText());
+  if (available.indexOf(scenarioId) === -1) {
+    ui.alert('Unknown scenario "' + scenarioId + '". Available: ' + available.join(', '));
+    return null;
+  }
+  return scenarioId;
 }
 
 function summariseAccounts() {

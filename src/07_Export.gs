@@ -131,6 +131,7 @@ function buildJournalJsonFiles_(sheet, exportedAt) {
   }
   var headers = data[0] || [];
   var dateIndex = headers.indexOf('Date');
+  var scenarioIndex = headers.indexOf('Scenario');
   if (dateIndex === -1) {
     var fallbackRows = data.slice(1).filter(function (row) {
       return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
@@ -160,28 +161,32 @@ function buildJournalJsonFiles_(sheet, exportedAt) {
     })
     .forEach(function (row) {
       var date = row[dateIndex];
-      var key = 'unknown';
+      var scenarioKey = getJournalScenarioKey_(row, scenarioIndex);
+      var key = scenarioKey + '-unknown';
       if (date instanceof Date) {
-        key = Utilities.formatDate(date, tz, 'yyyy-MM');
+        key = scenarioKey + '-' + Utilities.formatDate(date, tz, 'yyyy-MM');
       }
       if (!groups[key]) {
-        groups[key] = [];
+        groups[key] = { scenario: scenarioKey, rows: [] };
       }
-      groups[key].push(row);
+      groups[key].rows.push(row);
     });
 
   Object.keys(groups)
     .sort()
-    .forEach(function (monthKey) {
+    .forEach(function (groupKey) {
+      var group = groups[groupKey];
+      var monthKey = groupKey.slice(group.scenario.length + 1);
       var payload = {
         sheet: Config.SHEETS.JOURNAL,
+        scenario: group.scenario,
         month: monthKey,
         exportedAt: exportedAt,
         headers: headers,
-        rows: rowsToObjects_(headers, groups[monthKey]),
+        rows: rowsToObjects_(headers, group.rows),
       };
       files.push({
-        fileName: toExportFileName_(Config.SHEETS.JOURNAL + '-' + monthKey) + '.json',
+        fileName: toExportFileName_(Config.SHEETS.JOURNAL + '-' + group.scenario + '-' + monthKey) + '.json',
         content: JSON.stringify(payload, null, 2),
       });
     });
@@ -240,6 +245,7 @@ function exportJournalByMonth_(sheet) {
   }
   var headers = data[0] || [];
   var dateIndex = headers.indexOf('Date');
+  var scenarioIndex = headers.indexOf('Scenario');
   if (dateIndex === -1) {
     var fallback = serializeCompact_(headers, data.slice(1));
     exportRows.push([Config.SHEETS.JOURNAL, fallback]);
@@ -253,25 +259,37 @@ function exportJournalByMonth_(sheet) {
       return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
     })
     .forEach(function (row) {
-    var date = row[dateIndex];
-    var key = 'Unknown';
-    if (date instanceof Date) {
-      key = Utilities.formatDate(date, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM');
-    }
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(row);
-  });
+      var date = row[dateIndex];
+      var scenarioKey = getJournalScenarioKey_(row, scenarioIndex);
+      var key = scenarioKey + '-Unknown';
+      if (date instanceof Date) {
+        key = scenarioKey + '-' + Utilities.formatDate(date, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM');
+      }
+      if (!groups[key]) {
+        groups[key] = { scenario: scenarioKey, rows: [] };
+      }
+      groups[key].rows.push(row);
+    });
 
   Object.keys(groups)
     .sort()
-    .forEach(function (monthKey) {
-      var compact = serializeCompact_(headers, groups[monthKey]);
-      exportRows = exportRows.concat(buildExportRows_(Config.SHEETS.JOURNAL + ' ' + monthKey, compact));
+    .forEach(function (groupKey) {
+      var group = groups[groupKey];
+      var monthKey = groupKey.slice(group.scenario.length + 1);
+      var compact = serializeCompact_(headers, group.rows);
+      exportRows = exportRows.concat(
+        buildExportRows_(Config.SHEETS.JOURNAL + ' ' + group.scenario + ' ' + monthKey, compact)
+      );
     });
 
   return exportRows;
+}
+
+function getJournalScenarioKey_(row, scenarioIndex) {
+  if (scenarioIndex === -1) {
+    return Config.SCENARIOS.DEFAULT;
+  }
+  return normalizeScenario_(row[scenarioIndex]);
 }
 
 function isMeaningfulRow_(row, headers, sheetName) {

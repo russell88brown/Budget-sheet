@@ -1,9 +1,14 @@
 ﻿// Summary builders for Daily, Monthly, and Dashboard sheets.
 function runSummary() {
-  startRunProgress_('Summaries', 7);
+  runSummaryForScenario(Config.SCENARIOS.DEFAULT);
+}
+
+function runSummaryForScenario(scenarioId) {
+  var activeScenarioId = normalizeScenario_(scenarioId);
+  startRunProgress_('Summaries (' + activeScenarioId + ')', 7);
   try {
     toastStep_('Building daily summary...');
-    var daily = buildDailySummary_();
+    var daily = buildDailySummary_(activeScenarioId);
     toastStep_('Writing daily summary...');
     writeDailySummary_(daily);
 
@@ -13,7 +18,7 @@ function runSummary() {
     writeMonthlySummary_(monthly);
 
     toastStep_('Building dashboard...');
-    var dashboard = buildDashboardData_(daily, monthly);
+    var dashboard = buildDashboardData_(daily, monthly, activeScenarioId);
     toastStep_('Writing dashboard...');
     writeDashboard_(dashboard);
 
@@ -23,7 +28,8 @@ function runSummary() {
   }
 }
 
-function buildDailySummary_() {
+function buildDailySummary_(scenarioId) {
+  var activeScenarioId = normalizeScenario_(scenarioId);
   var ss = SpreadsheetApp.getActive();
   var journal = ss.getSheetByName(Config.SHEETS.JOURNAL);
   if (!journal) {
@@ -37,6 +43,7 @@ function buildDailySummary_() {
   }
 
   var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
+  var scenarioIndex = headerRow.indexOf('Scenario');
   var alertsIndex = headerRow.indexOf('Alerts');
   if (alertsIndex === -1) {
     return { headers: [], rows: [], accountNames: [], accountTypes: {} };
@@ -51,6 +58,12 @@ function buildDailySummary_() {
   var dayMap = {};
 
   values.forEach(function (row) {
+    if (scenarioIndex !== -1) {
+      var rowScenarioId = normalizeScenario_(row[scenarioIndex]);
+      if (rowScenarioId !== activeScenarioId) {
+        return;
+      }
+    }
     var date = row[0];
     if (!date) {
       return;
@@ -66,7 +79,7 @@ function buildDailySummary_() {
     return { headers: [], rows: [], accountNames: accountNames, accountTypes: {} };
   }
 
-  var accountTypes = buildAccountTypeMap_(Readers.readAccounts());
+  var accountTypes = buildAccountTypeMap_(filterByScenario_(Readers.readAccounts(), activeScenarioId));
   var rows = keys.map(function (key) {
     var entry = dayMap[key];
     var cash = 0;
@@ -279,7 +292,7 @@ function writeMonthlySummary_(monthly) {
   }
 }
 
-function buildDashboardData_(daily, monthly) {
+function buildDashboardData_(daily, monthly, scenarioId) {
   if (!daily.rows.length) {
     return { metrics: [], accountStats: [], accountNames: daily.accountNames || [] };
   }
@@ -293,6 +306,7 @@ function buildDashboardData_(daily, monthly) {
   var netStats = computeSeriesStats_(rows, 3);
 
   var metrics = [
+    ['Scenario', normalizeScenario_(scenarioId)],
     ['Forecast Start', startDate],
     ['Forecast End', endDate],
     ['Ending Cash', cashStats.end],
