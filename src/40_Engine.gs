@@ -806,6 +806,8 @@ function roundUpCents_(value) {
   if (typeof value !== 'number' || isNaN(value)) {
     return 0;
   }
-  return Math.ceil(value * 100) / 100;
+  var absolute = Math.abs(value);
+  var rounded = Math.round((absolute + Number.EPSILON) * 100) / 100;
+  return value < 0 ? -rounded : rounded;
 }
 

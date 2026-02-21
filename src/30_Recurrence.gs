@@ -35,7 +35,7 @@ const Recurrence = {
       case Config.FREQUENCIES.DAILY:
         return 365 / every;
       case Config.FREQUENCIES.WEEKLY:
-        return 52 / every;
+        return (365 / 7) / every;
       case Config.FREQUENCIES.MONTHLY:
         return 12 / every;
       case Config.FREQUENCIES.YEARLY:
