@@ -82,7 +82,13 @@ function showActionDialog_(action, title) {
 function getActionStages_(action) {
   if (action === 'summarise') {
     return [
+      'Reset run state',
+      'Normalize input rows',
       'Review and cleanup inputs',
+      'Flag inactive income by date',
+      'Flag inactive transfers by date',
+      'Flag inactive expenses by date',
+      'Flag inactive policies by date',
       'Recompute account monthly summaries',
     ];
   }
@@ -101,16 +107,36 @@ function getActionStages_(action) {
 
 function runActionStage_(action, stageIndex) {
   if (action === 'summarise') {
-    if (stageIndex === 0) {
-      resetRunState_();
-      preprocessInputSheets_();
-      return 'Inputs reviewed and cleaned.';
+    switch (stageIndex) {
+      case 0:
+        resetRunState_();
+        return 'Run state reset.';
+      case 1:
+        normalizeAccountRows_();
+        normalizeTransferRows_();
+        normalizeRecurrenceRows_();
+        return 'Inputs normalized.';
+      case 2:
+        reviewAndCleanupInputSheets_();
+        return 'Inputs reviewed and cleaned.';
+      case 3:
+        flagExpiredIncome_();
+        return 'Inactive income flagged.';
+      case 4:
+        flagExpiredTransfers_();
+        return 'Inactive transfers flagged.';
+      case 5:
+        flagExpiredExpenses_();
+        return 'Inactive expenses flagged.';
+      case 6:
+        flagExpiredPolicies_();
+        return 'Inactive policies flagged.';
+      case 7:
+        refreshAccountSummaries_();
+        return 'Account summaries updated.';
+      default:
+        return 'Done.';
     }
-    if (stageIndex === 1) {
-      refreshAccountSummaries_();
-      return 'Account summaries updated.';
-    }
-    return 'Done.';
   }
 
   if (action === 'journal') {
