@@ -15,10 +15,17 @@ const Schema = {
         },
         { name: 'Include', type: 'boolean', required: false, description: 'Include in forecast outputs' },
         {
+          name: 'Interest Avg / Month',
+          type: 'number',
+          required: false,
+          description: 'Estimated monthly interest impact based on current balance and rate',
+          format: '0.00',
+        },
+        {
           name: 'Expense Avg / Month',
           type: 'number',
           required: false,
-          description: 'Computed from Expense by From Account',
+          description: 'Computed from Expense by From Account plus account fee',
           format: '0.00',
         },
         {
@@ -32,7 +39,7 @@ const Schema = {
           name: 'Net Cash Flow / Month',
           type: 'number',
           required: false,
-          description: 'Income Avg / Month minus Expense Avg / Month',
+          description: 'Income Avg / Month minus Expense Avg / Month (fees included)',
           format: '0.00',
         },
         {
@@ -80,13 +87,6 @@ const Schema = {
           type: 'date',
           required: false,
           description: 'First interest posting date',
-          format: 'yyyy-mm-dd',
-        },
-        {
-          name: 'Interest End Date',
-          type: 'date',
-          required: false,
-          description: 'Optional last interest date',
           format: 'yyyy-mm-dd',
         },
       ],

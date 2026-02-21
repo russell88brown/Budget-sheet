@@ -378,6 +378,7 @@ function normalizeAccountRows_() {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var typeIdx = headers.indexOf('Type');
   var includeIdx = headers.indexOf('Include');
+  var interestAvgIdx = headers.indexOf('Interest Avg / Month');
   var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
   var incomeAvgIdx = headers.indexOf('Income Avg / Month');
   var netFlowIdx = headers.indexOf('Net Cash Flow / Month');
@@ -418,6 +419,10 @@ function normalizeAccountRows_() {
     }
     if (expenseAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[expenseAvgIdx])) {
       row[expenseAvgIdx] = '';
+      updated = true;
+    }
+    if (interestAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[interestAvgIdx])) {
+      row[interestAvgIdx] = '';
       updated = true;
     }
     if (incomeAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[incomeAvgIdx])) {
@@ -616,18 +621,42 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
   }
   var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
+  var balanceIdx = headers.indexOf('Balance');
+  var interestAvgIdx = headers.indexOf('Interest Avg / Month');
   var expenseAvgIdx = headers.indexOf('Expense Avg / Month');
   var incomeAvgIdx = headers.indexOf('Income Avg / Month');
   var netFlowIdx = headers.indexOf('Net Cash Flow / Month');
+  var rateIdx = headers.indexOf('Interest Rate (APR %)');
+  var feeIdx = headers.indexOf('Interest Fee / Month');
+  var methodIdx = headers.indexOf('Interest Method');
+  var frequencyIdx = headers.indexOf('Interest Frequency');
   if (nameIdx === -1) {
     return;
   }
 
   var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var interestAvgValues = rows.map(function (row) {
+    var rate = rateIdx === -1 ? null : toNumber_(row[rateIdx]);
+    var balance = balanceIdx === -1 ? null : toNumber_(row[balanceIdx]);
+    var frequency = frequencyIdx === -1 ? null : row[frequencyIdx];
+    var method = methodIdx === -1 ? '' : row[methodIdx];
+    if (rate === null || balance === null || !frequency) {
+      return [''];
+    }
+    return [computeEstimatedMonthlyInterest_(balance, rate, method)];
+  });
   var expenseAvgValues = rows.map(function (row) {
     var name = row[nameIdx];
     var value = expenseTotalsByAccount[name];
-    return [value === undefined ? '' : value];
+    var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
+    var total = value === undefined ? 0 : value;
+    if (fee !== null && fee > 0) {
+      total = roundUpCents_(total + fee);
+    }
+    if (value === undefined && (fee === null || fee <= 0)) {
+      return [''];
+    }
+    return [total];
   });
   var incomeAvgValues = rows.map(function (row) {
     var name = row[nameIdx];
@@ -638,16 +667,24 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
     var name = row[nameIdx];
     var expense = expenseTotalsByAccount[name];
     var income = incomeTotalsByAccount[name];
-    if (expense === undefined && income === undefined) {
+    var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
+    var hasFee = fee !== null && fee > 0;
+    if (expense === undefined && income === undefined && !hasFee) {
       return [''];
     }
     var expenseValue = expense === undefined ? 0 : expense;
+    if (hasFee) {
+      expenseValue = roundUpCents_(expenseValue + fee);
+    }
     var incomeValue = income === undefined ? 0 : income;
     return [roundUpCents_(incomeValue - expenseValue)];
   });
 
   if (expenseAvgIdx !== -1) {
     accountsSheet.getRange(2, expenseAvgIdx + 1, expenseAvgValues.length, 1).setValues(expenseAvgValues);
+  }
+  if (interestAvgIdx !== -1) {
+    accountsSheet.getRange(2, interestAvgIdx + 1, interestAvgValues.length, 1).setValues(interestAvgValues);
   }
   if (incomeAvgIdx !== -1) {
     accountsSheet.getRange(2, incomeAvgIdx + 1, incomeAvgValues.length, 1).setValues(incomeAvgValues);
@@ -657,6 +694,15 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
   }
   applySchemaFormatsForSheet_(Config.SHEETS.ACCOUNTS);
   applyAccountsFormatting_(SpreadsheetApp.getActive());
+}
+
+function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {
+  var annualRate = ratePercent / 100;
+  var monthlyRate = annualRate / 12;
+  if (method === Config.INTEREST_METHODS.APY_COMPOUND) {
+    monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+  }
+  return roundUpCents_(balance * monthlyRate);
 }
 
 function computeIncomeMonthlyTotals_(incomeRules) {

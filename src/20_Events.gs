@@ -80,7 +80,7 @@ const Events = {
       }
       var window = getForecastWindow_();
       var startDate = account.interestPostingStartDate || window.start;
-      var endDate = account.interestPostingEndDate || null;
+      var endDate = null;
       var postingDates = Recurrence.expand({
         startDate: startDate,
         frequency: account.interestPostingFrequency,

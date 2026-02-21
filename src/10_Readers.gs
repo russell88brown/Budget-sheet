@@ -11,7 +11,7 @@ const Readers = {
           row['Interest Frequency'],
           row['Interest Repeat Every'],
           row['Interest Start Date'],
-          row['Interest End Date']
+          null
         );
         return {
           name: row['Account Name'],
@@ -24,7 +24,6 @@ const Readers = {
           interestPostingFrequency: interestRecurrence.frequency,
           interestPostingRepeatEvery: interestRecurrence.repeatEvery,
           interestPostingStartDate: interestRecurrence.startDate,
-          interestPostingEndDate: interestRecurrence.endDate,
         };
       });
   },
