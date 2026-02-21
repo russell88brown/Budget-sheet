@@ -15,7 +15,7 @@
 ## 🚀 Quick Start (3 minutes)
 
 ### 1) Run Setup
-Use **Budget Forecast → Setup…** to create or refresh all sheets.
+Use **Budget Forecast → Setup actions...** to create or refresh all sheets.
 
 Setup will:
 - 🧱 Rebuild **header rows**
@@ -29,10 +29,10 @@ Setup will:
 - **Transfers**: money moved between accounts (including repayments)
 
 ### 3) Run the forecast
-Use **Budget Forecast → Run forecast** to build the **Journal**.
+Use **Budget Forecast → Run journal** to build the **Journal**.
 
 ### 4) Generate summaries
-Use **Budget Forecast → Run summary** to create:
+Use **Budget Forecast → Run summaries** to create:
 - **Daily** (day-by-day balances)
 - **Monthly** (monthly stats)
 - **Dashboard** (visual overview)
@@ -44,10 +44,10 @@ Use **Budget Forecast → Export** to export selected sheets into **Export**.
 
 ## 🧰 Menu Actions (Functions You Can Run)
 
-### ✅ Budget Forecast → Run forecast
+### ✅ Budget Forecast → Run journal
 Builds the **Journal** by applying all income + expense + transfer rules in order.
 
-### 📊 Budget Forecast → Run summary
+### 📊 Budget Forecast → Run summaries
 Creates:
 - **Daily** (cash, debt, net position, account snapshots)
 - **Monthly** (min/max/change/ending per account)
@@ -56,11 +56,15 @@ Creates:
 ### 📦 Budget Forecast → Export
 Creates a compact export in the **Export** sheet. Data is stored as lightweight TSV per row (easy to copy or parse).
 
-### 🧩 Budget Forecast → Setup…
+### 🧮 Budget Forecast → Summarise Accounts
+Refreshes account-level monthly summaries used by the engine.
+
+### 🧩 Budget Forecast → Setup actions...
 Opens a setup dialog with these actions:
-- **Setup** (rebuild headers + validation)
-- **Load default data**
-- **Clear logs**
+- **Structure** (sheets + headers)
+- **Validation + settings** (ranges + categories)
+- **Theme** (color + bold formatting)
+- **Load default data** (if inputs are empty)
 
 ---
 
@@ -71,6 +75,9 @@ Opens a setup dialog with these actions:
 - **Income**
 - **Expense**
 - **Transfers**
+- **Policies** (optional auto-deficit cover rules)
+- **Goals** (optional savings targets)
+- **Risk** (optional scenario buffers)
 
 ### Outputs (auto-generated)
 - **Journal** (every forecasted event + running balances)
@@ -98,8 +105,8 @@ You usually don’t need to edit this manually — **Setup** will recreate it if
 ## 🔁 Keeping it accurate
 Whenever real life changes:
 1. Update **Accounts** balances
-2. Run **Run forecast** again
-3. (Optional) Run **Run summary**
+2. Run **Run journal** again
+3. (Optional) Run **Run summaries**
 
 That’s it. The model is forward-only and always rebuilds outputs from scratch.
 
