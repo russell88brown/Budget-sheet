@@ -24,7 +24,11 @@ function runForecast() {
 }
 
 function runJournal() {
-  runForecast();
+  if (Engine && Engine.runJournalOnly) {
+    Engine.runJournalOnly();
+  } else {
+    runForecast();
+  }
 }
 
 function summariseAccounts() {

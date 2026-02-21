@@ -1,67 +1,98 @@
 // Core forecasting logic that applies events to balances.
 const Engine = {
   runForecast: function () {
-    toastStep_('Starting forecast...');
-    Logger.info('Run started');
-    resetRunState_();
-    preprocessInputSheets_();
-    toastStep_('Reading input sheets...');
-    Logger.info('Reading inputs...');
-    var accounts = Readers.readAccounts();
-    Logger.info('Accounts read: ' + accounts.length);
-    var accountTypes = buildAccountTypeMap_(accounts);
-    var incomeRules = Readers.readIncome();
-    Logger.info('Income rules read: ' + incomeRules.length);
-    var transferRules = Readers.readTransfers();
-    Logger.info('Transfer rules read: ' + transferRules.length);
-    var expenseRules = Readers.readExpenses();
-    Logger.info('Expense rules read: ' + expenseRules.length);
-    refreshAccountSummaries_(incomeRules);
-
-    toastStep_('Building events...');
-    Logger.info('Building events...');
-    var events = Events.buildIncomeEvents(incomeRules)
-      .concat(Events.buildTransferEvents(transferRules))
-      .concat(Events.buildExpenseEvents(expenseRules))
-      .concat(Events.buildInterestEvents(accounts));
-    Logger.info('Events built: ' + events.length);
-
-    toastStep_('Sorting events by date...');
-    Logger.info('Sorting events...');
-    events.sort(function (a, b) {
-      var dateDiff = a.date.getTime() - b.date.getTime();
-      if (dateDiff !== 0) {
-        return dateDiff;
-      }
-      var priorityDiff = eventSortPriority_(a) - eventSortPriority_(b);
-      if (priorityDiff !== 0) {
-        return priorityDiff;
-      }
-      var nameA = a.name || '';
-      var nameB = b.name || '';
-      if (nameA < nameB) {
-        return -1;
-      }
-      if (nameA > nameB) {
-        return 1;
-      }
-      return 0;
+    runJournalPipeline_({
+      modeLabel: 'Forecast',
+      startToast: 'Starting forecast...',
+      completionToast: 'Forecast complete.',
+      preprocessInputs: true,
+      refreshSummaries: true,
     });
-    Logger.info('Events sorted');
-
-    Logger.info('Building outputs...');
-    toastStep_('Building journal...');
-    var journalData = buildJournalRows_(accounts, events);
-    toastStep_('Writing journal...');
-    Logger.info('Writing outputs...');
-    Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
-    Logger.info('Outputs built');
-    toastStep_('Writing logs...');
-    Writers.writeLogs(Logger.flush());
-    toastStep_('Forecast complete.');
-    Logger.info('Run completed');
+  },
+  runJournalOnly: function () {
+    runJournalPipeline_({
+      modeLabel: 'Journal',
+      startToast: 'Running journal...',
+      completionToast: 'Journal run complete.',
+      preprocessInputs: false,
+      refreshSummaries: false,
+    });
   },
 };
+
+function runJournalPipeline_(options) {
+  options = options || {};
+  var modeLabel = options.modeLabel || 'Run';
+  var preprocessInputs = options.preprocessInputs === true;
+  var refreshSummaries = options.refreshSummaries === true;
+
+  toastStep_(options.startToast || 'Running...');
+  Logger.info(modeLabel + ' started');
+  resetRunState_();
+
+  if (preprocessInputs) {
+    preprocessInputSheets_();
+  }
+
+  toastStep_('Reading input sheets...');
+  Logger.info('Reading inputs...');
+  var accounts = Readers.readAccounts();
+  Logger.info('Accounts read: ' + accounts.length);
+  var accountTypes = buildAccountTypeMap_(accounts);
+  var incomeRules = Readers.readIncome();
+  Logger.info('Income rules read: ' + incomeRules.length);
+  var transferRules = Readers.readTransfers();
+  Logger.info('Transfer rules read: ' + transferRules.length);
+  var expenseRules = Readers.readExpenses();
+  Logger.info('Expense rules read: ' + expenseRules.length);
+
+  if (refreshSummaries) {
+    refreshAccountSummaries_(incomeRules);
+  }
+
+  toastStep_('Building events...');
+  Logger.info('Building events...');
+  var events = Events.buildIncomeEvents(incomeRules)
+    .concat(Events.buildTransferEvents(transferRules))
+    .concat(Events.buildExpenseEvents(expenseRules))
+    .concat(Events.buildInterestEvents(accounts));
+  Logger.info('Events built: ' + events.length);
+
+  toastStep_('Sorting events by date...');
+  Logger.info('Sorting events...');
+  events.sort(function (a, b) {
+    var dateDiff = a.date.getTime() - b.date.getTime();
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    var priorityDiff = eventSortPriority_(a) - eventSortPriority_(b);
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+    var nameA = a.name || '';
+    var nameB = b.name || '';
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+    return 0;
+  });
+  Logger.info('Events sorted');
+
+  Logger.info('Building outputs...');
+  toastStep_('Building journal...');
+  var journalData = buildJournalRows_(accounts, events);
+  toastStep_('Writing journal...');
+  Logger.info('Writing outputs...');
+  Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
+  Logger.info('Outputs built');
+  toastStep_('Writing logs...');
+  Writers.writeLogs(Logger.flush());
+  toastStep_(options.completionToast || 'Run complete.');
+  Logger.info(modeLabel + ' completed');
+}
 
 function preprocessInputSheets_() {
   normalizeAccountRows_();
