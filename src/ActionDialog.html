@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        padding: 12px;
+        color: #1f1f1f;
+      }
+      h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+      .desc {
+        margin: 0 0 10px;
+        color: #5f6368;
+      }
+      .list {
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        padding: 8px 10px;
+        min-height: 120px;
+        max-height: 180px;
+        overflow-y: auto;
+        background: #fafafa;
+      }
+      .line {
+        margin: 6px 0;
+        white-space: pre-wrap;
+      }
+      .pending {
+        color: #5f6368;
+      }
+      .running {
+        color: #1a73e8;
+      }
+      .done {
+        color: #0f5132;
+      }
+      .error {
+        color: #8b0000;
+      }
+      .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+      }
+      button {
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h3><?= title ?></h3>
+    <p class="desc">Runs with stage-by-stage commentary.</p>
+    <div id="list" class="list"></div>
+    <div class="actions">
+      <button id="run-btn" onclick="runStages()">Run</button>
+      <button onclick="google.script.host.close()">Close</button>
+    </div>
+    <script>
+      var action = <?= JSON.stringify(action) ?>;
+      var stages = <?= JSON.stringify(stages || []) ?>;
+
+      function line_(text, cls) {
+        var el = document.createElement('div');
+        el.className = 'line ' + (cls || '');
+        el.textContent = text;
+        document.getElementById('list').appendChild(el);
+        document.getElementById('list').scrollTop = document.getElementById('list').scrollHeight;
+        return el;
+      }
+
+      function runStages() {
+        var runBtn = document.getElementById('run-btn');
+        runBtn.disabled = true;
+        if (!stages.length) {
+          line_('No stages configured.', 'error');
+          return;
+        }
+        line_('Starting...', 'running');
+        runNext_(0);
+      }
+
+      function runNext_(index) {
+        if (index >= stages.length) {
+          line_('Completed.', 'done');
+          return;
+        }
+        var stageLabel = stages[index];
+        line_((index + 1) + '. ' + stageLabel, 'running');
+        google.script.run
+          .withSuccessHandler(function (msg) {
+            line_('  -> ' + (msg || 'Done.'), 'done');
+            runNext_(index + 1);
+          })
+          .withFailureHandler(function (err) {
+            line_('  -> ' + (err && err.message ? err.message : 'Failed.'), 'error');
+          })
+          .runActionStage_(action, index);
+      }
+    </script>
+  </body>
+</html>
