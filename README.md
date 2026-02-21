@@ -137,6 +137,10 @@ Common commands:
 - `clasp open`
 
 Detailed setup guide: `docs/CLASP.md`
+Codex setup guide: `docs/CODEX.md`
+
+Windows note:
+- For the most reliable Codex command approval/auto-approval behavior, prefer running in WSL2 (Ubuntu) instead of native PowerShell.
 
 ---
 
