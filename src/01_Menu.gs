@@ -27,9 +27,17 @@ function runJournal() {
 }
 
 function summariseAccounts() {
-  resetRunState_();
-  preprocessInputSheets_();
-  refreshAccountSummaries_();
+  startRunProgress_('Account Summaries', 6);
+  try {
+    toastStep_('Starting account summaries...');
+    resetRunState_();
+    preprocessInputSheets_();
+    toastStep_('Refreshing account summary values...');
+    refreshAccountSummaries_();
+    toastStep_('Account summaries complete.');
+  } finally {
+    endRunProgress_();
+  }
 }
 
 function validateTransfersExpenses() {

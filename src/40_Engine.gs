@@ -27,10 +27,12 @@ function runJournalPipeline_(options) {
   var modeLabel = options.modeLabel || 'Run';
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
+  var totalSteps = preprocessInputs ? 10 : 7;
   resetForecastWindowCache_();
   getForecastWindow_();
 
   try {
+    startRunProgress_(modeLabel, totalSteps);
     toastStep_(options.startToast || 'Running...');
     resetRunState_();
 
@@ -85,23 +87,22 @@ function runJournalPipeline_(options) {
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
     toastStep_(options.completionToast || 'Run complete.');
   } finally {
+    endRunProgress_();
     resetForecastWindowCache_();
   }
 }
 
 function preprocessInputSheets_() {
+  toastStep_('Normalizing input rows...');
   normalizeAccountRows_();
   normalizeTransferRows_();
   normalizeRecurrenceRows_();
-  toastStep_('Reviewing input sheets...');
+  toastStep_('Reviewing and validating input sheets...');
   reviewAndCleanupInputSheets_();
-  toastStep_('Flagging inactive income by date...');
+  toastStep_('Applying date-based include flags...');
   flagExpiredIncome_();
-  toastStep_('Flagging inactive transfers by date...');
   flagExpiredTransfers_();
-  toastStep_('Flagging inactive expenses by date...');
   flagExpiredExpenses_();
-  toastStep_('Flagging inactive policies by date...');
   flagExpiredPolicies_();
 }
 
@@ -625,11 +626,62 @@ function refreshAccountSummaries_() {
 }
 
 function toast_(_message) {
-  // Toasts intentionally disabled.
+  if (!_message) {
+    return;
+  }
+  var title = runProgress_.label ? 'Budget Forecast: ' + runProgress_.label : 'Budget Forecast';
+  SpreadsheetApp.getActive().toast(String(_message), title, 3);
+  SpreadsheetApp.flush();
 }
 
 function toastStep_(_message, _delayMs) {
-  // Toast step notifications intentionally disabled.
+  if (!_message) {
+    return;
+  }
+  var message = nextProgressMessage_(String(_message));
+  var title = runProgress_.label ? 'Budget Forecast: ' + runProgress_.label : 'Budget Forecast';
+  SpreadsheetApp.getActive().toast(message, title, 3);
+  SpreadsheetApp.flush();
+  var delayMs = toNumber_(_delayMs);
+  if (delayMs && delayMs > 0) {
+    Utilities.sleep(delayMs);
+  }
+}
+
+var runProgress_ = {
+  active: false,
+  label: '',
+  step: 0,
+  total: 0,
+};
+
+function startRunProgress_(label, totalSteps) {
+  runProgress_ = {
+    active: true,
+    label: label ? String(label) : '',
+    step: 0,
+    total: toPositiveInt_(totalSteps) || 0,
+  };
+}
+
+function endRunProgress_() {
+  runProgress_ = {
+    active: false,
+    label: '',
+    step: 0,
+    total: 0,
+  };
+}
+
+function nextProgressMessage_(message) {
+  if (!runProgress_.active) {
+    return message;
+  }
+  runProgress_.step += 1;
+  if (runProgress_.total > 0) {
+    return '(' + runProgress_.step + '/' + runProgress_.total + ') ' + message;
+  }
+  return '(' + runProgress_.step + ') ' + message;
 }
 
 var runState_ = {

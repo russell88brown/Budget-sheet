@@ -1,21 +1,26 @@
 ﻿// Summary builders for Daily, Monthly, and Dashboard sheets.
 function runSummary() {
-  toastStep_('Building daily summary...');
-  var daily = buildDailySummary_();
-  toastStep_('Writing daily summary...');
-  writeDailySummary_(daily);
+  startRunProgress_('Summaries', 7);
+  try {
+    toastStep_('Building daily summary...');
+    var daily = buildDailySummary_();
+    toastStep_('Writing daily summary...');
+    writeDailySummary_(daily);
 
-  toastStep_('Building monthly summary...');
-  var monthly = buildMonthlySummary_(daily);
-  toastStep_('Writing monthly summary...');
-  writeMonthlySummary_(monthly);
+    toastStep_('Building monthly summary...');
+    var monthly = buildMonthlySummary_(daily);
+    toastStep_('Writing monthly summary...');
+    writeMonthlySummary_(monthly);
 
-  toastStep_('Building dashboard...');
-  var dashboard = buildDashboardData_(daily, monthly);
-  toastStep_('Writing dashboard...');
-  writeDashboard_(dashboard);
+    toastStep_('Building dashboard...');
+    var dashboard = buildDashboardData_(daily, monthly);
+    toastStep_('Writing dashboard...');
+    writeDashboard_(dashboard);
 
-  toastStep_('Summary complete.');
+    toastStep_('Summary complete.');
+  } finally {
+    endRunProgress_();
+  }
 }
 
 function buildDailySummary_() {
