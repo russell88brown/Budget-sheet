@@ -31,6 +31,7 @@ function setupStageValidationAndSettings_() {
     applyColumnRules_(ss, sheet, spec.columns);
   });
 
+  applyAccountsFormatting_(ss);
   formatReferenceSheet_(ss);
 }
 
@@ -49,14 +50,76 @@ function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
     sheet = spreadsheet.insertSheet(sheetName);
   }
 
-  var lastCol = Math.max(sheet.getLastColumn(), headers.length);
+  var lastRow = sheet.getLastRow();
+  var existingLastCol = sheet.getLastColumn();
+  var existingHeaders = existingLastCol > 0 ? sheet.getRange(1, 1, 1, existingLastCol).getValues()[0] : [];
+  var shouldRemap =
+    lastRow > 1 &&
+    hasAnyHeaderValue_(existingHeaders) &&
+    !headersEquivalent_(existingHeaders, headers);
+  var existingRows = [];
+  if (shouldRemap) {
+    existingRows = sheet.getRange(2, 1, lastRow - 1, existingLastCol).getValues();
+  }
+
+  var lastCol = Math.max(existingLastCol, headers.length);
   if (lastCol > 0) {
     sheet.getRange(1, 1, 1, lastCol).clearContent();
   }
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  if (shouldRemap) {
+    remapSheetDataByHeaders_(sheet, existingRows, existingHeaders, headers);
+  }
 
   return sheet;
+}
+
+function remapSheetDataByHeaders_(sheet, rows, sourceHeaders, targetHeaders) {
+  var rowCount = rows ? rows.length : 0;
+  var clearColCount = Math.max(sheet.getLastColumn(), sourceHeaders.length, targetHeaders.length);
+  if (rowCount > 0 && clearColCount > 0) {
+    sheet.getRange(2, 1, rowCount, clearColCount).clearContent();
+  }
+  if (!rowCount) {
+    return;
+  }
+
+  var sourceIndex = {};
+  sourceHeaders.forEach(function (header, idx) {
+    if (header !== '' && header !== null && sourceIndex[header] === undefined) {
+      sourceIndex[header] = idx;
+    }
+  });
+
+  var remapped = rows.map(function (row) {
+    return targetHeaders.map(function (header) {
+      var idx = sourceIndex[header];
+      if (idx === undefined) {
+        return '';
+      }
+      return row[idx];
+    });
+  });
+  sheet.getRange(2, 1, remapped.length, targetHeaders.length).setValues(remapped);
+}
+
+function headersEquivalent_(existingHeaders, targetHeaders) {
+  var maxLen = Math.max(existingHeaders.length, targetHeaders.length);
+  for (var i = 0; i < maxLen; i += 1) {
+    var existing = i < existingHeaders.length ? existingHeaders[i] : '';
+    var target = i < targetHeaders.length ? targetHeaders[i] : '';
+    if (existing !== target) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function hasAnyHeaderValue_(headers) {
+  return (headers || []).some(function (value) {
+    return value !== '' && value !== null;
+  });
 }
 
 function hasHeaderRow_(sheet) {
@@ -303,4 +366,45 @@ function applyHeaderFormatting_(sheet, headerCount) {
   range.setWrap(true);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
+}
+
+function applyAccountsFormatting_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!sheet) {
+    return;
+  }
+
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var netFlowIndex = headers.indexOf('Net Cash Flow / Month');
+  if (netFlowIndex === -1) {
+    return;
+  }
+
+  var targetColumn = netFlowIndex + 1;
+  var targetRange = sheet.getRange(2, targetColumn, Math.max(1, sheet.getMaxRows() - 1), 1);
+
+  var rules = sheet.getConditionalFormatRules() || [];
+  var filtered = rules.filter(function (rule) {
+    var ranges = rule.getRanges();
+    return !ranges.some(function (range) {
+      if (range.getSheet().getName() !== sheet.getName()) {
+        return false;
+      }
+      return range.getColumn() <= targetColumn && range.getLastColumn() >= targetColumn;
+    });
+  });
+
+  var negativeRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberLessThan(0)
+    .setBackground('#f8d7da')
+    .setFontColor('#8b0000')
+    .setRanges([targetRange])
+    .build();
+
+  sheet.setConditionalFormatRules(filtered.concat([negativeRule]));
 }

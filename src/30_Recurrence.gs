@@ -32,6 +32,8 @@ const Recurrence = {
   periodsPerYear: function (frequency, repeatEvery) {
     var every = Recurrence.normalizeRepeatEvery(repeatEvery);
     switch (frequency) {
+      case Config.FREQUENCIES.ONCE:
+        return 0;
       case Config.FREQUENCIES.DAILY:
         return 365 / every;
       case Config.FREQUENCIES.WEEKLY:
@@ -61,6 +63,15 @@ const Recurrence = {
     var today = normalizeDate_(new Date());
 
     var windowStart = window.start > today ? window.start : today;
+    if (frequency === Config.FREQUENCIES.ONCE) {
+      if (anchor < windowStart) {
+        return [];
+      }
+      if (anchor > window.end) {
+        return [];
+      }
+      return [new Date(anchor.getTime())];
+    }
     if (endDate && anchor.getTime() === end.getTime()) {
       if (anchor < windowStart) {
         return [];

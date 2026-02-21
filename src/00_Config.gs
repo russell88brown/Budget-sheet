@@ -38,6 +38,7 @@ const Config = {
     APY_COMPOUND: 'APY (Compound)',
   },
   FREQUENCIES: {
+    ONCE: 'Once',
     DAILY: 'Daily',
     WEEKLY: 'Weekly',
     MONTHLY: 'Monthly',

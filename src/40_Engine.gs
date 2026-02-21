@@ -4,16 +4,7 @@ const Engine = {
     toastStep_('Starting forecast...');
     Logger.info('Run started');
     resetRunState_();
-    toastStep_('Checking active transfers...');
-    deactivateExpiredTransfers_();
-    normalizeTransferRows_();
-    normalizeRecurrenceRows_();
-    toastStep_('Checking active expenses...');
-    deactivateExpiredExpenses_();
-    toastStep_('Styling inactive transfers...');
-    styleTransferRows_();
-    toastStep_('Styling inactive expenses...');
-    styleExpenseRows_();
+    preprocessInputSheets_();
     toastStep_('Reading input sheets...');
     Logger.info('Reading inputs...');
     var accounts = Readers.readAccounts();
@@ -25,8 +16,7 @@ const Engine = {
     Logger.info('Transfer rules read: ' + transferRules.length);
     var expenseRules = Readers.readExpenses();
     Logger.info('Expense rules read: ' + expenseRules.length);
-    var expenseMonthlyTotals = updateExpenseMonthlyAverages_();
-    updateAccountMonthlyFlowAverages_(incomeRules, expenseMonthlyTotals);
+    refreshAccountSummaries_(incomeRules);
 
     toastStep_('Building events...');
     Logger.info('Building events...');
@@ -56,6 +46,25 @@ const Engine = {
     Logger.info('Run completed');
   },
 };
+
+function preprocessInputSheets_() {
+  toastStep_('Checking active transfers...');
+  deactivateExpiredTransfers_();
+  normalizeTransferRows_();
+  normalizeRecurrenceRows_();
+  toastStep_('Checking active expenses...');
+  deactivateExpiredExpenses_();
+  toastStep_('Styling inactive transfers...');
+  styleTransferRows_();
+  toastStep_('Styling inactive expenses...');
+  styleExpenseRows_();
+}
+
+function refreshAccountSummaries_(incomeRules) {
+  var rules = incomeRules || Readers.readIncome();
+  var expenseMonthlyTotals = updateExpenseMonthlyAverages_();
+  updateAccountMonthlyFlowAverages_(rules, expenseMonthlyTotals);
+}
 
 function toast_(message) {
   try {
@@ -308,8 +317,8 @@ function mapLegacyFrequency_(frequencyValue, repeatEveryValue, startDateValue, e
   } else if (lower === 'annually') {
     frequency = Config.FREQUENCIES.YEARLY;
     repeatEvery = 1;
-  } else if (lower === 'once' || lower === 'one-off') {
-    frequency = Config.FREQUENCIES.DAILY;
+  } else if (lower === 'once' || lower === 'one-off' || lower === 'one off') {
+    frequency = Config.FREQUENCIES.ONCE;
     repeatEvery = 1;
     if (startDateValue && !endDateValue) {
       endDate = startDateValue;
@@ -385,7 +394,11 @@ function updateExpenseMonthlyAverages_() {
     var endDate = recurrence.endDate;
     var fromAccount = row[fromIdx];
 
-    var recurring = isRecurringExpense_(startDate, endDate);
+    var recurring = isRecurringForMonthlyAverage_({
+      startDate: startDate,
+      endDate: endDate,
+      isSingleOccurrence: recurrence.isSingleOccurrence,
+    });
     var monthlyAverage = null;
     if (include && recurring && amount !== null && amount >= 0 && frequency) {
       monthlyAverage = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(frequency, repeatEvery));
@@ -464,7 +477,7 @@ function computeIncomeMonthlyTotals_(incomeRules) {
     }
     var amount = toNumber_(rule.amount);
     var toAccount = rule.paidTo;
-    var recurring = isRecurringExpense_(rule.startDate, rule.endDate);
+    var recurring = isRecurringForMonthlyAverage_(rule);
     if (!recurring || amount === null || amount < 0 || !rule.frequency || !toAccount) {
       return;
     }
@@ -475,6 +488,19 @@ function computeIncomeMonthlyTotals_(incomeRules) {
 }
 
 function isRecurringExpense_(startDateValue, endDateValue) {
+  return isRecurringForMonthlyAverage_({
+    startDate: startDateValue,
+    endDate: endDateValue,
+    isSingleOccurrence: false,
+  });
+}
+
+function isRecurringForMonthlyAverage_(rule) {
+  if (rule && rule.isSingleOccurrence) {
+    return false;
+  }
+  var startDateValue = rule ? rule.startDate : null;
+  var endDateValue = rule ? rule.endDate : null;
   var start = toDate_(startDateValue);
   var end = toDate_(endDateValue);
   if (!start || !end) {

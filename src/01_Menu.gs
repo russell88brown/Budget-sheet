@@ -7,7 +7,7 @@ function onOpen() {
 
   ui
     .createMenu('Budget Forecast')
-    .addItem('Validate transfers/expenses', 'validateTransfersExpenses')
+    .addItem('Summarise Accounts', 'summariseAccounts')
     .addItem('Run journal', 'runJournal')
     .addItem('Run summaries', 'runSummary')
     .addItem('Export', 'showExportDialog')
@@ -27,19 +27,16 @@ function runJournal() {
   runForecast();
 }
 
-function validateTransfersExpenses() {
-  toastStep_('Validating transfers and expenses...');
+function summariseAccounts() {
+  toastStep_('Summarising accounts...');
   resetRunState_();
-  deactivateExpiredTransfers_();
-  normalizeTransferRows_();
-  normalizeRecurrenceRows_();
-  deactivateExpiredExpenses_();
-  styleTransferRows_();
-  styleExpenseRows_();
-  var incomeRules = Readers.readIncome();
-  var expenseMonthlyTotals = updateExpenseMonthlyAverages_();
-  updateAccountMonthlyFlowAverages_(incomeRules, expenseMonthlyTotals || {});
-  toastStep_('Validation complete.');
+  preprocessInputSheets_();
+  refreshAccountSummaries_();
+  toastStep_('Account summary complete.');
+}
+
+function validateTransfersExpenses() {
+  summariseAccounts();
 }
 
 function clearLogs() {

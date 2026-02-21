@@ -47,6 +47,7 @@ const Readers = {
           amount: toNumber_(row['Amount']),
           frequency: recurrence.frequency,
           repeatEvery: recurrence.repeatEvery,
+          isSingleOccurrence: recurrence.isSingleOccurrence,
           startDate: recurrence.startDate,
           endDate: recurrence.endDate,
           paidTo: row['To Account'],
@@ -74,6 +75,7 @@ const Readers = {
           amount: toNumber_(row['Amount']),
           frequency: recurrence.frequency,
           repeatEvery: recurrence.repeatEvery,
+          isSingleOccurrence: recurrence.isSingleOccurrence,
           startDate: recurrence.startDate,
           endDate: recurrence.endDate,
           paidFrom: row['From Account'],
@@ -104,6 +106,7 @@ const Readers = {
           amount: amount,
           frequency: recurrence.frequency,
           repeatEvery: recurrence.repeatEvery,
+          isSingleOccurrence: recurrence.isSingleOccurrence,
           startDate: recurrence.startDate,
           endDate: recurrence.endDate,
           paidFrom: row['From Account'],
@@ -180,6 +183,7 @@ function normalizeRecurrence_(frequencyValue, repeatEveryValue, startDateValue, 
   return {
     frequency: normalized.frequency,
     repeatEvery: repeatEvery,
+    isSingleOccurrence: normalized.isSingleOccurrence,
     startDate: startDate,
     endDate: endDate,
   };
@@ -195,6 +199,9 @@ function normalizeFrequency_(value) {
 
   if (lower === 'daily') {
     return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: null, isSingleOccurrence: false };
+  }
+  if (lower === 'once' || lower === 'one-off' || lower === 'one off') {
+    return { frequency: Config.FREQUENCIES.ONCE, repeatEvery: 1, isSingleOccurrence: true };
   }
   if (lower === 'weekly') {
     return { frequency: Config.FREQUENCIES.WEEKLY, repeatEvery: null, isSingleOccurrence: false };
