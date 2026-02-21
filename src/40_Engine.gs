@@ -27,8 +27,6 @@ function runJournalPipeline_(options) {
   var modeLabel = options.modeLabel || 'Run';
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
-  var previousToastDelay = runtimeToastDelayMs_;
-  runtimeToastDelayMs_ = typeof options.toastDelayMs === 'number' ? options.toastDelayMs : previousToastDelay;
   resetForecastWindowCache_();
   getForecastWindow_();
 
@@ -100,7 +98,6 @@ function runJournalPipeline_(options) {
     toastStep_(options.completionToast || 'Run complete.');
     Logger.info(modeLabel + ' completed');
   } finally {
-    runtimeToastDelayMs_ = previousToastDelay;
     resetForecastWindowCache_();
   }
 }
@@ -377,23 +374,13 @@ function refreshAccountSummaries_() {
   updateAccountMonthlyFlowAverages_(incomeMonthlyTotals, transferMonthlyTotals, expenseMonthlyTotals);
 }
 
-function toast_(message) {
-  try {
-    SpreadsheetApp.getActive().toast(String(message), 'Budget Forecast', 5);
-  } catch (err) {
-    Logger.warn('Toast failed: ' + err);
-  }
+function toast_(_message) {
+  // Toasts intentionally disabled.
 }
 
-function toastStep_(message, delayMs) {
-  toast_(message);
-  var wait = typeof delayMs === 'number' ? delayMs : runtimeToastDelayMs_;
-  if (wait > 0) {
-    Utilities.sleep(wait);
-  }
+function toastStep_(_message, _delayMs) {
+  // Toast step notifications intentionally disabled.
 }
-
-var runtimeToastDelayMs_ = 600;
 
 var runState_ = {
   creditPaidOffWarned: {},
@@ -1115,6 +1102,7 @@ function updateTransferMonthlyTotals_() {
   }
 
   var values = transferSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var accountBalanceLookup = buildAccountBalanceLookup_();
   var credits = {};
   var debits = {};
   var out = [];
@@ -1145,10 +1133,13 @@ function updateTransferMonthlyTotals_() {
       toAccount &&
       fromAccount
     ) {
-      if (
-        behavior !== Config.TRANSFER_TYPES.REPAYMENT_ALL &&
-        behavior !== Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT
-      ) {
+      if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+        var sourceBalance = lookupAccountBalance_(accountBalanceLookup, fromAccount);
+        var perOccurrence = Math.max(0, sourceBalance - amount);
+        monthlyTotal = roundUpCents_((perOccurrence || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery));
+        credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyTotal);
+        debits[fromAccount] = roundUpCents_((debits[fromAccount] || 0) + monthlyTotal);
+      } else if (behavior !== Config.TRANSFER_TYPES.REPAYMENT_ALL) {
         monthlyTotal = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery));
         credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyTotal);
         debits[fromAccount] = roundUpCents_((debits[fromAccount] || 0) + monthlyTotal);
@@ -1158,6 +1149,25 @@ function updateTransferMonthlyTotals_() {
   });
   transferSheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return { credits: credits, debits: debits };
+}
+
+function buildAccountBalanceLookup_() {
+  var lookup = {};
+  Readers.readAccounts().forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    lookup[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
+  });
+  return lookup;
+}
+
+function lookupAccountBalance_(lookup, accountName) {
+  var key = normalizeAccountLookupKey_(accountName);
+  if (!key || !lookup || lookup[key] === undefined) {
+    return 0;
+  }
+  return lookup[key];
 }
 
 function getAccountSummaryHeaderIndexes_(headers) {

@@ -32,11 +32,9 @@ function runJournal() {
 }
 
 function summariseAccounts() {
-  toastStep_('Summarising accounts...');
   resetRunState_();
   preprocessInputSheets_();
   refreshAccountSummaries_();
-  toastStep_('Account summary complete.');
 }
 
 function validateTransfersExpenses() {
@@ -82,29 +80,24 @@ function runSetupActions(actions) {
     }
     switch (action) {
       case 'structure':
-        ss.toast('Applying sheet structure...', 'Setup');
         setupStageStructure_();
         messages.push('Structure complete');
         break;
       case 'validation':
-        ss.toast('Applying validations + settings...', 'Setup');
         setupStageValidationAndSettings_();
         messages.push('Validation + settings complete');
         break;
       case 'theme':
-        ss.toast('Applying theme formatting...', 'Setup');
         setupStageTheme_();
         messages.push('Theme complete');
         break;
       case 'defaults':
-        ss.toast('Loading default data...', 'Setup');
         var result = loadDefaultData();
         messages.push(result && result.message ? result.message : 'Default data loaded.');
         break;
       case 'categories':
         // Backward compatibility: category stage has moved into validation setup.
         if (!selected.validation) {
-          ss.toast('Applying validations + settings...', 'Setup');
           setupStageValidationAndSettings_();
           messages.push('Validation + settings complete');
         }
