@@ -1318,6 +1318,7 @@ function buildJournalEventRows_(
 ) {
   var balanceSnapshotFrom = buildForecastBalanceCells_(balancesAfterFrom, forecastAccounts);
   var balanceSnapshotTo = buildForecastBalanceCells_(balancesAfterTo, forecastAccounts);
+  var transactionType = event && event.behavior ? event.behavior : event.kind;
   var amount = event.appliedAmount !== undefined ? event.appliedAmount : event.amount || 0;
   var signedAmount = amount;
   if (event.kind === 'Expense' || (event.kind === 'Transfer' && event.from)) {
@@ -1343,7 +1344,7 @@ function buildJournalEventRows_(
       return [
         event.date,
         accountName,
-        event.kind,
+        transactionType,
         event.name,
         rowAmount,
         buildAlerts_(cashNegative, creditPaidOff),
@@ -1368,7 +1369,7 @@ function buildJournalEventRows_(
     [
       event.date,
       accountName || '',
-      event.kind,
+      transactionType,
       event.name,
       signedAmount,
       buildAlerts_(cashNegative, creditPaidOff),
