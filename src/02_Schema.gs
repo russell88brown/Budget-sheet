@@ -168,13 +168,6 @@ const Schema = {
         },
         { name: 'From Account', type: 'ref', required: true, description: 'Source account' },
         { name: 'Notes', type: 'string', required: false, description: 'Optional' },
-        {
-          name: 'Monthly Total',
-          type: 'number',
-          required: false,
-          description: 'Computed monthly equivalent for this row',
-          format: '0.00',
-        },
       ],
     },
     {
