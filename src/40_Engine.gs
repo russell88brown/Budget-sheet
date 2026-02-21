@@ -6,8 +6,12 @@ const Engine = {
     resetRunState_();
     toastStep_('Checking active expenses...');
     deactivateExpiredExpenses_();
+    toastStep_('Checking active transfers...');
+    deactivateExpiredTransfers_();
     toastStep_('Styling inactive expenses...');
     styleExpenseRows_();
+    toastStep_('Styling inactive transfers...');
+    styleTransferRows_();
     toastStep_('Updating sink fund reference...');
     updateSinkFundReference_();
     toastStep_('Reading input sheets...');
@@ -19,11 +23,14 @@ const Engine = {
     Logger.info('Income rules read: ' + incomeRules.length);
     var expenseRules = Readers.readExpenses();
     Logger.info('Expense rules read: ' + expenseRules.length);
+    var transferRules = Readers.readTransfers();
+    Logger.info('Transfer rules read: ' + transferRules.length);
 
     toastStep_('Building events...');
     Logger.info('Building events...');
     var events = Events.buildIncomeEvents(incomeRules)
       .concat(Events.buildExpenseEvents(expenseRules))
+      .concat(Events.buildTransferEvents(transferRules))
       .concat(Events.buildInterestEvents(accounts));
     Logger.info('Events built: ' + events.length);
 
@@ -71,7 +78,15 @@ function resetRunState_() {
 }
 
 function deactivateExpiredExpenses_() {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
+  deactivateExpiredRows_(Config.SHEETS.EXPENSE, 'Expense');
+}
+
+function deactivateExpiredTransfers_() {
+  deactivateExpiredRows_(Config.SHEETS.TRANSFERS, 'Transfer');
+}
+
+function deactivateExpiredRows_(sheetName, label) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
   if (!sheet) {
     return;
   }
@@ -90,7 +105,7 @@ function deactivateExpiredExpenses_() {
   var nameIndex = headers.indexOf('Name');
 
   if (includeIndex === -1 || startDateIndex === -1) {
-    Logger.warn('Expense auto-deactivate skipped: missing Include or Start Date header.');
+    Logger.warn(label + ' auto-deactivate skipped: missing Include or Start Date header.');
     return;
   }
 
@@ -115,9 +130,9 @@ function deactivateExpiredExpenses_() {
 
     if (endKey && startKey && endKey < startKey) {
       if (nameIndex !== -1) {
-        Logger.warn('Expense date range invalid (end before start): ' + row[nameIndex]);
+        Logger.warn(label + ' date range invalid (end before start): ' + row[nameIndex]);
       } else {
-        Logger.warn('Expense date range invalid (end before start) at row ' + (idx + 2));
+        Logger.warn(label + ' date range invalid (end before start) at row ' + (idx + 2));
       }
       return;
     }
@@ -132,21 +147,29 @@ function deactivateExpiredExpenses_() {
       row[includeIndex] = false;
       updated += 1;
       if (nameIndex !== -1) {
-        Logger.warn('Expense deactivated (out of date): ' + row[nameIndex]);
+        Logger.warn(label + ' deactivated (out of date): ' + row[nameIndex]);
       } else {
-        Logger.warn('Expense deactivated (out of date) at row ' + (idx + 2));
+        Logger.warn(label + ' deactivated (out of date) at row ' + (idx + 2));
       }
     }
   });
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-    Logger.info('Expenses auto-deactivated: ' + updated);
+    Logger.info(label + 's auto-deactivated: ' + updated);
   }
 }
 
 function styleExpenseRows_() {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
+  styleInactiveRows_(Config.SHEETS.EXPENSE, 'Expense');
+}
+
+function styleTransferRows_() {
+  styleInactiveRows_(Config.SHEETS.TRANSFERS, 'Transfer');
+}
+
+function styleInactiveRows_(sheetName, label) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
   if (!sheet) {
     return;
   }
@@ -158,7 +181,7 @@ function styleExpenseRows_() {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIndex = headers.indexOf('Include');
   if (includeIndex === -1) {
-    Logger.warn('Expense row styling skipped: missing Include header.');
+    Logger.warn(label + ' row styling skipped: missing Include header.');
     return;
   }
 

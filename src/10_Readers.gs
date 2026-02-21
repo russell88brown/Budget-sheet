@@ -49,8 +49,29 @@ const Readers = {
       })
       .map(function (row) {
         return {
-          behavior: normalizeBehavior_(row['Transaction Type']),
           category: row['Category'],
+          name: row['Name'],
+          amount: toNumber_(row['Amount']),
+          frequency: normalizeFrequency_(row['Frequency']),
+          startDate: toDate_(row['Start Date']),
+          endDate: toDate_(row['End Date']),
+          paidFrom: row['From Account'],
+          paidTo: 'External',
+          behavior: Config.BEHAVIOR_LABELS.Expense,
+          notes: row['Notes'],
+        };
+      });
+  },
+
+  readTransfers: function () {
+    var rows = readSheetRows_(Config.SHEETS.TRANSFERS);
+    return rows
+      .filter(function (row) {
+        return toBoolean_(row['Include']);
+      })
+      .map(function (row) {
+        return {
+          behavior: normalizeBehavior_(row['Transfer Type']),
           name: row['Name'],
           amount: toNumber_(row['Amount']),
           frequency: normalizeFrequency_(row['Frequency']),

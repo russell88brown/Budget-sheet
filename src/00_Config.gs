@@ -3,6 +3,7 @@ const Config = {
   SHEETS: {
     DASHBOARD: 'Dashboard',
     ACCOUNTS: 'Accounts',
+    TRANSFERS: 'Transfers',
     INCOME: 'Income',
     EXPENSE: 'Expense',
     JOURNAL: 'Journal',

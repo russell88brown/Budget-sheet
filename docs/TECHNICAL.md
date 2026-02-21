@@ -31,9 +31,11 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Frequency: enum (Daily, Weekly, Fortnightly, Monthly, Bi-Monthly, Quarterly, SemiAnnually, Annually, One-off)
 
 #### Expense
-- Columns: Include, Transaction Type, Category, Name, Amount, Frequency, Start Date, End Date, From Account, To Account, Monthly Spend, Archive, Notes
-- Transaction Type: enum { Expense, Repayment, Transfer }
-- To Account can be an internal account or “External”
+- Columns: Include, Category, Name, Amount, Frequency, Start Date, End Date, From Account, Notes
+
+#### Transfers
+- Columns: Include, Transfer Type, Name, Amount, Frequency, Start Date, End Date, From Account, To Account, Notes
+- Transfer Type: enum { Transfer, Repayment }
 
 ### Outputs
 
@@ -73,10 +75,12 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `Readers.readAccounts()`
 - `Readers.readIncome()`
 - `Readers.readExpenses()`
+- `Readers.readTransfers()`
 
 ### b) Generate events
 - Income rules → income events
-- Expense rules → expense/transfer events
+- Expense rules → expense events
+- Transfer rules → transfer events
 
 ### c) Build journal
 - `buildJournalRows_()` applies events in chronological order and produces running balances.
@@ -130,7 +134,7 @@ Supported frequencies:
 ### Sheet ordering
 All major flows call a single ordering routine to ensure consistent tab order:
 
-Dashboard → Accounts → Income → Expense → Journal → Daily → Monthly → Export → Reference → Logs
+Dashboard → Accounts → Transfers → Income → Expense → Journal → Daily → Monthly → Export → Reference → Logs
 
 ### Daily formatting
 - Date column formatted as `yyyy-mm-dd`

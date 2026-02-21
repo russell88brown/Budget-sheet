@@ -25,7 +25,8 @@ Setup will:
 ### 2) Fill in your inputs
 - **Accounts**: current balances
 - **Income**: money coming in
-- **Expense**: money going out (or transfers)
+- **Expense**: money going out to external payees
+- **Transfers**: money moved between accounts (including repayments)
 
 ### 3) Run the forecast
 Use **Budget Forecast → Run forecast** to build the **Journal**.
@@ -44,7 +45,7 @@ Use **Budget Forecast → Export** to export selected sheets into **Export**.
 ## 🧰 Menu Actions (Functions You Can Run)
 
 ### ✅ Budget Forecast → Run forecast
-Builds the **Journal** by applying all income + expense rules in order.
+Builds the **Journal** by applying all income + expense + transfer rules in order.
 
 ### 📊 Budget Forecast → Run summary
 Creates:
@@ -69,6 +70,7 @@ Opens a setup dialog with these actions:
 - **Accounts**
 - **Income**
 - **Expense**
+- **Transfers**
 
 ### Outputs (auto-generated)
 - **Journal** (every forecasted event + running balances)
@@ -106,7 +108,7 @@ Examples:
 
 How it works:
 - Mark an account as **Sink Fund** in **Accounts**
-- Add a recurring transfer into that account in **Expense**
+- Add a recurring transfer into that account in **Transfers**
 - The engine never auto-spends sink funds — it just forecasts balances
 
 ---

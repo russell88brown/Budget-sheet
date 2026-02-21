@@ -24,30 +24,43 @@ const Events = {
 
   buildExpenseEvents: function (expenseRules) {
     return expenseRules.flatMap(function (rule) {
-      var dates;
-      dates = Recurrence.expand({
+      var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,
         endDate: rule.endDate,
       });
 
       return dates.map(function (date) {
-        var to = rule.paidTo;
-        var hasInternalTo = to && to !== 'External';
-        var kind =
-          rule.behavior === 'Transfer' || rule.behavior === 'Repayment'
-            ? 'Transfer'
-            : hasInternalTo
-              ? 'Transfer'
-              : 'Expense';
         return {
           date: date,
-          kind: kind,
-          behavior: rule.behavior,
+          kind: 'Expense',
+          behavior: Config.BEHAVIOR_LABELS.Expense,
           name: rule.name,
           category: rule.category,
           from: rule.paidFrom,
-          to: to,
+          to: 'External',
+          amount: rule.amount,
+        };
+      });
+    });
+  },
+
+  buildTransferEvents: function (transferRules) {
+    return transferRules.flatMap(function (rule) {
+      var dates = Recurrence.expand({
+        startDate: rule.startDate,
+        frequency: rule.frequency,
+        endDate: rule.endDate,
+      });
+      return dates.map(function (date) {
+        return {
+          date: date,
+          kind: 'Transfer',
+          behavior: rule.behavior,
+          name: rule.name,
+          category: null,
+          from: rule.paidFrom,
+          to: rule.paidTo,
           amount: rule.amount,
         };
       });

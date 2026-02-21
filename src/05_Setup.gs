@@ -6,6 +6,7 @@ function setupSpreadsheet() {
   ensureCategoryRange_(ss);
   ensureSinkFundRange_(ss);
   removeExpenseColumns_(ss, ['Monthly Spend', 'Archive']);
+  migrateLegacyTransfersFromExpense_(ss);
 
   Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
@@ -94,15 +95,13 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
         range.setDataValidation(refBuilder.build());
       }
     } else if (column.type === 'ref_or_external_conditional' && sheet.getName() === Config.SHEETS.EXPENSE) {
+      // Legacy type retained for compatibility with older schemas.
       var paidToCol = columnToLetter_(colIndex);
-      var typeCol = columnToLetter_(findColumnIndex_(sheet, 'Transaction Type') || 2);
       var accounts = getAccountNames_(spreadsheet);
       var accountsWithExternal = ['External'].concat(accounts);
       var listBuilder = SpreadsheetApp.newDataValidation().requireValueInList(accountsWithExternal, true);
       listBuilder.setAllowInvalid(!column.required);
       range.setDataValidation(listBuilder.build());
-
-      applyPaidToConditionalRule_(sheet, typeCol, paidToCol);
     } else if (column.type === 'category') {
       var categoriesRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.CATEGORIES);
       if (categoriesRange) {
@@ -231,45 +230,11 @@ function getAccountNames_(spreadsheet) {
     });
 }
 
-function findColumnIndex_(sheet, headerName) {
-  var lastCol = sheet.getLastColumn();
-  if (lastCol < 1) {
-    return null;
-  }
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  for (var i = 0; i < headers.length; i++) {
-    if (headers[i] === headerName) {
-      return i + 1;
-    }
-  }
-  return null;
-}
-
-function applyPaidToConditionalRule_(sheet, typeCol, paidToCol) {
-  var formula = '=AND($' + typeCol + '2<>\"Expense\",$' + paidToCol + '2=\"External\")';
-  var rules = sheet.getConditionalFormatRules();
-  var targetRange = sheet.getRange(paidToCol + '2:' + paidToCol);
-
-  var existing = rules.filter(function (rule) {
-    var ruleFormula = rule.getBooleanCondition() ? rule.getBooleanCondition().getCriteriaValues()[0] : '';
-    return ruleFormula === formula;
-  });
-
-  if (existing.length === 0) {
-    var rule = SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied(formula)
-      .setBackground('#f8d7da')
-      .setRanges([targetRange])
-      .build();
-    rules.push(rule);
-    sheet.setConditionalFormatRules(rules);
-  }
-}
-
 function reorderSheets_(spreadsheet) {
   var order = [
     Config.SHEETS.DASHBOARD,
     Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.TRANSFERS,
     Config.SHEETS.INCOME,
     Config.SHEETS.EXPENSE,
     Config.SHEETS.JOURNAL,
@@ -287,6 +252,94 @@ function reorderSheets_(spreadsheet) {
       spreadsheet.moveActiveSheet(index + 1);
     }
   });
+}
+
+function migrateLegacyTransfersFromExpense_(spreadsheet) {
+  var expenseSheet = spreadsheet.getSheetByName(Config.SHEETS.EXPENSE);
+  if (!expenseSheet) {
+    return;
+  }
+
+  var lastRow = expenseSheet.getLastRow();
+  var lastCol = expenseSheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = expenseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var typeIdx = headers.indexOf('Transaction Type');
+  if (typeIdx === -1) {
+    return;
+  }
+
+  var includeIdx = headers.indexOf('Include');
+  var categoryIdx = headers.indexOf('Category');
+  var nameIdx = headers.indexOf('Name');
+  var amountIdx = headers.indexOf('Amount');
+  var frequencyIdx = headers.indexOf('Frequency');
+  var startIdx = headers.indexOf('Start Date');
+  var endIdx = headers.indexOf('End Date');
+  var fromIdx = headers.indexOf('From Account');
+  var toIdx = headers.indexOf('To Account');
+  var notesIdx = headers.indexOf('Notes');
+  if (includeIdx === -1 || nameIdx === -1) {
+    return;
+  }
+
+  var transferSheet = spreadsheet.getSheetByName(Config.SHEETS.TRANSFERS);
+  if (!transferSheet) {
+    transferSheet = spreadsheet.insertSheet(Config.SHEETS.TRANSFERS);
+  }
+  if (transferSheet.getLastRow() > 1) {
+    return;
+  }
+
+  var values = expenseSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var expenseRows = [];
+  var transferRows = [];
+
+  values.forEach(function (row) {
+    var type = normalizeBehavior_(row[typeIdx]);
+    if (type === Config.BEHAVIOR_LABELS.Transfer || type === Config.BEHAVIOR_LABELS.Repayment) {
+      transferRows.push([
+        row[includeIdx],
+        type,
+        nameIdx === -1 ? '' : row[nameIdx],
+        amountIdx === -1 ? '' : row[amountIdx],
+        frequencyIdx === -1 ? '' : row[frequencyIdx],
+        startIdx === -1 ? '' : row[startIdx],
+        endIdx === -1 ? '' : row[endIdx],
+        fromIdx === -1 ? '' : row[fromIdx],
+        toIdx === -1 ? '' : row[toIdx],
+        notesIdx === -1 ? '' : row[notesIdx],
+      ]);
+      return;
+    }
+
+    expenseRows.push([
+      row[includeIdx],
+      categoryIdx === -1 ? '' : row[categoryIdx],
+      nameIdx === -1 ? '' : row[nameIdx],
+      amountIdx === -1 ? '' : row[amountIdx],
+      frequencyIdx === -1 ? '' : row[frequencyIdx],
+      startIdx === -1 ? '' : row[startIdx],
+      endIdx === -1 ? '' : row[endIdx],
+      fromIdx === -1 ? '' : row[fromIdx],
+      notesIdx === -1 ? '' : row[notesIdx],
+    ]);
+  });
+
+  if (!expenseRows.length && !transferRows.length) {
+    return;
+  }
+
+  expenseSheet.getRange(2, 1, Math.max(lastRow - 1, 1), lastCol).clearContent();
+  if (expenseRows.length) {
+    expenseSheet.getRange(2, 1, expenseRows.length, expenseRows[0].length).setValues(expenseRows);
+  }
+  if (transferRows.length) {
+    transferSheet.getRange(2, 1, transferRows.length, transferRows[0].length).setValues(transferRows);
+  }
 }
 
 function columnToLetter_(column) {
