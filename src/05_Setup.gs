@@ -418,6 +418,9 @@ function getAccountNames_(spreadsheet) {
 function reorderSheets_(spreadsheet) {
   var order = [
     Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.POLICIES,
+    Config.SHEETS.GOALS,
+    Config.SHEETS.RISK,
     Config.SHEETS.INCOME,
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.EXPENSE,
@@ -530,7 +533,6 @@ function applyAccountsTheme_(spreadsheet) {
     'Interest Frequency',
     'Interest Repeat Every',
     'Interest Start Date',
-    'Cover Deficit From',
   ];
 
   colorHeaderGroup_(sheet, headers, coreHeaders, '#e8f0fe');
@@ -626,7 +628,7 @@ function applyMonthlyTotalHeaderTheme_(spreadsheet) {
 }
 
 function applyInputActivityTheme_(spreadsheet) {
-  [Config.SHEETS.INCOME, Config.SHEETS.TRANSFERS, Config.SHEETS.EXPENSE].forEach(function (sheetName) {
+  [Config.SHEETS.POLICIES, Config.SHEETS.GOALS, Config.SHEETS.INCOME, Config.SHEETS.TRANSFERS, Config.SHEETS.EXPENSE].forEach(function (sheetName) {
     applySheetActivityRules_(spreadsheet, sheetName);
   });
 }

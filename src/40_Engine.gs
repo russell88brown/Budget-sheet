@@ -50,6 +50,12 @@ function runJournalPipeline_(options) {
     Logger.info('Transfer rules read: ' + transferRules.length);
     var expenseRules = Readers.readExpenses();
     Logger.info('Expense rules read: ' + expenseRules.length);
+    var policies = Readers.readPolicies();
+    Logger.info('Policy rules read: ' + policies.length);
+    var goals = Readers.readGoals();
+    Logger.info('Goal rules read: ' + goals.length);
+    var riskSettings = Readers.readRiskSettings();
+    Logger.info('Risk rows read: ' + riskSettings.length);
 
     if (refreshSummaries) {
       refreshAccountSummaries_();
@@ -88,7 +94,7 @@ function runJournalPipeline_(options) {
 
     Logger.info('Building outputs...');
     toastStep_('Building journal...');
-    var journalData = buildJournalRows_(accounts, events);
+    var journalData = buildJournalRows_(accounts, events, policies, riskSettings);
     toastStep_('Writing journal...');
     Logger.info('Writing outputs...');
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
@@ -114,10 +120,15 @@ function preprocessInputSheets_() {
   flagExpiredTransfers_();
   toastStep_('Flagging inactive expenses by date...');
   flagExpiredExpenses_();
+  toastStep_('Flagging inactive policies by date...');
+  flagExpiredPolicies_();
 }
 
 function reviewAndCleanupInputSheets_() {
   var validAccounts = validateAccountsSheet_();
+  validatePoliciesSheet_(validAccounts);
+  validateGoalsSheet_(validAccounts);
+  validateRiskSheet_(validAccounts);
   validateIncomeSheet_(validAccounts);
   validateTransferSheet_(validAccounts);
   validateExpenseSheet_(validAccounts);
@@ -176,7 +187,6 @@ function validateAccountsSheet_() {
   var includeIdx = headers.indexOf('Include');
   var typeIdx = headers.indexOf('Type');
   var balanceIdx = headers.indexOf('Balance');
-  var coverIdx = headers.indexOf('Cover Deficit From');
   if (nameIdx === -1 || includeIdx === -1 || typeIdx === -1 || balanceIdx === -1) {
     return buildAccountLookup_();
   }
@@ -208,23 +218,276 @@ function validateAccountsSheet_() {
     if (balance === null) {
       reasons.push('invalid balance');
     }
-    if (coverIdx !== -1 && row[coverIdx]) {
-      var coverFrom = normalizeAccountLookupKey_(row[coverIdx]);
-      var accountKey = normalizeAccountLookupKey_(name);
-      if (coverFrom && !validAccounts[coverFrom]) {
-        reasons.push('invalid cover deficit account');
-      }
-      if (coverFrom && accountKey && coverFrom === accountKey) {
-        reasons.push('cover deficit account cannot match account');
-      }
-    }
-
     if (reasons.length) {
       Logger.warn('Account invalid: row ' + (idx + 2) + ' [' + reasons.join(', ') + ']');
     }
   });
 
   return validAccounts;
+}
+
+function validatePoliciesSheet_(validAccounts) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.POLICIES);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {
+    include: headers.indexOf('Include'),
+    type: headers.indexOf('Policy Type'),
+    name: headers.indexOf('Name'),
+    priority: headers.indexOf('Priority'),
+    start: headers.indexOf('Start Date'),
+    end: headers.indexOf('End Date'),
+    trigger: headers.indexOf('Trigger Account'),
+    funding: headers.indexOf('Funding Account'),
+    threshold: headers.indexOf('Threshold'),
+    maxPerEvent: headers.indexOf('Max Per Event'),
+  };
+  if (
+    idx.include === -1 ||
+    idx.type === -1 ||
+    idx.name === -1 ||
+    idx.trigger === -1 ||
+    idx.funding === -1
+  ) {
+    Logger.warn('Policy validation skipped: missing required headers.');
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = 0;
+  values.forEach(function (row, rowIndex) {
+    if (!toBoolean_(row[idx.include])) {
+      return;
+    }
+    var reasons = [];
+    var policyType = normalizePolicyType_(row[idx.type]);
+    var name = row[idx.name] ? String(row[idx.name]).trim() : '';
+    var trigger = normalizeAccountLookupKey_(row[idx.trigger]);
+    var funding = normalizeAccountLookupKey_(row[idx.funding]);
+    var threshold = idx.threshold === -1 ? null : toNumber_(row[idx.threshold]);
+    var maxPerEvent = idx.maxPerEvent === -1 ? null : toNumber_(row[idx.maxPerEvent]);
+
+    if (policyType !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
+      reasons.push('invalid policy type');
+    }
+    if (!name) {
+      reasons.push('missing name');
+    }
+    if (!trigger) {
+      reasons.push('missing trigger account');
+    } else if (!validAccounts[trigger]) {
+      reasons.push('unknown trigger account');
+    }
+    if (!funding) {
+      reasons.push('missing funding account');
+    } else if (!validAccounts[funding]) {
+      reasons.push('unknown funding account');
+    }
+    if (trigger && funding && trigger === funding) {
+      reasons.push('trigger and funding account cannot match');
+    }
+    if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
+      reasons.push('invalid priority');
+    }
+    if (idx.start !== -1 && row[idx.start] && !toDate_(row[idx.start])) {
+      reasons.push('invalid start date');
+    }
+    if (idx.end !== -1 && row[idx.end] && !toDate_(row[idx.end])) {
+      reasons.push('invalid end date');
+    }
+    if (threshold !== null && threshold < 0) {
+      reasons.push('threshold must be >= 0');
+    }
+    if (maxPerEvent !== null && maxPerEvent <= 0) {
+      reasons.push('max per event must be > 0');
+    }
+
+    if (!reasons.length) {
+      return;
+    }
+    row[idx.include] = false;
+    updated += 1;
+    Logger.warn('Policy deactivated (invalid): row ' + (rowIndex + 2) + ' [' + reasons.join(', ') + ']');
+  });
+
+  if (updated > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+    Logger.info('Policies deactivated for validation issues: ' + updated);
+  }
+}
+
+function validateGoalsSheet_(validAccounts) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.GOALS);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {
+    include: headers.indexOf('Include'),
+    name: headers.indexOf('Goal Name'),
+    targetAmount: headers.indexOf('Target Amount'),
+    targetDate: headers.indexOf('Target Date'),
+    priority: headers.indexOf('Priority'),
+    fundingAccount: headers.indexOf('Funding Account'),
+    fundingPolicy: headers.indexOf('Funding Policy'),
+    amountPerMonth: headers.indexOf('Amount Per Month'),
+    percentOfInflow: headers.indexOf('Percent Of Inflow'),
+  };
+  if (
+    idx.include === -1 ||
+    idx.name === -1 ||
+    idx.targetAmount === -1 ||
+    idx.targetDate === -1 ||
+    idx.fundingAccount === -1 ||
+    idx.fundingPolicy === -1
+  ) {
+    Logger.warn('Goal validation skipped: missing required headers.');
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = 0;
+  values.forEach(function (row, rowIndex) {
+    if (!toBoolean_(row[idx.include])) {
+      return;
+    }
+    var reasons = [];
+    var goalName = row[idx.name] ? String(row[idx.name]).trim() : '';
+    var targetAmount = toNumber_(row[idx.targetAmount]);
+    var targetDate = toDate_(row[idx.targetDate]);
+    var fundingAccount = normalizeAccountLookupKey_(row[idx.fundingAccount]);
+    var fundingPolicy = row[idx.fundingPolicy];
+    var amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber_(row[idx.amountPerMonth]);
+    var percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber_(row[idx.percentOfInflow]);
+
+    if (!goalName) {
+      reasons.push('missing goal name');
+    }
+    if (targetAmount === null || targetAmount <= 0) {
+      reasons.push('target amount must be > 0');
+    }
+    if (!targetDate) {
+      reasons.push('invalid target date');
+    }
+    if (!fundingAccount) {
+      reasons.push('missing funding account');
+    } else if (!validAccounts[fundingAccount]) {
+      reasons.push('unknown funding account');
+    }
+    if (
+      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.FIXED &&
+      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.LEFTOVER &&
+      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.PERCENT
+    ) {
+      reasons.push('invalid funding policy');
+    }
+    if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
+      reasons.push('invalid priority');
+    }
+    if (fundingPolicy === Config.GOAL_FUNDING_POLICIES.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
+      reasons.push('amount per month must be > 0 for fixed policy');
+    }
+    if (
+      fundingPolicy === Config.GOAL_FUNDING_POLICIES.PERCENT &&
+      (percentOfInflow === null || percentOfInflow <= 0)
+    ) {
+      reasons.push('percent of inflow must be > 0 for percent policy');
+    }
+
+    if (!reasons.length) {
+      return;
+    }
+    row[idx.include] = false;
+    updated += 1;
+    Logger.warn('Goal deactivated (invalid): row ' + (rowIndex + 2) + ' [' + reasons.join(', ') + ']');
+  });
+
+  if (updated > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+    Logger.info('Goals deactivated for validation issues: ' + updated);
+  }
+}
+
+function validateRiskSheet_(validAccounts) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.RISK);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {
+    include: headers.indexOf('Include'),
+    scenario: headers.indexOf('Scenario Name'),
+    bufferAccount: headers.indexOf('Emergency Buffer Account'),
+    bufferMinimum: headers.indexOf('Emergency Buffer Minimum'),
+    incomeShock: headers.indexOf('Income Shock Percent'),
+    expenseShock: headers.indexOf('Expense Shock Percent'),
+  };
+  if (idx.include === -1 || idx.scenario === -1) {
+    Logger.warn('Risk validation skipped: missing required headers.');
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = 0;
+  values.forEach(function (row, rowIndex) {
+    if (!toBoolean_(row[idx.include])) {
+      return;
+    }
+    var reasons = [];
+    var scenario = row[idx.scenario] ? String(row[idx.scenario]).trim() : '';
+    var bufferAccount = idx.bufferAccount === -1 ? '' : normalizeAccountLookupKey_(row[idx.bufferAccount]);
+    var bufferMinimum = idx.bufferMinimum === -1 ? null : toNumber_(row[idx.bufferMinimum]);
+    var incomeShock = idx.incomeShock === -1 ? null : toNumber_(row[idx.incomeShock]);
+    var expenseShock = idx.expenseShock === -1 ? null : toNumber_(row[idx.expenseShock]);
+
+    if (!scenario) {
+      reasons.push('missing scenario name');
+    }
+    if (bufferAccount && !validAccounts[bufferAccount]) {
+      reasons.push('unknown emergency buffer account');
+    }
+    if (bufferMinimum !== null && bufferMinimum < 0) {
+      reasons.push('emergency buffer minimum must be >= 0');
+    }
+    if (incomeShock !== null && incomeShock < 0) {
+      reasons.push('income shock percent must be >= 0');
+    }
+    if (expenseShock !== null && expenseShock < 0) {
+      reasons.push('expense shock percent must be >= 0');
+    }
+
+    if (!reasons.length) {
+      return;
+    }
+    row[idx.include] = false;
+    updated += 1;
+    Logger.warn('Risk row deactivated (invalid): row ' + (rowIndex + 2) + ' [' + reasons.join(', ') + ']');
+  });
+
+  if (updated > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+    Logger.info('Risk rows deactivated for validation issues: ' + updated);
+  }
 }
 
 function validateIncomeSheet_(validAccounts) {
@@ -423,6 +686,10 @@ function flagExpiredIncome_() {
 
 function flagExpiredTransfers_() {
   flagExpiredRows_(Config.SHEETS.TRANSFERS, 'Transfer');
+}
+
+function flagExpiredPolicies_() {
+  flagExpiredRows_(Config.SHEETS.POLICIES, 'Policy');
 }
 
 function flagExpiredRows_(sheetName, label) {
@@ -1255,11 +1522,12 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
   return periodsPerYear / 12;
 }
 
-function buildJournalRows_(accounts, events) {
+function buildJournalRows_(accounts, events, policies, riskSettings) {
   var balances = buildBalanceMap_(accounts);
   var forecastable = buildForecastableMap_(accounts);
   var accountTypes = buildAccountTypeMap_(accounts);
-  var coverDeficitFrom = buildCoverDeficitMap_(accounts);
+  var policyRules = policies || [];
+  var riskContext = resolveRiskContext_(riskSettings || []);
   var forecastAccounts = accounts
     .filter(function (account) {
       return forecastable[account.name];
@@ -1278,7 +1546,8 @@ function buildJournalRows_(accounts, events) {
         balances,
         event,
         accountTypes,
-        coverDeficitFrom,
+        policyRules,
+        riskContext,
         forecastAccounts
       )
     );
@@ -1326,14 +1595,6 @@ function buildAccountTypeMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
-  });
-  return map;
-}
-
-function buildCoverDeficitMap_(accounts) {
-  var map = {};
-  accounts.forEach(function (account) {
-    map[account.name] = account.coverDeficitFrom || '';
   });
   return map;
 }
@@ -1520,59 +1781,151 @@ function applyAutoDeficitCoverRowsBeforeEvent_(
   balances,
   event,
   accountTypes,
-  coverDeficitFrom,
+  policyRules,
+  riskContext,
   forecastAccounts
 ) {
-  var coverageNeed = getDeficitCoverageNeedForEvent_(balances, event, accountTypes);
+  var applicablePolicies = getApplicableAutoDeficitPolicies_(policyRules, event);
+  if (!applicablePolicies.length) {
+    return [];
+  }
+
+  var threshold = applicablePolicies.reduce(function (maxValue, policy) {
+    var value = toNumber_(policy.threshold);
+    if (value === null || value < 0) {
+      value = 0;
+    }
+    return value > maxValue ? value : maxValue;
+  }, 0);
+  var coverageNeed = getDeficitCoverageNeedForEvent_(balances, event, accountTypes, threshold);
   if (!coverageNeed || !coverageNeed.account || coverageNeed.amount <= 0) {
     return [];
   }
-
   var coveredAccount = coverageNeed.account;
-  var sourceAccount = (coverDeficitFrom[coveredAccount] || '').toString().trim();
-  if (!sourceAccount || sourceAccount === coveredAccount) {
-    return [];
-  }
-  if (balances[sourceAccount] === undefined) {
-    return [];
+  var remainingNeed = coverageNeed.amount;
+  var rows = [];
+
+  for (var i = 0; i < applicablePolicies.length && remainingNeed > 0; i += 1) {
+    var policy = applicablePolicies[i];
+    var sourceAccount = (policy.fundingAccount || '').toString().trim();
+    if (!sourceAccount || sourceAccount === coveredAccount) {
+      continue;
+    }
+    if (balances[sourceAccount] === undefined) {
+      continue;
+    }
+    var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
+    var reservedBuffer = getReservedEmergencyBufferForSource_(riskContext, sourceAccount);
+    if (reservedBuffer > 0) {
+      available = roundUpCents_(Math.max(0, available - reservedBuffer));
+    }
+    if (available <= 0) {
+      continue;
+    }
+
+    var maxPerEvent = toNumber_(policy.maxPerEvent);
+    var cap = maxPerEvent !== null && maxPerEvent > 0 ? maxPerEvent : remainingNeed;
+    var amount = roundUpCents_(Math.min(remainingNeed, available, cap));
+    if (amount <= 0) {
+      continue;
+    }
+
+    var coverEvent = {
+      date: event.date,
+      kind: 'Transfer',
+      behavior: Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+      transferBehavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+      name: policy.name || ('Auto deficit cover - ' + coveredAccount),
+      from: sourceAccount,
+      to: coveredAccount,
+      amount: amount,
+      alertTag: 'AUTO_DEFICIT_COVER',
+    };
+    var snapshots = applyEventWithSnapshots_(balances, coverEvent);
+    if (coverEvent.skipJournal) {
+      continue;
+    }
+    rows = rows.concat(
+      buildJournalEventRows_(
+        coverEvent,
+        snapshots.afterFrom,
+        snapshots.afterTo,
+        forecastAccounts,
+        accountTypes
+      )
+    );
+    remainingNeed = roundUpCents_(remainingNeed - amount);
   }
 
-  var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
-  if (available <= 0) {
-    return [];
-  }
-
-  var amount = roundUpCents_(Math.min(coverageNeed.amount, available));
-  if (amount <= 0) {
-    return [];
-  }
-
-  var coverEvent = {
-    date: event.date,
-    kind: 'Transfer',
-    behavior: 'Auto Deficit Cover',
-    transferBehavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
-    name: 'Auto deficit cover - ' + coveredAccount,
-    from: sourceAccount,
-    to: coveredAccount,
-    amount: amount,
-    alertTag: 'AUTO_DEFICIT_COVER',
-  };
-  var snapshots = applyEventWithSnapshots_(balances, coverEvent);
-  if (coverEvent.skipJournal) {
-    return [];
-  }
-
-  return buildJournalEventRows_(
-    coverEvent,
-    snapshots.afterFrom,
-    snapshots.afterTo,
-    forecastAccounts,
-    accountTypes
-  );
+  return rows;
 }
 
-function getDeficitCoverageNeedForEvent_(balances, event, accountTypes) {
+function getApplicableAutoDeficitPolicies_(policyRules, event) {
+  if (!event || !event.from || !Array.isArray(policyRules) || !policyRules.length) {
+    return [];
+  }
+  var eventFromKey = normalizeAccountLookupKey_(event.from);
+  return policyRules
+    .filter(function (policy) {
+      if (!policy || policy.type !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
+        return false;
+      }
+      if (normalizeAccountLookupKey_(policy.triggerAccount) !== eventFromKey) {
+        return false;
+      }
+      return isPolicyActiveOnDate_(policy, event.date);
+    })
+    .sort(function (a, b) {
+      var pa = toPositiveInt_(a.priority) || 100;
+      var pb = toPositiveInt_(b.priority) || 100;
+      if (pa !== pb) {
+        return pa - pb;
+      }
+      var na = a.name || '';
+      var nb = b.name || '';
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+}
+
+function resolveRiskContext_(riskSettings) {
+  if (!Array.isArray(riskSettings) || !riskSettings.length) {
+    return null;
+  }
+  return riskSettings[0];
+}
+
+function getReservedEmergencyBufferForSource_(riskContext, sourceAccount) {
+  if (!riskContext || !sourceAccount) {
+    return 0;
+  }
+  var bufferAccount = (riskContext.emergencyBufferAccount || '').toString().trim();
+  if (!bufferAccount) {
+    return 0;
+  }
+  if (normalizeAccountLookupKey_(bufferAccount) !== normalizeAccountLookupKey_(sourceAccount)) {
+    return 0;
+  }
+  var minValue = toNumber_(riskContext.emergencyBufferMinimum);
+  if (minValue === null || minValue <= 0) {
+    return 0;
+  }
+  return roundUpCents_(minValue);
+}
+
+function isPolicyActiveOnDate_(policy, date) {
+  var day = normalizeDate_(date || new Date());
+  var startDate = policy && policy.startDate ? normalizeDate_(policy.startDate) : null;
+  var endDate = policy && policy.endDate ? normalizeDate_(policy.endDate) : null;
+  if (startDate && day.getTime() < startDate.getTime()) {
+    return false;
+  }
+  if (endDate && day.getTime() > endDate.getTime()) {
+    return false;
+  }
+  return true;
+}
+
+function getDeficitCoverageNeedForEvent_(balances, event, accountTypes, threshold) {
   if (!event || !event.kind) {
     return null;
   }
@@ -1582,7 +1935,7 @@ function getDeficitCoverageNeedForEvent_(balances, event, accountTypes) {
   if (!event.from || accountTypes[event.from] === Config.ACCOUNT_TYPES.CREDIT) {
     return null;
   }
-  if ((event.transferBehavior || event.behavior) === 'Auto Deficit Cover') {
+  if ((event.transferBehavior || event.behavior) === Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
     return null;
   }
 
@@ -1597,7 +1950,11 @@ function getDeficitCoverageNeedForEvent_(balances, event, accountTypes) {
     return null;
   }
   var currentBalance = roundUpCents_(balances[event.from] || 0);
-  var needed = roundUpCents_(Math.max(0, outgoing - Math.max(0, currentBalance)));
+  var safeThreshold = toNumber_(threshold);
+  if (safeThreshold === null || safeThreshold < 0) {
+    safeThreshold = 0;
+  }
+  var needed = roundUpCents_(Math.max(0, outgoing + safeThreshold - currentBalance));
   if (needed <= 0) {
     return null;
   }

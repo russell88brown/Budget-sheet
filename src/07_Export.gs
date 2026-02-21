@@ -13,6 +13,9 @@ function runExportWithSelection(sheetNames) {
 function getExportableSheetNames_() {
   return [
     Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.POLICIES,
+    Config.SHEETS.GOALS,
+    Config.SHEETS.RISK,
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.INCOME,
     Config.SHEETS.EXPENSE,

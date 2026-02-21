@@ -24,7 +24,67 @@ const Readers = {
           interestPostingFrequency: interestRecurrence.frequency,
           interestPostingRepeatEvery: interestRecurrence.repeatEvery,
           interestPostingStartDate: interestRecurrence.startDate,
-          coverDeficitFrom: row['Cover Deficit From'],
+        };
+      });
+  },
+
+  readPolicies: function () {
+    var rows = readSheetRows_(Config.SHEETS.POLICIES);
+    return rows
+      .filter(function (row) {
+        return toBoolean_(row['Include']);
+      })
+      .map(function (row) {
+        return {
+          type: normalizePolicyType_(row['Policy Type']),
+          name: row['Name'],
+          priority: toPositiveInt_(row['Priority']) || 100,
+          startDate: toDate_(row['Start Date']),
+          endDate: toDate_(row['End Date']),
+          triggerAccount: row['Trigger Account'],
+          fundingAccount: row['Funding Account'],
+          threshold: toNumber_(row['Threshold']) || 0,
+          maxPerEvent: toNumber_(row['Max Per Event']),
+          notes: row['Notes'],
+        };
+      });
+  },
+
+  readGoals: function () {
+    var rows = readSheetRows_(Config.SHEETS.GOALS);
+    return rows
+      .filter(function (row) {
+        return toBoolean_(row['Include']);
+      })
+      .map(function (row) {
+        return {
+          name: row['Goal Name'],
+          targetAmount: toNumber_(row['Target Amount']),
+          targetDate: toDate_(row['Target Date']),
+          priority: toPositiveInt_(row['Priority']) || 100,
+          fundingAccount: row['Funding Account'],
+          fundingPolicy: row['Funding Policy'],
+          amountPerMonth: toNumber_(row['Amount Per Month']),
+          percentOfInflow: toNumber_(row['Percent Of Inflow']),
+          notes: row['Notes'],
+        };
+      });
+  },
+
+  readRiskSettings: function () {
+    var rows = readSheetRows_(Config.SHEETS.RISK);
+    return rows
+      .filter(function (row) {
+        return toBoolean_(row['Include']);
+      })
+      .map(function (row) {
+        return {
+          scenarioName: row['Scenario Name'],
+          emergencyBufferAccount: row['Emergency Buffer Account'],
+          emergencyBufferMinimum: toNumber_(row['Emergency Buffer Minimum']) || 0,
+          incomeShockPercent: toNumber_(row['Income Shock Percent']) || 0,
+          expenseShockPercent: toNumber_(row['Expense Shock Percent']) || 0,
+          notes: row['Notes'],
         };
       });
   },
@@ -266,5 +326,20 @@ function normalizeTransferType_(value, amountValue) {
     return Config.TRANSFER_TYPES.TRANSFER_AMOUNT;
   }
 
+  return cleaned;
+}
+
+function normalizePolicyType_(value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  var cleaned = String(value).trim();
+  if (!cleaned) {
+    return cleaned;
+  }
+  var lower = cleaned.toLowerCase();
+  if (lower === String(Config.POLICY_TYPES.AUTO_DEFICIT_COVER).toLowerCase()) {
+    return Config.POLICY_TYPES.AUTO_DEFICIT_COVER;
+  }
   return cleaned;
 }

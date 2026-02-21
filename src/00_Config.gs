@@ -3,6 +3,9 @@ const Config = {
   SHEETS: {
     DASHBOARD: 'Dashboard',
     ACCOUNTS: 'Accounts',
+    POLICIES: 'Policies',
+    GOALS: 'Goals',
+    RISK: 'Risk',
     TRANSFERS: 'Transfers',
     INCOME: 'Income',
     EXPENSE: 'Expense',
@@ -28,6 +31,14 @@ const Config = {
     REPAYMENT_ALL: 'Repayment - All',
     TRANSFER_AMOUNT: 'Transfer - Amount',
     TRANSFER_EVERYTHING_EXCEPT: 'Transfer - Everything Except',
+  },
+  POLICY_TYPES: {
+    AUTO_DEFICIT_COVER: 'Auto Deficit Cover',
+  },
+  GOAL_FUNDING_POLICIES: {
+    FIXED: 'Fixed Amount',
+    LEFTOVER: 'Leftover',
+    PERCENT: 'Percent of Inflow',
   },
   ACCOUNT_TYPES: {
     CASH: 'Cash',

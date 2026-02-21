@@ -6,11 +6,14 @@ function loadDefaultData() {
   var ss = SpreadsheetApp.getActive();
 
   var accountsSheet = ss.getSheetByName(Config.SHEETS.ACCOUNTS);
+  var policiesSheet = ss.getSheetByName(Config.SHEETS.POLICIES);
+  var goalsSheet = ss.getSheetByName(Config.SHEETS.GOALS);
+  var riskSheet = ss.getSheetByName(Config.SHEETS.RISK);
   var transfersSheet = ss.getSheetByName(Config.SHEETS.TRANSFERS);
   var incomeSheet = ss.getSheetByName(Config.SHEETS.INCOME);
   var expenseSheet = ss.getSheetByName(Config.SHEETS.EXPENSE);
 
-  if (!accountsSheet || !incomeSheet || !expenseSheet || !transfersSheet) {
+  if (!accountsSheet || !policiesSheet || !goalsSheet || !riskSheet || !incomeSheet || !expenseSheet || !transfersSheet) {
     var missingMsg = 'Default data not loaded: required sheets missing.';
     Logger.warn(missingMsg);
     return { ok: false, message: missingMsg };
@@ -18,6 +21,9 @@ function loadDefaultData() {
 
   if (
     !isSheetEmpty_(accountsSheet) ||
+    !isSheetEmpty_(policiesSheet) ||
+    !isSheetEmpty_(goalsSheet) ||
+    !isSheetEmpty_(riskSheet) ||
     !isSheetEmpty_(incomeSheet) ||
     !isSheetEmpty_(expenseSheet) ||
     !isSheetEmpty_(transfersSheet)
@@ -28,6 +34,9 @@ function loadDefaultData() {
   }
 
   clearInputSheet_(accountsSheet);
+  clearInputSheet_(policiesSheet);
+  clearInputSheet_(goalsSheet);
+  clearInputSheet_(riskSheet);
   clearInputSheet_(transfersSheet);
   clearInputSheet_(incomeSheet);
   clearInputSheet_(expenseSheet);
@@ -53,7 +62,6 @@ function loadDefaultData() {
       Balance: 1500,
       Type: Config.ACCOUNT_TYPES.CASH,
       Include: true,
-      'Cover Deficit From': 'Savings',
     },
     {
       'Account Name': 'High Yield',
@@ -125,6 +133,48 @@ function loadDefaultData() {
       'End Date': startDate,
       'To Account': 'Savings',
       Notes: 'One-off; excluded from monthly average',
+    },
+  ];
+
+  var goals = [
+    {
+      Include: true,
+      'Goal Name': 'Emergency top-up',
+      'Target Amount': 5000,
+      'Target Date': new Date(startDate.getFullYear(), startDate.getMonth() + 12, startDate.getDate()),
+      Priority: 1,
+      'Funding Account': 'Savings',
+      'Funding Policy': Config.GOAL_FUNDING_POLICIES.FIXED,
+      'Amount Per Month': 200,
+      'Percent Of Inflow': '',
+      Notes: 'Planning layer placeholder',
+    },
+  ];
+
+  var riskRows = [
+    {
+      Include: true,
+      'Scenario Name': 'Base',
+      'Emergency Buffer Account': 'Savings',
+      'Emergency Buffer Minimum': 1000,
+      'Income Shock Percent': 0,
+      'Expense Shock Percent': 0,
+      Notes: 'Active baseline risk profile',
+    },
+  ];
+
+  var policies = [
+    {
+      Include: true,
+      'Policy Type': Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+      Name: 'Everyday overdraft protection',
+      Priority: 1,
+      'Start Date': startDate,
+      'Trigger Account': 'Everyday',
+      'Funding Account': 'Savings',
+      Threshold: 0,
+      'Max Per Event': '',
+      Notes: 'Auto-cover only when an event would push Everyday below threshold',
     },
   ];
 
@@ -293,6 +343,9 @@ function loadDefaultData() {
   ];
 
   writeRowsByHeader_(accountsSheet, accounts);
+  writeRowsByHeader_(policiesSheet, policies);
+  writeRowsByHeader_(goalsSheet, goals);
+  writeRowsByHeader_(riskSheet, riskRows);
   writeRowsByHeader_(incomeSheet, income);
   writeRowsByHeader_(expenseSheet, expenses);
   writeRowsByHeader_(transfersSheet, transfers);
