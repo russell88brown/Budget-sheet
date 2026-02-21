@@ -66,7 +66,7 @@ function runJournalPipeline_(options) {
     toastStep_('Sorting events by date...');
     Logger.info('Sorting events...');
     events.sort(function (a, b) {
-      var dateDiff = a.date.getTime() - b.date.getTime();
+      var dateDiff = normalizeDate_(a.date).getTime() - normalizeDate_(b.date).getTime();
       if (dateDiff !== 0) {
         return dateDiff;
       }

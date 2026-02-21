@@ -153,34 +153,75 @@ function applyJournalConditionalFormatting_(sheet, forecastAccounts, accountType
   if (!accountStartCol) {
     return;
   }
-  var accountRange = sheet.getRange(startRow, accountStartCol, rowCount, forecastAccounts.length);
-  var newRules = [
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied('=AND($B' + startRow + '<>\"\",$B' + startRow + '=INDEX($1:$1,COLUMN()))')
-      .setFontColor('#0b57d0')
-      .setRanges([accountRange])
-      .build(),
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied(
-        '=AND(ROW()>' +
-          startRow +
-          ',INDIRECT(ADDRESS(ROW()-1,COLUMN()))<0,INDIRECT(ADDRESS(ROW(),COLUMN()))>=0)'
-      )
-      .setBackground('#d4edda')
-      .setFontColor('#0f5132')
-      .setRanges([accountRange])
-      .build(),
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied(
-        '=AND(ROW()>' +
-          startRow +
-          ',INDIRECT(ADDRESS(ROW()-1,COLUMN()))>0,INDIRECT(ADDRESS(ROW(),COLUMN()))<0)'
-      )
-      .setBackground('#f8d7da')
-      .setFontColor('#8b0000')
-      .setRanges([accountRange])
-      .build(),
-  ];
+  var newRules = [];
+  for (var i = 0; i < forecastAccounts.length; i += 1) {
+    var col = accountStartCol + i;
+    var colLetter = columnToA1Letter_(col);
+    var columnRange = sheet.getRange(startRow, col, rowCount, 1);
+
+    newRules.push(
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied('=$B' + startRow + '=' + colLetter + '$1')
+        .setFontColor('#0b57d0')
+        .setRanges([columnRange])
+        .build()
+    );
+    newRules.push(
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied(
+          '=AND(ISNUMBER(' +
+            colLetter +
+            startRow +
+            '),ISNUMBER(' +
+            colLetter +
+            (startRow - 1) +
+            '),' +
+            colLetter +
+            startRow +
+            '>=0,' +
+            colLetter +
+            (startRow - 1) +
+            '<0)'
+        )
+        .setBackground('#d4edda')
+        .setFontColor('#0f5132')
+        .setRanges([columnRange])
+        .build()
+    );
+    newRules.push(
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied(
+          '=AND(ISNUMBER(' +
+            colLetter +
+            startRow +
+            '),ISNUMBER(' +
+            colLetter +
+            (startRow - 1) +
+            '),' +
+            colLetter +
+            startRow +
+            '<0,' +
+            colLetter +
+            (startRow - 1) +
+            '>0)'
+        )
+        .setBackground('#f8d7da')
+        .setFontColor('#8b0000')
+        .setRanges([columnRange])
+        .build()
+    );
+  }
 
   sheet.setConditionalFormatRules(filtered.concat(newRules));
+}
+
+function columnToA1Letter_(column) {
+  var temp = '';
+  var letter = '';
+  while (column > 0) {
+    temp = (column - 1) % 26;
+    letter = String.fromCharCode(temp + 65) + letter;
+    column = (column - temp - 1) / 26;
+  }
+  return letter;
 }
