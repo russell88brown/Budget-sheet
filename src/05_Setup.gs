@@ -606,7 +606,7 @@ function applySheetActivityRules_(spreadsheet, sheetName) {
   var endCol = endDateIdx === -1 ? null : columnToLetter_(endDateIdx + 1);
   var inactiveFormula = '=NOT($' + includeCol + rowStart + ')';
   var expiredFormula = endCol
-    ? '=AND($' + includeCol + rowStart + '=TRUE,$' + endCol + rowStart + '<>\"\",$' + endCol + rowStart + '<TODAY())'
+    ? '=AND($' + endCol + rowStart + '<>\"\",$' + endCol + rowStart + '<TODAY())'
     : '';
 
   var rules = sheet.getConditionalFormatRules() || [];
@@ -691,5 +691,23 @@ function isActivityThemeRule_(
     );
   });
 
-  return isInactiveRule || isExpiredRule;
+  // Legacy cleanup: remove prior activity-theme rules that may reference old columns.
+  var isLegacyInactiveRule = formulaText.indexOf('NOT($') !== -1 && sameSheetRanges.some(function (range) {
+    return (
+      range.getRow() === rowStart &&
+      range.getColumn() === 1 &&
+      range.getNumRows() === rowCount &&
+      range.getNumColumns() === lastCol
+    );
+  });
+  var isLegacyExpiredRule = formulaText.indexOf('TODAY()') !== -1 && sameSheetRanges.some(function (range) {
+    return (
+      range.getRow() === rowStart &&
+      range.getColumn() === includeColIndex &&
+      range.getNumRows() === rowCount &&
+      range.getNumColumns() === 1
+    );
+  });
+
+  return isInactiveRule || isExpiredRule || isLegacyInactiveRule || isLegacyExpiredRule;
 }
