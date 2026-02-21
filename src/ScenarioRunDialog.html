@@ -13,6 +13,12 @@
         display: block;
         margin-bottom: 8px;
       }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+      }
       select {
         width: 100%;
         padding: 6px;
@@ -45,12 +51,24 @@
   </head>
   <body>
     <form id="scenario-form">
-      <label for="scenario">Scenario</label>
-      <select id="scenario" required>
+      <label>Choose what to run</label>
+      <label class="check"><input type="checkbox" name="action" value="journal"> Journal</label>
+      <label class="check"><input type="checkbox" name="action" value="summary"> Summaries</label>
+      <? if (mode === 'custom') { ?>
+      <label for="scenarios" style="margin-top: 10px;">Scenarios (multi-select)</label>
+      <select id="scenarios" multiple size="6" required>
         <? for (var i = 0; i < scenarios.length; i++) { var item = scenarios[i]; ?>
           <option value="<?= item ?>"><?= item ?></option>
         <? } ?>
       </select>
+      <div style="margin-top: 6px; color: #5f6368; font-size: 12px;">
+        Hold Ctrl/Cmd to select multiple scenarios.
+      </div>
+      <? } else { ?>
+      <div style="margin-top: 8px; color: #5f6368; font-size: 12px;">
+        Main scenario is fixed to <strong><?= defaultScenario ?></strong>.
+      </div>
+      <? } ?>
       <div class="actions">
         <button type="submit">Run</button>
         <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
@@ -61,27 +79,29 @@
       (function () {
         var form = document.getElementById('scenario-form');
         var statusEl = document.getElementById('status');
-        var action = '<?= action ?>';
+        var mode = '<?= mode ?>';
 
         form.addEventListener('submit', function (event) {
           event.preventDefault();
-          var scenario = document.getElementById('scenario').value;
-          if (!scenario) {
-            statusEl.textContent = 'Select a scenario.';
+          var actions = Array.prototype.slice
+            .call(form.querySelectorAll('input[name="action"]:checked'))
+            .map(function (el) { return el.value; });
+          if (!actions.length) {
+            statusEl.textContent = 'Select at least one action.';
             return;
           }
-          statusEl.textContent = 'Running...';
-          google.script.run
-            .withSuccessHandler(function (msg) {
-              statusEl.textContent = msg || 'Done.';
-              setTimeout(function () {
-                google.script.host.close();
-              }, 900);
-            })
-            .withFailureHandler(function (err) {
-              statusEl.textContent = err && err.message ? err.message : 'Run failed.';
-            })
-            .runScenarioAction(action, scenario);
+          var scenarios = [];
+          if (mode === 'custom') {
+            scenarios = Array.prototype.slice
+              .call(document.getElementById('scenarios').selectedOptions)
+              .map(function (option) { return option.value; });
+            if (!scenarios.length) {
+              statusEl.textContent = 'Select at least one scenario.';
+              return;
+            }
+          }
+          google.script.run.runScenarioSelections(mode, actions, scenarios);
+          google.script.host.close();
         });
       })();
     </script>

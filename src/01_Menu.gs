@@ -4,11 +4,10 @@ function onOpen() {
 
   ui
     .createMenu('Budget Forecast')
+    .addItem('Run Main Scenario...', 'showMainScenarioRunDialog')
+    .addItem('Run Custom Scenario(s)...', 'showCustomScenarioRunDialog')
+    .addSeparator()
     .addItem('Summarise Accounts', 'summariseAccounts')
-    .addItem('Run journal (Base)', 'runJournal')
-    .addItem('Run journal for scenario...', 'runJournalForScenarioPrompt')
-    .addItem('Run summaries (Base)', 'runSummary')
-    .addItem('Run summaries for scenario...', 'runSummaryForScenarioPrompt')
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
     .addToUi();
@@ -28,15 +27,16 @@ function runJournal() {
   }
 }
 
-function runJournalForScenarioPrompt() {
-  showScenarioRunDialog_('journal');
+function showMainScenarioRunDialog() {
+  showScenarioRunDialog_('main');
 }
 
-function runSummaryForScenarioPrompt() {
-  showScenarioRunDialog_('summary');
+function showCustomScenarioRunDialog() {
+  showScenarioRunDialog_('custom');
 }
 
-function showScenarioRunDialog_(action) {
+function showScenarioRunDialog_(mode) {
+  var dialogMode = mode === 'custom' ? 'custom' : 'main';
   var template = HtmlService.createTemplateFromFile('ScenarioRunDialog');
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
@@ -49,14 +49,15 @@ function showScenarioRunDialog_(action) {
     available = [Config.SCENARIOS.DEFAULT];
   }
   template.scenarios = available;
-  template.action = action || 'journal';
-  template.title = template.action === 'summary' ? 'Run summaries for scenario' : 'Run journal for scenario';
-  var html = template.evaluate().setWidth(360).setHeight(240);
+  template.defaultScenario = Config.SCENARIOS.DEFAULT;
+  template.mode = dialogMode;
+  template.title = dialogMode === 'custom' ? 'Run Custom Scenario(s)' : 'Run Main Scenario';
+  var html = template.evaluate().setWidth(420).setHeight(340);
   SpreadsheetApp.getUi().showModalDialog(html, template.title);
 }
 
-function runScenarioAction(action, scenarioId) {
-  var activeScenario = normalizeScenario_(scenarioId);
+function runScenarioSelections(mode, actions, scenarioIds) {
+  var dialogMode = mode === 'custom' ? 'custom' : 'main';
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
       return normalizeScenario_(value);
@@ -64,20 +65,57 @@ function runScenarioAction(action, scenarioId) {
     .filter(function (value, idx, arr) {
       return value && arr.indexOf(value) === idx;
     });
-  if (available.indexOf(activeScenario) === -1) {
-    throw new Error('Unknown scenario "' + activeScenario + '".');
+  var selectedActions = Array.isArray(actions)
+    ? actions.map(function (value) { return String(value || '').toLowerCase(); })
+    : [];
+  selectedActions = selectedActions.filter(function (value, idx, arr) {
+    return value && arr.indexOf(value) === idx;
+  });
+  if (!selectedActions.length) {
+    throw new Error('Select at least one action.');
   }
+  selectedActions.forEach(function (actionType) {
+    if (actionType !== 'journal' && actionType !== 'summary') {
+      throw new Error('Unknown action type.');
+    }
+  });
 
-  if (action === 'summary') {
-    runSummaryForScenario(activeScenario);
-    return 'Summaries complete for ' + activeScenario + '.';
+  var selectedScenarios = dialogMode === 'main'
+    ? [Config.SCENARIOS.DEFAULT]
+    : Array.isArray(scenarioIds)
+      ? scenarioIds.map(function (value) { return normalizeScenario_(value); })
+      : [];
+  selectedScenarios = selectedScenarios.filter(function (value, idx, arr) {
+    return value && arr.indexOf(value) === idx;
+  });
+  if (!selectedScenarios.length) {
+    throw new Error('Select at least one scenario.');
   }
-  if (Engine && Engine.runJournalForScenario) {
-    Engine.runJournalForScenario(activeScenario);
-    return 'Journal complete for ' + activeScenario + '.';
-  }
-  runJournal();
-  return 'Journal complete.';
+  selectedScenarios.forEach(function (scenarioId) {
+    if (available.indexOf(scenarioId) === -1) {
+      throw new Error('Unknown scenario "' + scenarioId + '".');
+    }
+  });
+
+  var executed = [];
+  selectedScenarios.forEach(function (scenarioId) {
+    if (selectedActions.indexOf('journal') !== -1) {
+      if (Engine && Engine.runJournalForScenario) {
+        Engine.runJournalForScenario(scenarioId);
+      } else {
+        runJournal();
+      }
+    }
+    if (selectedActions.indexOf('summary') !== -1) {
+      runSummaryForScenario(scenarioId);
+    }
+    executed.push(scenarioId);
+  });
+
+  var actionLabel = selectedActions
+    .map(function (value) { return value === 'summary' ? 'Summaries' : 'Journal'; })
+    .join(' + ');
+  return actionLabel + ' complete for: ' + executed.join(', ') + '.';
 }
 
 function summariseAccounts() {
