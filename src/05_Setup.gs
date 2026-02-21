@@ -44,6 +44,7 @@ function setupStageTheme_() {
   }));
   applyReferenceTheme_(ss);
   applyAccountsTheme_(ss);
+  applyInputActivityTheme_(ss);
 }
 
 function applySchemaFormatsForSheet_(sheetName) {
@@ -549,4 +550,122 @@ function applyReferenceTheme_(spreadsheet) {
   var lastCol = Math.max(4, sheet.getLastColumn());
   sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#f1f3f4');
   sheet.setFrozenRows(1);
+}
+
+function applyInputActivityTheme_(spreadsheet) {
+  [Config.SHEETS.INCOME, Config.SHEETS.TRANSFERS, Config.SHEETS.EXPENSE].forEach(function (sheetName) {
+    applySheetActivityRules_(spreadsheet, sheetName);
+  });
+}
+
+function applySheetActivityRules_(spreadsheet, sheetName) {
+  var sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var includeIdx = headers.indexOf('Include');
+  var endDateIdx = headers.indexOf('End Date');
+  if (includeIdx === -1) {
+    return;
+  }
+
+  var rowStart = 2;
+  var rowCount = Math.max(1, sheet.getMaxRows() - 1);
+  var fullDataRange = sheet.getRange(rowStart, 1, rowCount, lastCol);
+  var includeRange = sheet.getRange(rowStart, includeIdx + 1, rowCount, 1);
+  var includeCol = columnToLetter_(includeIdx + 1);
+  var endCol = endDateIdx === -1 ? null : columnToLetter_(endDateIdx + 1);
+  var inactiveFormula = '=NOT($' + includeCol + rowStart + ')';
+  var expiredFormula = endCol
+    ? '=AND($' + includeCol + rowStart + '=TRUE,$' + endCol + rowStart + '<>\"\",$' + endCol + rowStart + '<TODAY())'
+    : '';
+
+  var rules = sheet.getConditionalFormatRules() || [];
+  var filtered = rules.filter(function (rule) {
+    return !isActivityThemeRule_(
+      rule,
+      sheetName,
+      rowStart,
+      rowCount,
+      lastCol,
+      includeIdx + 1,
+      inactiveFormula,
+      expiredFormula
+    );
+  });
+
+  var newRules = [];
+  newRules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(inactiveFormula)
+      .setBackground('#f2f2f2')
+      .setRanges([fullDataRange])
+      .build()
+  );
+
+  if (endCol) {
+    newRules.push(
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied(expiredFormula)
+        .setBackground('#f8d7da')
+        .setFontColor('#8b0000')
+        .setRanges([includeRange])
+        .build()
+    );
+  }
+
+  sheet.setConditionalFormatRules(filtered.concat(newRules));
+}
+
+function isActivityThemeRule_(
+  rule,
+  sheetName,
+  rowStart,
+  rowCount,
+  lastCol,
+  includeColIndex,
+  inactiveFormula,
+  expiredFormula
+) {
+  var ranges = rule.getRanges() || [];
+  var sameSheetRanges = ranges.filter(function (range) {
+    return range.getSheet().getName() === sheetName;
+  });
+  if (!sameSheetRanges.length) {
+    return false;
+  }
+
+  var boolCondition = rule.getBooleanCondition ? rule.getBooleanCondition() : null;
+  var formulaText = '';
+  if (boolCondition) {
+    var values = boolCondition.getCriteriaValues() || [];
+    if (values.length && values[0] !== null && values[0] !== undefined) {
+      formulaText = String(values[0]);
+    }
+  }
+
+  var isInactiveRule = formulaText === inactiveFormula && sameSheetRanges.some(function (range) {
+    return (
+      range.getRow() === rowStart &&
+      range.getColumn() === 1 &&
+      range.getNumRows() === rowCount &&
+      range.getNumColumns() === lastCol
+    );
+  });
+
+  var isExpiredRule = expiredFormula && formulaText === expiredFormula && sameSheetRanges.some(function (range) {
+    return (
+      range.getRow() === rowStart &&
+      range.getColumn() === includeColIndex &&
+      range.getNumRows() === rowCount &&
+      range.getNumColumns() === 1
+    );
+  });
+
+  return isInactiveRule || isExpiredRule;
 }

@@ -100,18 +100,12 @@ function preprocessInputSheets_() {
   normalizeRecurrenceRows_();
   toastStep_('Reviewing input sheets...');
   reviewAndCleanupInputSheets_();
-  toastStep_('Checking active income...');
-  deactivateExpiredIncome_();
-  toastStep_('Checking active transfers...');
-  deactivateExpiredTransfers_();
-  toastStep_('Checking active expenses...');
-  deactivateExpiredExpenses_();
-  toastStep_('Styling inactive income...');
-  styleIncomeRows_();
-  toastStep_('Styling inactive transfers...');
-  styleTransferRows_();
-  toastStep_('Styling inactive expenses...');
-  styleExpenseRows_();
+  toastStep_('Flagging inactive income by date...');
+  flagExpiredIncome_();
+  toastStep_('Flagging inactive transfers by date...');
+  flagExpiredTransfers_();
+  toastStep_('Flagging inactive expenses by date...');
+  flagExpiredExpenses_();
 }
 
 function reviewAndCleanupInputSheets_() {
@@ -144,7 +138,10 @@ function buildAccountLookup_() {
     if (!name) {
       return;
     }
-    var key = String(name).trim();
+    var key = normalizeAccountLookupKey_(name);
+    if (!key) {
+      return;
+    }
     counts[key] = (counts[key] || 0) + 1;
   });
   Object.keys(counts).forEach(function (name) {
@@ -226,7 +223,7 @@ function validateIncomeSheet_(validAccounts) {
     if (!toDate_(row[indexes.start])) {
       reasons.push('missing/invalid start date');
     }
-    var account = row[indexes.account] ? String(row[indexes.account]).trim() : '';
+    var account = normalizeAccountLookupKey_(row[indexes.account]);
     if (!account) {
       reasons.push('missing to account');
     } else if (!validAccounts[account]) {
@@ -261,8 +258,8 @@ function validateTransferSheet_(validAccounts) {
     if (!validType) {
       reasons.push('invalid transfer type');
     }
-    var fromAccount = row[indexes.from] ? String(row[indexes.from]).trim() : '';
-    var toAccount = row[indexes.to] ? String(row[indexes.to]).trim() : '';
+    var fromAccount = normalizeAccountLookupKey_(row[indexes.from]);
+    var toAccount = normalizeAccountLookupKey_(row[indexes.to]);
     if (!fromAccount) {
       reasons.push('missing from account');
     } else if (!validAccounts[fromAccount]) {
@@ -296,7 +293,7 @@ function validateExpenseSheet_(validAccounts) {
     if (!toDate_(row[indexes.start])) {
       reasons.push('missing/invalid start date');
     }
-    var fromAccount = row[indexes.from] ? String(row[indexes.from]).trim() : '';
+    var fromAccount = normalizeAccountLookupKey_(row[indexes.from]);
     if (!fromAccount) {
       reasons.push('missing from account');
     } else if (!validAccounts[fromAccount]) {
@@ -398,19 +395,19 @@ function resetRunState_() {
   };
 }
 
-function deactivateExpiredExpenses_() {
-  deactivateExpiredRows_(Config.SHEETS.EXPENSE, 'Expense');
+function flagExpiredExpenses_() {
+  flagExpiredRows_(Config.SHEETS.EXPENSE, 'Expense');
 }
 
-function deactivateExpiredIncome_() {
-  deactivateExpiredRows_(Config.SHEETS.INCOME, 'Income');
+function flagExpiredIncome_() {
+  flagExpiredRows_(Config.SHEETS.INCOME, 'Income');
 }
 
-function deactivateExpiredTransfers_() {
-  deactivateExpiredRows_(Config.SHEETS.TRANSFERS, 'Transfer');
+function flagExpiredTransfers_() {
+  flagExpiredRows_(Config.SHEETS.TRANSFERS, 'Transfer');
 }
 
-function deactivateExpiredRows_(sheetName, label) {
+function flagExpiredRows_(sheetName, label) {
   var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
   if (!sheet) {
     return;
@@ -429,7 +426,7 @@ function deactivateExpiredRows_(sheetName, label) {
   var nameIndex = headers.indexOf('Name');
 
   if (includeIndex === -1 || startDateIndex === -1) {
-    Logger.warn(label + ' auto-deactivate skipped: missing Include or Start Date header.');
+    Logger.warn(label + ' date-flagging skipped: missing Include or Start Date header.');
     return;
   }
 
@@ -437,7 +434,7 @@ function deactivateExpiredRows_(sheetName, label) {
   var today = normalizeDate_(new Date());
   var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
   var todayKey = Utilities.formatDate(today, tz, 'yyyy-MM-dd');
-  var updated = 0;
+  var flagged = 0;
 
   values.forEach(function (row, idx) {
     var include = toBoolean_(row[includeIndex]);
@@ -446,7 +443,6 @@ function deactivateExpiredRows_(sheetName, label) {
     }
     var endDate = endDateIndex !== -1 ? row[endDateIndex] : null;
     var startDate = row[startDateIndex];
-    var shouldDeactivate = false;
     var endKey = endDate ? Utilities.formatDate(normalizeDate_(endDate), tz, 'yyyy-MM-dd') : null;
     var startKey = startDate ? Utilities.formatDate(normalizeDate_(startDate), tz, 'yyyy-MM-dd') : null;
 
@@ -460,65 +456,25 @@ function deactivateExpiredRows_(sheetName, label) {
     }
 
     if (endKey && endKey < todayKey) {
-      shouldDeactivate = true;
-    }
-
-    if (shouldDeactivate) {
-      row[includeIndex] = false;
-      updated += 1;
+      flagged += 1;
       if (nameIndex !== -1) {
-        Logger.warn(label + ' deactivated (out of date): ' + row[nameIndex]);
+        Logger.warn(label + ' inactive by date (review Include): ' + row[nameIndex]);
       } else {
-        Logger.warn(label + ' deactivated (out of date) at row ' + (idx + 2));
+        Logger.warn(label + ' inactive by date (review Include) at row ' + (idx + 2));
       }
     }
   });
 
-  if (updated > 0) {
-    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-    Logger.info(label + 's auto-deactivated: ' + updated);
+  if (flagged > 0) {
+    Logger.info(label + 's flagged as inactive by date: ' + flagged);
   }
 }
 
-function styleExpenseRows_() {
-  styleInactiveRows_(Config.SHEETS.EXPENSE, 'Expense');
-}
-
-function styleIncomeRows_() {
-  styleInactiveRows_(Config.SHEETS.INCOME, 'Income');
-}
-
-function styleTransferRows_() {
-  styleInactiveRows_(Config.SHEETS.TRANSFERS, 'Transfer');
-}
-
-function styleInactiveRows_(sheetName, label) {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
-  if (!sheet) {
-    return;
+function normalizeAccountLookupKey_(value) {
+  if (value === null || value === undefined) {
+    return '';
   }
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return;
-  }
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var includeIndex = headers.indexOf('Include');
-  if (includeIndex === -1) {
-    Logger.warn(label + ' row styling skipped: missing Include header.');
-    return;
-  }
-
-  var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
-  var values = dataRange.getValues();
-  var backgrounds = values.map(function (row) {
-    var active = toBoolean_(row[includeIndex]);
-    var color = active ? '#ffffff' : '#f2f2f2';
-    return row.map(function () {
-      return color;
-    });
-  });
-  dataRange.setBackgrounds(backgrounds);
+  return String(value).trim().toLowerCase();
 }
 
 function normalizeTransferRows_() {
