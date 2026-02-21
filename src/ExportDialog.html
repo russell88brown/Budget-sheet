@@ -55,6 +55,9 @@
         border-radius: 4px;
         font-size: 12px;
       }
+      .date-input {
+        width: 135px;
+      }
       button {
         padding: 6px 12px;
         border-radius: 4px;
@@ -103,6 +106,15 @@
             entries per file
           </span>
         </label>
+        <label class="item">
+          <input type="radio" name="journalMode" value="dateRange">
+          <span>
+            Date range:
+            <input id="journal-start-date" class="inline-input date-input" type="date" value="<?= journalInfo.minDate ?>">
+            to
+            <input id="journal-end-date" class="inline-input date-input" type="date" value="<?= journalInfo.maxDate ?>">
+          </span>
+        </label>
       </div>
       <div class="actions">
         <button type="submit">Export</button>
@@ -116,6 +128,8 @@
         var statusEl = document.getElementById('status');
         var journalOptionsEl = document.getElementById('journal-options');
         var entriesInput = document.getElementById('entries-per-file');
+        var startDateInput = document.getElementById('journal-start-date');
+        var endDateInput = document.getElementById('journal-end-date');
         var journalSheetName = '<?= journalSheetName ?>';
 
         function updateJournalOptionsVisibility_() {
@@ -152,12 +166,27 @@
           if (!isFinite(entriesPerFile) || entriesPerFile < 1) {
             entriesPerFile = 1000;
           }
+          var startDate = startDateInput && startDateInput.value ? startDateInput.value : '';
+          var endDate = endDateInput && endDateInput.value ? endDateInput.value : '';
+
+          if (selected.indexOf(journalSheetName) !== -1 && journalMode === 'dateRange') {
+            if (!startDate || !endDate) {
+              statusEl.textContent = 'Select both start and end dates for Journal date range export.';
+              return;
+            }
+            if (startDate > endDate) {
+              statusEl.textContent = 'Start date must be on or before end date.';
+              return;
+            }
+          }
 
           var payload = {
             sheetNames: selected,
             journal: {
               mode: journalMode,
-              entriesPerFile: entriesPerFile
+              entriesPerFile: entriesPerFile,
+              startDate: startDate,
+              endDate: endDate
             }
           };
 

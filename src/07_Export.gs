@@ -138,6 +138,7 @@ function buildJournalJsonFiles_(sheet, exportedAt, journalOptions) {
   var meaningfulRows = data.slice(1).filter(function (row) {
     return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
   });
+  meaningfulRows = filterJournalRowsByOptions_(meaningfulRows, headers, options);
   if (!meaningfulRows.length) {
     return files;
   }
@@ -172,6 +173,7 @@ function buildJournalJsonFiles_(sheet, exportedAt, journalOptions) {
         {
           sheet: Config.SHEETS.JOURNAL,
           exportedAt: exportedAt,
+          dateRange: options.mode === 'dateRange' ? { startDate: options.startDate, endDate: options.endDate } : null,
           headers: headers,
           rows: rowsToObjects_(headers, meaningfulRows),
         },
@@ -181,60 +183,20 @@ function buildJournalJsonFiles_(sheet, exportedAt, journalOptions) {
     });
     return files;
   }
-
-  var dateIndex = headers.indexOf('Date');
-  var scenarioIndex = headers.indexOf('Scenario');
-  if (dateIndex === -1) {
-    files.push({
-      fileName: toExportFileName_(Config.SHEETS.JOURNAL) + '.json',
-      content: JSON.stringify(
-        {
-          sheet: Config.SHEETS.JOURNAL,
-          exportedAt: exportedAt,
-          headers: headers,
-          rows: rowsToObjects_(headers, meaningfulRows),
-        },
-        null,
-        2
-      ),
-    });
-    return files;
-  }
-
-  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
-  var groups = {};
-  meaningfulRows.forEach(function (row) {
-    var date = row[dateIndex];
-    var scenarioKey = getJournalScenarioKey_(row, scenarioIndex);
-    var key = scenarioKey + '-unknown';
-    if (date instanceof Date) {
-      key = scenarioKey + '-' + Utilities.formatDate(date, tz, 'yyyy-MM');
-    }
-    if (!groups[key]) {
-      groups[key] = { scenario: scenarioKey, rows: [] };
-    }
-    groups[key].rows.push(row);
-  });
-
-  Object.keys(groups)
-    .sort()
-    .forEach(function (groupKey) {
-      var group = groups[groupKey];
-      var monthKey = groupKey.slice(group.scenario.length + 1);
-      var payload = {
+  files.push({
+    fileName: toExportFileName_(Config.SHEETS.JOURNAL + '-' + options.startDate + '-to-' + options.endDate) + '.json',
+    content: JSON.stringify(
+      {
         sheet: Config.SHEETS.JOURNAL,
-        scenario: group.scenario,
-        month: monthKey,
         exportedAt: exportedAt,
+        dateRange: { startDate: options.startDate, endDate: options.endDate },
         headers: headers,
-        rows: rowsToObjects_(headers, group.rows),
-      };
-      files.push({
-        fileName: toExportFileName_(Config.SHEETS.JOURNAL + '-' + group.scenario + '-' + monthKey) + '.json',
-        content: JSON.stringify(payload, null, 2),
-      });
-    });
-
+        rows: rowsToObjects_(headers, meaningfulRows),
+      },
+      null,
+      2
+    ),
+  });
   return files;
 }
 
@@ -254,18 +216,35 @@ function normalizeExportRequest_(selectionOrOptions) {
 }
 
 function normalizeJournalOptions_(journalOptions) {
-  var defaults = { mode: 'single', entriesPerFile: 1000 };
+  var defaults = { mode: 'single', entriesPerFile: 1000, startDate: '', endDate: '' };
   if (!journalOptions || typeof journalOptions !== 'object') {
     return defaults;
   }
-  var mode = journalOptions.mode === 'entries' ? 'entries' : 'single';
+  var mode = 'single';
+  if (journalOptions.mode === 'entries') {
+    mode = 'entries';
+  } else if (journalOptions.mode === 'dateRange') {
+    mode = 'dateRange';
+  }
   var parsed = parseInt(journalOptions.entriesPerFile, 10);
   if (!isFinite(parsed) || parsed < 1) {
     parsed = defaults.entriesPerFile;
   }
+  var startDate = String(journalOptions.startDate || '').trim();
+  var endDate = String(journalOptions.endDate || '').trim();
+  if (mode === 'dateRange') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      throw new Error('For Journal date range export, both start and end dates are required (YYYY-MM-DD).');
+    }
+    if (startDate > endDate) {
+      throw new Error('Journal date range start date must be on or before end date.');
+    }
+  }
   return {
     mode: mode,
     entriesPerFile: parsed,
+    startDate: startDate,
+    endDate: endDate,
   };
 }
 
@@ -273,6 +252,8 @@ function getJournalExportInfo_() {
   var info = {
     rows: 0,
     dateRangeLabel: 'No data',
+    minDate: '',
+    maxDate: '',
   };
   var ss = SpreadsheetApp.getActive();
   var sheet = ss.getSheetByName(Config.SHEETS.JOURNAL);
@@ -313,6 +294,8 @@ function getJournalExportInfo_() {
   var tz = ss.getSpreadsheetTimeZone();
   info.dateRangeLabel =
     Utilities.formatDate(dates[0], tz, 'yyyy-MM-dd') + ' to ' + Utilities.formatDate(dates[dates.length - 1], tz, 'yyyy-MM-dd');
+  info.minDate = Utilities.formatDate(dates[0], tz, 'yyyy-MM-dd');
+  info.maxDate = Utilities.formatDate(dates[dates.length - 1], tz, 'yyyy-MM-dd');
   return info;
 }
 
@@ -369,6 +352,7 @@ function exportJournalRows_(sheet, journalOptions) {
   var meaningfulRows = data.slice(1).filter(function (row) {
     return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
   });
+  meaningfulRows = filterJournalRowsByOptions_(meaningfulRows, headers, options);
   if (!meaningfulRows.length) {
     return [];
   }
@@ -386,6 +370,12 @@ function exportJournalRows_(sheet, journalOptions) {
       );
     }
     return rows;
+  }
+  if (options.mode === 'dateRange') {
+    return buildExportRows_(
+      Config.SHEETS.JOURNAL + ' (' + options.startDate + ' to ' + options.endDate + ')',
+      serializeCompact_(headers, meaningfulRows)
+    );
   }
   return buildExportRows_(Config.SHEETS.JOURNAL, serializeCompact_(headers, meaningfulRows));
 }
@@ -436,6 +426,27 @@ function exportJournalByMonth_(sheet) {
     });
 
   return exportRows;
+}
+
+function filterJournalRowsByOptions_(rows, headers, options) {
+  if (options.mode !== 'dateRange') {
+    return rows;
+  }
+  var dateIndex = headers.indexOf('Date');
+  if (dateIndex === -1) {
+    throw new Error('Journal date range export requires a Date column.');
+  }
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var start = Utilities.parseDate(options.startDate, tz, 'yyyy-MM-dd').getTime();
+  var end = Utilities.parseDate(options.endDate, tz, 'yyyy-MM-dd').getTime();
+  return rows.filter(function (row) {
+    var value = row[dateIndex];
+    if (!(value instanceof Date)) {
+      return false;
+    }
+    var time = value.getTime();
+    return time >= start && time <= end;
+  });
 }
 
 function getJournalScenarioKey_(row, scenarioIndex) {
