@@ -65,16 +65,270 @@ const Engine = {
 
 function preprocessInputSheets_() {
   normalizeAccountRows_();
-  toastStep_('Checking active transfers...');
-  deactivateExpiredTransfers_();
   normalizeTransferRows_();
   normalizeRecurrenceRows_();
+  toastStep_('Reviewing input sheets...');
+  reviewAndCleanupInputSheets_();
+  toastStep_('Checking active income...');
+  deactivateExpiredIncome_();
+  toastStep_('Checking active transfers...');
+  deactivateExpiredTransfers_();
   toastStep_('Checking active expenses...');
   deactivateExpiredExpenses_();
+  toastStep_('Styling inactive income...');
+  styleIncomeRows_();
   toastStep_('Styling inactive transfers...');
   styleTransferRows_();
   toastStep_('Styling inactive expenses...');
   styleExpenseRows_();
+}
+
+function reviewAndCleanupInputSheets_() {
+  var validAccounts = validateAccountsSheet_();
+  validateIncomeSheet_(validAccounts);
+  validateTransferSheet_(validAccounts);
+  validateExpenseSheet_(validAccounts);
+}
+
+function buildAccountLookup_() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
+  var lookup = {};
+  var counts = {};
+  if (!sheet) {
+    return lookup;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return lookup;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var nameIdx = headers.indexOf('Account Name');
+  if (nameIdx === -1) {
+    return lookup;
+  }
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  values.forEach(function (row) {
+    var name = row[nameIdx];
+    if (!name) {
+      return;
+    }
+    var key = String(name).trim();
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  Object.keys(counts).forEach(function (name) {
+    if (counts[name] === 1) {
+      lookup[name] = true;
+    }
+  });
+  return lookup;
+}
+
+function validateAccountsSheet_() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!sheet) {
+    return {};
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return {};
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var nameIdx = headers.indexOf('Account Name');
+  var includeIdx = headers.indexOf('Include');
+  var typeIdx = headers.indexOf('Type');
+  var balanceIdx = headers.indexOf('Balance');
+  if (nameIdx === -1 || includeIdx === -1 || typeIdx === -1 || balanceIdx === -1) {
+    return buildAccountLookup_();
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var seen = {};
+
+  values.forEach(function (row, idx) {
+    if (!toBoolean_(row[includeIdx])) {
+      return;
+    }
+    var name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+    var type = normalizeAccountType_(row[typeIdx]);
+    var balance = toNumber_(row[balanceIdx]);
+    var reasons = [];
+
+    if (!name) {
+      reasons.push('missing account name');
+    } else {
+      if (seen[name]) {
+        reasons.push('duplicate account name');
+      }
+      seen[name] = true;
+    }
+    if (type !== Config.ACCOUNT_TYPES.CASH && type !== Config.ACCOUNT_TYPES.CREDIT) {
+      reasons.push('invalid account type');
+    }
+    if (balance === null) {
+      reasons.push('invalid balance');
+    }
+
+    if (reasons.length) {
+      Logger.warn('Account invalid: row ' + (idx + 2) + ' [' + reasons.join(', ') + ']');
+    }
+  });
+
+  return buildAccountLookup_();
+}
+
+function validateIncomeSheet_(validAccounts) {
+  validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
+    var reasons = [];
+    if (!row[indexes.name]) {
+      reasons.push('missing name');
+    }
+    var amount = toNumber_(row[indexes.amount]);
+    if (amount === null || amount <= 0) {
+      reasons.push('amount must be > 0');
+    }
+    if (!row[indexes.frequency]) {
+      reasons.push('missing frequency');
+    }
+    if (!toDate_(row[indexes.start])) {
+      reasons.push('missing/invalid start date');
+    }
+    var account = row[indexes.account] ? String(row[indexes.account]).trim() : '';
+    if (!account) {
+      reasons.push('missing to account');
+    } else if (!validAccounts[account]) {
+      reasons.push('unknown to account');
+    }
+    return reasons;
+  });
+}
+
+function validateTransferSheet_(validAccounts) {
+  validateAndDeactivateRows_(Config.SHEETS.TRANSFERS, 'Transfer', function (row, indexes) {
+    var reasons = [];
+    if (!row[indexes.name]) {
+      reasons.push('missing name');
+    }
+    var amount = toNumber_(row[indexes.amount]);
+    if (amount === null || amount < 0) {
+      reasons.push('amount must be >= 0');
+    }
+    if (!row[indexes.frequency]) {
+      reasons.push('missing frequency');
+    }
+    if (!toDate_(row[indexes.start])) {
+      reasons.push('missing/invalid start date');
+    }
+    var transferType = normalizeTransferType_(row[indexes.type], amount);
+    var validType =
+      transferType === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT ||
+      transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL ||
+      transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
+      transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT;
+    if (!validType) {
+      reasons.push('invalid transfer type');
+    }
+    var fromAccount = row[indexes.from] ? String(row[indexes.from]).trim() : '';
+    var toAccount = row[indexes.to] ? String(row[indexes.to]).trim() : '';
+    if (!fromAccount) {
+      reasons.push('missing from account');
+    } else if (!validAccounts[fromAccount]) {
+      reasons.push('unknown from account');
+    }
+    if (!toAccount) {
+      reasons.push('missing to account');
+    } else if (!validAccounts[toAccount]) {
+      reasons.push('unknown to account');
+    }
+    if (fromAccount && toAccount && fromAccount === toAccount) {
+      reasons.push('from and to account cannot match');
+    }
+    return reasons;
+  });
+}
+
+function validateExpenseSheet_(validAccounts) {
+  validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
+    var reasons = [];
+    if (!row[indexes.name]) {
+      reasons.push('missing name');
+    }
+    var amount = toNumber_(row[indexes.amount]);
+    if (amount === null || amount < 0) {
+      reasons.push('amount must be >= 0');
+    }
+    if (!row[indexes.frequency]) {
+      reasons.push('missing frequency');
+    }
+    if (!toDate_(row[indexes.start])) {
+      reasons.push('missing/invalid start date');
+    }
+    var fromAccount = row[indexes.from] ? String(row[indexes.from]).trim() : '';
+    if (!fromAccount) {
+      reasons.push('missing from account');
+    } else if (!validAccounts[fromAccount]) {
+      reasons.push('unknown from account');
+    }
+    return reasons;
+  });
+}
+
+function validateAndDeactivateRows_(sheetName, label, validator) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var indexes = {
+    include: headers.indexOf('Include'),
+    type: headers.indexOf('Transfer Type'),
+    name: headers.indexOf('Name'),
+    amount: headers.indexOf('Amount'),
+    frequency: headers.indexOf('Frequency'),
+    start: headers.indexOf('Start Date'),
+    account: headers.indexOf('To Account'),
+    from: headers.indexOf('From Account'),
+    to: headers.indexOf('To Account'),
+  };
+
+  if (
+    indexes.include === -1 ||
+    indexes.name === -1 ||
+    indexes.amount === -1 ||
+    indexes.frequency === -1 ||
+    indexes.start === -1
+  ) {
+    Logger.warn(label + ' validation skipped: missing required headers.');
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = 0;
+  values.forEach(function (row, idx) {
+    if (!toBoolean_(row[indexes.include])) {
+      return;
+    }
+    var reasons = validator(row, indexes) || [];
+    if (!reasons.length) {
+      return;
+    }
+    row[indexes.include] = false;
+    updated += 1;
+    Logger.warn(label + ' deactivated (invalid): row ' + (idx + 2) + ' [' + reasons.join(', ') + ']');
+  });
+
+  if (updated > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+    Logger.info(label + 's deactivated for validation issues: ' + updated);
+  }
 }
 
 function refreshAccountSummaries_(incomeRules) {
@@ -115,6 +369,10 @@ function deactivateExpiredExpenses_() {
   deactivateExpiredRows_(Config.SHEETS.EXPENSE, 'Expense');
 }
 
+function deactivateExpiredIncome_() {
+  deactivateExpiredRows_(Config.SHEETS.INCOME, 'Income');
+}
+
 function deactivateExpiredTransfers_() {
   deactivateExpiredRows_(Config.SHEETS.TRANSFERS, 'Transfer');
 }
@@ -149,7 +407,7 @@ function deactivateExpiredRows_(sheetName, label) {
   var updated = 0;
 
   values.forEach(function (row, idx) {
-    var include = row[includeIndex] === true;
+    var include = toBoolean_(row[includeIndex]);
     if (!include) {
       return;
     }
@@ -193,6 +451,10 @@ function styleExpenseRows_() {
   styleInactiveRows_(Config.SHEETS.EXPENSE, 'Expense');
 }
 
+function styleIncomeRows_() {
+  styleInactiveRows_(Config.SHEETS.INCOME, 'Income');
+}
+
 function styleTransferRows_() {
   styleInactiveRows_(Config.SHEETS.TRANSFERS, 'Transfer');
 }
@@ -217,7 +479,7 @@ function styleInactiveRows_(sheetName, label) {
   var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
   var values = dataRange.getValues();
   var backgrounds = values.map(function (row) {
-    var active = row[includeIndex] === true;
+    var active = toBoolean_(row[includeIndex]);
     var color = active ? '#ffffff' : '#f2f2f2';
     return row.map(function () {
       return color;
@@ -692,8 +954,6 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
   if (netFlowIdx !== -1) {
     accountsSheet.getRange(2, netFlowIdx + 1, netFlowValues.length, 1).setValues(netFlowValues);
   }
-  applySchemaFormatsForSheet_(Config.SHEETS.ACCOUNTS);
-  applyAccountsFormatting_(SpreadsheetApp.getActive());
 }
 
 function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {

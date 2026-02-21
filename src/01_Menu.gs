@@ -94,8 +94,8 @@ function runSetupActions(actions) {
         break;
       case 'defaults':
         ss.toast('Loading default data...', 'Setup');
-        loadDefaultData();
-        messages.push('Default data loaded');
+        var result = loadDefaultData();
+        messages.push(result && result.message ? result.message : 'Default data loaded.');
         break;
       default:
         messages.push('Unknown action: ' + action);

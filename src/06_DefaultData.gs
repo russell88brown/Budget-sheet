@@ -1,5 +1,8 @@
 // Loads a reasonable default dataset for first-time setup.
 function loadDefaultData() {
+  setupStageStructure_();
+  setupStageValidationAndSettings_();
+
   var ss = SpreadsheetApp.getActive();
 
   var accountsSheet = ss.getSheetByName(Config.SHEETS.ACCOUNTS);
@@ -8,8 +11,9 @@ function loadDefaultData() {
   var expenseSheet = ss.getSheetByName(Config.SHEETS.EXPENSE);
 
   if (!accountsSheet || !incomeSheet || !expenseSheet || !transfersSheet) {
-    Logger.warn('Default data not loaded: required sheets missing.');
-    return;
+    var missingMsg = 'Default data not loaded: required sheets missing.';
+    Logger.warn(missingMsg);
+    return { ok: false, message: missingMsg };
   }
 
   if (
@@ -18,8 +22,9 @@ function loadDefaultData() {
     !isSheetEmpty_(expenseSheet) ||
     !isSheetEmpty_(transfersSheet)
   ) {
-    Logger.warn('Default data not loaded: existing data detected.');
-    return;
+    var existingMsg = 'Default data not loaded: existing data detected.';
+    Logger.warn(existingMsg);
+    return { ok: false, message: existingMsg };
   }
 
   clearInputSheet_(accountsSheet);
@@ -31,42 +36,212 @@ function loadDefaultData() {
   var startDate = normalizeDate_(today);
 
   var accounts = [
-    ['Savings', 5000, Config.ACCOUNT_TYPES.CASH, true, '', '', '', '', '', '', '', '', '', ''],
-    ['Everyday', 1500, Config.ACCOUNT_TYPES.CASH, true, '', '', '', '', '', '', '', '', '', ''],
-    ['Credit Card', -1200, Config.ACCOUNT_TYPES.CREDIT, true, '', '', '', '', '', '', '', '', '', ''],
-    ['Car Loan', -15000, Config.ACCOUNT_TYPES.CREDIT, true, '', '', '', '', '', '', '', '', '', ''],
+    {
+      'Account Name': 'Savings',
+      Balance: 5000,
+      Type: Config.ACCOUNT_TYPES.CASH,
+      Include: true,
+    },
+    {
+      'Account Name': 'Everyday',
+      Balance: 1500,
+      Type: Config.ACCOUNT_TYPES.CASH,
+      Include: true,
+    },
+    {
+      'Account Name': 'Credit Card',
+      Balance: -1200,
+      Type: Config.ACCOUNT_TYPES.CREDIT,
+      Include: true,
+    },
+    {
+      'Account Name': 'Car Loan',
+      Balance: -15000,
+      Type: Config.ACCOUNT_TYPES.CREDIT,
+      Include: true,
+    },
   ];
 
   var income = [
-    [true, 'Salary', 3500, Config.FREQUENCIES.DAILY, 14, startDate, '', 'Savings', ''],
+    {
+      Include: true,
+      Name: 'Salary',
+      Amount: 3500,
+      Frequency: Config.FREQUENCIES.DAILY,
+      'Repeat Every': 14,
+      'Start Date': startDate,
+      'To Account': 'Savings',
+    },
   ];
 
   var expenses = [
-    [true, '01. Utilities', 'Rent', 1800, Config.FREQUENCIES.MONTHLY, 1, startDate, '', 'Savings', '', ''],
-    [true, '01. Utilities', 'Electricity', 120, Config.FREQUENCIES.MONTHLY, 1, startDate, '', 'Credit Card', '', ''],
-    [true, '01. Utilities', 'Internet', 75, Config.FREQUENCIES.MONTHLY, 1, startDate, '', 'Credit Card', '', ''],
-    [true, '02. Living', 'Groceries', 180, Config.FREQUENCIES.DAILY, 7, startDate, '', 'Credit Card', '', ''],
-    [true, '02. Living', 'Fuel', 120, Config.FREQUENCIES.DAILY, 14, startDate, '', 'Credit Card', '', ''],
-    [true, '05. Luxury', 'Streaming', 25, Config.FREQUENCIES.MONTHLY, 1, startDate, '', 'Credit Card', '', ''],
-    [true, '04. Car Expense', 'Car Registration', 900, Config.FREQUENCIES.MONTHLY, 6, startDate, '', 'Savings', '', ''],
-    [true, '04. Car Expense', 'Car Insurance', 1500, Config.FREQUENCIES.YEARLY, 1, startDate, '', 'Savings', '', ''],
-    [true, '04. Car Expense', 'Car Maintenance', 500, Config.FREQUENCIES.YEARLY, 1, startDate, '', 'Savings', '', ''],
-    [true, '05. Luxury', 'Holiday', 2000, Config.FREQUENCIES.YEARLY, 1, startDate, '', 'Savings', '', ''],
+    {
+      Include: true,
+      Category: '01. Utilities',
+      Name: 'Rent',
+      Amount: 1800,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+    },
+    {
+      Include: true,
+      Category: '01. Utilities',
+      Name: 'Electricity',
+      Amount: 120,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Credit Card',
+    },
+    {
+      Include: true,
+      Category: '01. Utilities',
+      Name: 'Internet',
+      Amount: 75,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Credit Card',
+    },
+    {
+      Include: true,
+      Category: '02. Living',
+      Name: 'Groceries',
+      Amount: 180,
+      Frequency: Config.FREQUENCIES.DAILY,
+      'Repeat Every': 7,
+      'Start Date': startDate,
+      'From Account': 'Credit Card',
+    },
+    {
+      Include: true,
+      Category: '02. Living',
+      Name: 'Fuel',
+      Amount: 120,
+      Frequency: Config.FREQUENCIES.DAILY,
+      'Repeat Every': 14,
+      'Start Date': startDate,
+      'From Account': 'Credit Card',
+    },
+    {
+      Include: true,
+      Category: '05. Luxury',
+      Name: 'Streaming',
+      Amount: 25,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Credit Card',
+    },
+    {
+      Include: true,
+      Category: '04. Car Expense',
+      Name: 'Car Registration',
+      Amount: 900,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 6,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+    },
+    {
+      Include: true,
+      Category: '04. Car Expense',
+      Name: 'Car Insurance',
+      Amount: 1500,
+      Frequency: Config.FREQUENCIES.YEARLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+    },
+    {
+      Include: true,
+      Category: '04. Car Expense',
+      Name: 'Car Maintenance',
+      Amount: 500,
+      Frequency: Config.FREQUENCIES.YEARLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+    },
+    {
+      Include: true,
+      Category: '05. Luxury',
+      Name: 'Holiday',
+      Amount: 2000,
+      Frequency: Config.FREQUENCIES.YEARLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+    },
   ];
 
   var transfers = [
-    [true, Config.TRANSFER_TYPES.REPAYMENT_ALL, 'Credit Card Repayment', 0, Config.FREQUENCIES.MONTHLY, 1, startDate, '', 'Savings', 'Credit Card', 'Auto-clear'],
-    [true, Config.TRANSFER_TYPES.REPAYMENT_AMOUNT, 'Car Loan Repayment', 420, Config.FREQUENCIES.MONTHLY, 1, startDate, '', 'Savings', 'Car Loan', ''],
-    [true, Config.TRANSFER_TYPES.TRANSFER_AMOUNT, 'Weekly Buffer Transfer', 150, Config.FREQUENCIES.DAILY, 7, startDate, '', 'Everyday', 'Savings', ''],
+    {
+      Include: true,
+      'Transfer Type': Config.TRANSFER_TYPES.REPAYMENT_ALL,
+      Name: 'Credit Card Repayment',
+      Amount: 0,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+      'To Account': 'Credit Card',
+      Notes: 'Auto-clear',
+    },
+    {
+      Include: true,
+      'Transfer Type': Config.TRANSFER_TYPES.REPAYMENT_AMOUNT,
+      Name: 'Car Loan Repayment',
+      Amount: 420,
+      Frequency: Config.FREQUENCIES.MONTHLY,
+      'Repeat Every': 1,
+      'Start Date': startDate,
+      'From Account': 'Savings',
+      'To Account': 'Car Loan',
+    },
+    {
+      Include: true,
+      'Transfer Type': Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+      Name: 'Weekly Buffer Transfer',
+      Amount: 150,
+      Frequency: Config.FREQUENCIES.DAILY,
+      'Repeat Every': 7,
+      'Start Date': startDate,
+      'From Account': 'Everyday',
+      'To Account': 'Savings',
+    },
   ];
 
-  accountsSheet.getRange(2, 1, accounts.length, accounts[0].length).setValues(accounts);
-  incomeSheet.getRange(2, 1, income.length, income[0].length).setValues(income);
-  expenseSheet.getRange(2, 1, expenses.length, expenses[0].length).setValues(expenses);
-  transfersSheet.getRange(2, 1, transfers.length, transfers[0].length).setValues(transfers);
+  writeRowsByHeader_(accountsSheet, accounts);
+  writeRowsByHeader_(incomeSheet, income);
+  writeRowsByHeader_(expenseSheet, expenses);
+  writeRowsByHeader_(transfersSheet, transfers);
   ensureInputSheetFormatting_();
 
   Logger.info('Default data loaded.');
+  return { ok: true, message: 'Default data loaded.' };
+}
+
+function writeRowsByHeader_(sheet, records) {
+  if (!sheet || !records || !records.length) {
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var rows = records.map(function (record) {
+    return headers.map(function (header) {
+      if (record[header] === undefined || record[header] === null) {
+        return '';
+      }
+      return record[header];
+    });
+  });
+  sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
 }
 
 function clearInputSheet_(sheet) {
