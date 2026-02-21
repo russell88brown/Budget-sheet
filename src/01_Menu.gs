@@ -29,27 +29,15 @@ function runJournal() {
 }
 
 function runJournalForScenarioPrompt() {
-  var scenarioId = promptScenarioId_('Run journal for scenario');
-  if (!scenarioId) {
-    return;
-  }
-  if (Engine && Engine.runJournalForScenario) {
-    Engine.runJournalForScenario(scenarioId);
-    return;
-  }
-  runJournal();
+  showScenarioRunDialog_('journal');
 }
 
 function runSummaryForScenarioPrompt() {
-  var scenarioId = promptScenarioId_('Run summaries for scenario');
-  if (!scenarioId) {
-    return;
-  }
-  runSummaryForScenario(scenarioId);
+  showScenarioRunDialog_('summary');
 }
 
-function promptScenarioId_(title) {
-  var ui = SpreadsheetApp.getUi();
+function showScenarioRunDialog_(action) {
+  var template = HtmlService.createTemplateFromFile('ScenarioRunDialog');
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
       return normalizeScenario_(value);
@@ -60,21 +48,36 @@ function promptScenarioId_(title) {
   if (!available.length) {
     available = [Config.SCENARIOS.DEFAULT];
   }
+  template.scenarios = available;
+  template.action = action || 'journal';
+  template.title = template.action === 'summary' ? 'Run summaries for scenario' : 'Run journal for scenario';
+  var html = template.evaluate().setWidth(360).setHeight(240);
+  SpreadsheetApp.getUi().showModalDialog(html, template.title);
+}
 
-  var response = ui.prompt(
-    title || 'Scenario',
-    'Enter scenario id.\nAvailable: ' + available.join(', '),
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (response.getSelectedButton() !== ui.Button.OK) {
-    return null;
+function runScenarioAction(action, scenarioId) {
+  var activeScenario = normalizeScenario_(scenarioId);
+  var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
+    .map(function (value) {
+      return normalizeScenario_(value);
+    })
+    .filter(function (value, idx, arr) {
+      return value && arr.indexOf(value) === idx;
+    });
+  if (available.indexOf(activeScenario) === -1) {
+    throw new Error('Unknown scenario "' + activeScenario + '".');
   }
-  var scenarioId = normalizeScenario_(response.getResponseText());
-  if (available.indexOf(scenarioId) === -1) {
-    ui.alert('Unknown scenario "' + scenarioId + '". Available: ' + available.join(', '));
-    return null;
+
+  if (action === 'summary') {
+    runSummaryForScenario(activeScenario);
+    return 'Summaries complete for ' + activeScenario + '.';
   }
-  return scenarioId;
+  if (Engine && Engine.runJournalForScenario) {
+    Engine.runJournalForScenario(activeScenario);
+    return 'Journal complete for ' + activeScenario + '.';
+  }
+  runJournal();
+  return 'Journal complete.';
 }
 
 function summariseAccounts() {

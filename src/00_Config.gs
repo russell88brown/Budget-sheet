@@ -42,6 +42,7 @@ const Config = {
   },
   SCENARIOS: {
     DEFAULT: 'Base',
+    STRESS: 'Stress',
   },
   ACCOUNT_TYPES: {
     CASH: 'Cash',

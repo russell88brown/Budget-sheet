@@ -1,3 +1,5 @@
+Subject: Apps Script Sync Setup (Manual Copy or clasp)
+
 # Clasp Setup (Push/Pull Apps Script)
 
 This project keeps Apps Script code in `src/` and syncs to Google Apps Script using `clasp`.
@@ -14,7 +16,17 @@ This project keeps Apps Script code in `src/` and syncs to Google Apps Script us
 - npm (bundled with Node.js)
 - Google account access to the target Apps Script project
 
-## One-time setup
+## Option A: Manual copy into Apps Script editor
+
+1. Open the target Google Sheet.
+2. Open **Extensions -> Apps Script**.
+3. Copy all `.gs` and `.html` files from `src/` into the editor project.
+4. Replace/update project manifest using `src/appsscript.json`.
+5. Save and reload the Google Sheet.
+
+Use this option for one-off setup or quick validation.
+
+## Option B: clasp workflow (recommended)
 
 1. Install clasp:
    ```powershell

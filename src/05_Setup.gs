@@ -434,7 +434,10 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
     return row[0] !== '' && row[0] !== null;
   });
   if (!hasAnyScenario) {
-    sheet.getRange(2, 8).setValue(Config.SCENARIOS.DEFAULT);
+    sheet.getRange(2, 8, 2, 1).setValues([
+      [Config.SCENARIOS.DEFAULT],
+      [Config.SCENARIOS.STRESS],
+    ]);
   }
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.SCENARIOS, sheet.getRange('H2:H'));
 }

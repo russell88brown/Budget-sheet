@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        margin: 16px;
+        color: #1f1f1f;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+      }
+      select {
+        width: 100%;
+        padding: 6px;
+        box-sizing: border-box;
+      }
+      .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      button {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #1a73e8;
+        background: #1a73e8;
+        color: #ffffff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #ffffff;
+        color: #1a73e8;
+      }
+      #status {
+        margin-top: 10px;
+        color: #5f6368;
+        min-height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="scenario-form">
+      <label for="scenario">Scenario</label>
+      <select id="scenario" required>
+        <? for (var i = 0; i < scenarios.length; i++) { var item = scenarios[i]; ?>
+          <option value="<?= item ?>"><?= item ?></option>
+        <? } ?>
+      </select>
+      <div class="actions">
+        <button type="submit">Run</button>
+        <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
+      </div>
+      <div id="status"></div>
+    </form>
+    <script>
+      (function () {
+        var form = document.getElementById('scenario-form');
+        var statusEl = document.getElementById('status');
+        var action = '<?= action ?>';
+
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var scenario = document.getElementById('scenario').value;
+          if (!scenario) {
+            statusEl.textContent = 'Select a scenario.';
+            return;
+          }
+          statusEl.textContent = 'Running...';
+          google.script.run
+            .withSuccessHandler(function (msg) {
+              statusEl.textContent = msg || 'Done.';
+              setTimeout(function () {
+                google.script.host.close();
+              }, 900);
+            })
+            .withFailureHandler(function (err) {
+              statusEl.textContent = err && err.message ? err.message : 'Run failed.';
+            })
+            .runScenarioAction(action, scenario);
+        });
+      })();
+    </script>
+  </body>
+</html>

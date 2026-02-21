@@ -2,6 +2,7 @@
 function loadDefaultData() {
   setupStageStructure_();
   setupStageValidationAndSettings_();
+  ensureDefaultScenarioCatalog_();
 
   var ss = SpreadsheetApp.getActive();
 
@@ -422,6 +423,53 @@ function writeRowsByHeader_(sheet, records) {
     });
   });
   sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+}
+
+function ensureDefaultScenarioCatalog_() {
+  var ss = SpreadsheetApp.getActive();
+  var settingsSheet = ss.getSheetByName(Config.LISTS_SHEET);
+  if (!settingsSheet) {
+    return;
+  }
+  setupReferenceLayout_(ss, settingsSheet);
+  var scenarioColumn = settingsSheet.getRange('H2:H').getValues();
+  var existing = scenarioColumn
+    .map(function (row) {
+      return row[0];
+    })
+    .filter(function (value) {
+      return value !== '' && value !== null;
+    })
+    .map(function (value) {
+      return String(value).trim().toLowerCase();
+    });
+  var hasBase = existing.indexOf(String(Config.SCENARIOS.DEFAULT).toLowerCase()) !== -1;
+  var hasStress = existing.indexOf(String(Config.SCENARIOS.STRESS).toLowerCase()) !== -1;
+  if (hasBase && hasStress) {
+    return;
+  }
+
+  var writes = [];
+  if (!hasBase) {
+    writes.push(Config.SCENARIOS.DEFAULT);
+  }
+  if (!hasStress) {
+    writes.push(Config.SCENARIOS.STRESS);
+  }
+  if (!writes.length) {
+    return;
+  }
+
+  var startRow = 2;
+  while (settingsSheet.getRange(startRow, 8).getValue() !== '') {
+    startRow += 1;
+  }
+  settingsSheet.getRange(startRow, 8, writes.length, 1).setValues(
+    writes.map(function (value) {
+      return [value];
+    })
+  );
+  bindNamedRange_(ss, Config.NAMED_RANGES.SCENARIOS, settingsSheet.getRange('H2:H'));
 }
 
 function clearInputSheet_(sheet) {

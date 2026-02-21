@@ -1,148 +1,43 @@
-﻿# Budget Forecast Engine
+# Budget Forecast Engine
 
-✨ Welcome! This is a fun, forward-looking budget planner that runs **inside Google Sheets**. You define your rules today, and it projects where your balances are heading tomorrow.
+Budget Forecast Engine is a **Google Apps Script application for Google Sheets** that projects future balances from your budgeting rules.
 
-## ✅ What this is
-- A **forecast** of future balances (cash + debt)
-- A **planner** you can rerun anytime as life changes
+You define accounts, income, expenses, transfers, and optional policies, then run the menu actions to regenerate forecast outputs (`Journal`, `Daily`, `Monthly`, `Dashboard`) from scratch.
 
-## ❌ What this is not
-- Not a full accounting system
-- Not a transaction tracker for the past
+## What It Does
 
----
+- Runs inside a Google Sheet via the **Budget Forecast** custom menu.
+- Forecasts cash/debt movement forward in time using recurrence rules.
+- Rebuilds outputs deterministically from sheet inputs.
+- Supports export output for external sharing/processing.
 
-## 🚀 Quick Start (3 minutes)
+## Documentation Index
 
-### 1) Run Setup
-Use **Budget Forecast → Setup actions...** to create or refresh all sheets.
+### Setup
 
-Setup will:
-- 🧱 Rebuild **header rows**
-- ✅ Restore **dropdowns + checkboxes**
-- 🧭 Recreate **Settings** ranges
+- `docs/CLASP.md`: Apps Script project setup, including:
+  - Manual copy into the Apps Script editor
+  - `clasp` push/pull workflow for synced development
 
-### 2) Fill in your inputs
-- **Accounts**: current balances
-- **Income**: money coming in
-- **Expense**: money going out to external payees
-- **Transfers**: money moved between accounts (including repayments)
+### Development
 
-### 3) Run the forecast
-Use **Budget Forecast → Run journal** to build the **Journal**.
+- `docs/TECHNICAL.md`: full technical reference (all implemented functionality and behavior).
+- `docs/CODEX.md`: local Codex development environment and repo hygiene notes.
+- `docs/TEST_CASES.md`: manual regression tests, including scenario and setup-data validation.
+- `docs/SCENARIOS.md`: how scenario support is integrated into setup/default data and runtime.
 
-### 4) Generate summaries
-Use **Budget Forecast → Run summaries** to create:
-- **Daily** (day-by-day balances)
-- **Monthly** (monthly stats)
-- **Dashboard** (visual overview)
+## Tech Stack
 
-### 5) Export
-Use **Budget Forecast → Export** to export selected sheets into **Export**.
+Mandatory to run:
+- Google Sheets
+- Google Apps Script (V8)
+- Source files from `src/` (including `src/appsscript.json`)
 
----
-
-## 🧰 Menu Actions (Functions You Can Run)
-
-### ✅ Budget Forecast → Run journal
-Builds the **Journal** by applying all income + expense + transfer rules in order.
-
-### 📊 Budget Forecast → Run summaries
-Creates:
-- **Daily** (cash, debt, net position, account snapshots)
-- **Monthly** (min/max/change/ending per account)
-- **Dashboard** (charts + healthcheck + account blocks)
-
-### 📦 Budget Forecast → Export
-Creates a compact export in the **Export** sheet. Data is stored as lightweight TSV per row (easy to copy or parse).
-
-### 🧮 Budget Forecast → Summarise Accounts
-Refreshes account-level monthly summaries used by the engine.
-
-### 🧩 Budget Forecast → Setup actions...
-Opens a setup dialog with these actions:
-- **Structure** (sheets + headers)
-- **Validation + settings** (ranges + categories)
-- **Theme** (color + bold formatting)
-- **Load default data** (if inputs are empty)
-
----
-
-## 📄 Sheet Overview
-
-### Inputs (you edit these)
-- **Accounts**
-- **Income**
-- **Expense**
-- **Transfers**
-- **Policies** (optional auto-deficit cover rules)
-- **Goals** (optional savings targets)
-- **Risk** (optional scenario buffers)
-
-### Outputs (auto-generated)
-- **Journal** (every forecasted event + running balances)
-- **Daily** (daily totals + account balances)
-- **Monthly** (monthly stats per account)
-- **Dashboard** (charts + insights)
-
-### Other
-- **Settings** (helper lists + settings)
-- **Export** (compact export output)
-
----
-
-## 🧪 Settings Sheet (what it does)
-The **Settings** sheet contains shared values used by the model:
-
-- **Forecast Start / End** (summary window)
-- **Expense Categories** (dropdowns in Expense)
-
-You usually don’t need to edit this manually — **Setup** will recreate it if needed.
-
----
-
-## 🔁 Keeping it accurate
-Whenever real life changes:
-1. Update **Accounts** balances
-2. Run **Run journal** again
-3. (Optional) Run **Run summaries**
-
-That’s it. The model is forward-only and always rebuilds outputs from scratch.
-
----
-
-## 💡 Tips
-- Use **Include** checkboxes to control what gets forecasted.
-- Use **Frequency + Repeat Every + Start Date** to schedule recurring items.
-- Use **Transfer Type** on `Transfers` to choose repayment/transfer behavior explicitly (`Repayment - Amount`, `Repayment - All`, `Transfer - Amount`, `Transfer - Everything Except`).
-- If headers or dropdowns look wrong, just run **Setup** again.
-
----
-
-## 🧑‍💻 Development (clasp sync)
-
-Prerequisites:
+For development and changes:
 - Node.js LTS + npm
-- Access to the target Apps Script project
+- `@google/clasp` (optional, for sync workflow)
+- Local `.clasp.json` (from `.clasp.example.json`)
+- Optional local Codex config in `codex/config.toml`
 
-Setup:
-1. Install clasp: `npm install -g @google/clasp`
-2. Login: `clasp login`
-3. Create local config: `Copy-Item .clasp.example.json .clasp.json`
-4. Edit `.clasp.json` and set your `scriptId`
-
-Common commands:
-- `clasp pull`
-- `clasp push`
-- `clasp open`
-
-Detailed setup guide: `docs/CLASP.md`
-Codex setup guide: `docs/CODEX.md`
-
-Windows note:
-- For the most reliable Codex command approval/auto-approval behavior, prefer running in WSL2 (Ubuntu) instead of native PowerShell.
-
----
-
-## 🛠 Technical details
-See: `docs/TECHNICAL.md`
+Note:
+- `clasp` is not required to run the app. You can manually copy/upload files from `src/` into the Google Apps Script editor attached to your Google Sheet.

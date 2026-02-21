@@ -1,6 +1,8 @@
-﻿# Technical Reference
+Subject: Budget Forecast Engine Full Technical Reference
 
-This document describes the internal implementation and data model for the Budget Forecast Engine (Google Apps Script).
+# Technical Reference
+
+This document is the implementation reference for the Budget Forecast Engine (Google Apps Script), covering functionality, behavior, and current use cases.
 
 ---
 
@@ -73,7 +75,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 
 #### Dashboard
 - Charts built from the Daily sheet (Cash vs Net, Debt).
-- “Financial Healthcheck” table with key stats.
+- �Financial Healthcheck� table with key stats.
 - Horizontal account blocks: Ending, Min, Max, Net Change.
 
 ---
@@ -98,10 +100,10 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `refreshAccountSummaries_()` ([src/40_Engine.gs](../src/40_Engine.gs)) updates monthly averages on the Accounts sheet.
 
 ### d) Generate events
-- Income rules → income events
-- Expense rules → expense events
-- Transfer rules → transfer events
-- Interest rules → interest events
+- Income rules -> income events
+- Expense rules -> expense events
+- Transfer rules -> transfer events
+- Interest rules -> interest events
   (Implementation: [src/20_Events.gs](../src/20_Events.gs))
 
 ### e) Build journal
@@ -161,7 +163,7 @@ Supported frequencies:
 ### Sheet ordering
 All major flows call a single ordering routine to ensure consistent tab order:
 
-Accounts → Income → Transfers → Expense → Journal → Daily → Monthly → Dashboard → Export → Settings
+Accounts -> Income -> Transfers -> Expense -> Journal -> Daily -> Monthly -> Dashboard -> Export -> Settings
 
 ### Daily formatting
 - Date column formatted as `yyyy-mm-dd`
@@ -186,7 +188,36 @@ Accounts → Income → Transfers → Expense → Journal → Daily → Monthly 
 
 ---
 
-## 8) Source Map
+## 8) Menu-Level Functionality
+
+Available user actions from **Budget Forecast** menu:
+- Run journal
+- Run summaries
+- Export
+- Summarise Accounts
+- Setup actions
+
+Setup actions include:
+- Structure
+- Validation + settings
+- Theme
+- Load default data
+
+---
+
+## 9) Use Cases Covered
+
+- Build an initial forecast from current balances and recurring rules.
+- Re-run forecast after changing accounts, income, expenses, or transfers.
+- Model debt repayment with capped or pay-all behavior.
+- Model cash movement with standard transfers or "everything except" transfers.
+- Apply automatic deficit cover policies to protect minimum cash thresholds.
+- Generate daily/monthly summaries and dashboard snapshots for planning.
+- Export output datasets for sharing or downstream processing.
+
+---
+
+## 10) Source Map
 
 Main modules:
 - [`00_Config.gs`](../src/00_Config.gs) (constants + names)
@@ -204,7 +235,7 @@ Main modules:
 
 ---
 
-## 9) Determinism + State
+## 11) Determinism + State
 
 - Outputs are fully reproducible.
 - Inputs are the only state.
