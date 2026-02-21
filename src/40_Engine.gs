@@ -655,6 +655,8 @@ function updateAccountMonthlyFlowAverages_(incomeRules, expenseTotalsByAccount) 
   if (netFlowIdx !== -1) {
     accountsSheet.getRange(2, netFlowIdx + 1, netFlowValues.length, 1).setValues(netFlowValues);
   }
+  applySchemaFormatsForSheet_(Config.SHEETS.ACCOUNTS);
+  applyAccountsFormatting_(SpreadsheetApp.getActive());
 }
 
 function computeIncomeMonthlyTotals_(incomeRules) {

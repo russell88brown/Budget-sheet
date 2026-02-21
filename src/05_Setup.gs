@@ -35,6 +35,40 @@ function setupStageValidationAndSettings_() {
   formatReferenceSheet_(ss);
 }
 
+function applySchemaFormatsForSheet_(sheetName) {
+  var ss = SpreadsheetApp.getActive();
+  var spec = Schema.inputs.concat(Schema.outputs).find(function (item) {
+    return item.name === sheetName;
+  });
+  if (!spec) {
+    return;
+  }
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    return;
+  }
+  spec.columns.forEach(function (column, index) {
+    if (!column.format) {
+      return;
+    }
+    var colIndex = index + 1;
+    var range = sheet.getRange(2, colIndex, Math.max(1, sheet.getMaxRows() - 1), 1);
+    range.setNumberFormat(column.format);
+  });
+}
+
+function ensureInputSheetFormatting_() {
+  var ss = SpreadsheetApp.getActive();
+  Schema.inputs.forEach(function (spec) {
+    var headers = spec.columns.map(function (column) {
+      return column.name;
+    });
+    var sheet = ensureSheetWithHeaders_(ss, spec.name, headers);
+    applyColumnRules_(ss, sheet, spec.columns);
+  });
+  applyAccountsFormatting_(ss);
+}
+
 function setupStageSeedCategories_() {
   var ss = SpreadsheetApp.getActive();
   var sheet = ss.getSheetByName(Config.LISTS_SHEET);
