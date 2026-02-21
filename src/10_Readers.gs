@@ -13,11 +13,13 @@ const Readers = {
           row['Interest Start Date'],
           null
         );
+        var scenarioId = normalizeScenario_(row['Scenario']);
         return {
           name: row['Account Name'],
           balance: toNumber_(row['Balance']),
           type: row['Type'],
           forecast: toBoolean_(row['Include']),
+          scenarioId: scenarioId,
           interestRate: toNumber_(row['Interest Rate (APR %)']),
           interestMonthlyFee: toNumber_(row['Interest Fee / Month']),
           interestMethod: row['Interest Method'],
@@ -35,9 +37,11 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
+        var scenarioId = normalizeScenario_(row['Scenario']);
         return {
           type: normalizePolicyType_(row['Policy Type']),
           name: row['Name'],
+          scenarioId: scenarioId,
           priority: toPositiveInt_(row['Priority']) || 100,
           startDate: toDate_(row['Start Date']),
           endDate: toDate_(row['End Date']),
@@ -57,8 +61,10 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
+        var scenarioId = normalizeScenario_(row['Scenario']);
         return {
           name: row['Goal Name'],
+          scenarioId: scenarioId,
           targetAmount: toNumber_(row['Target Amount']),
           targetDate: toDate_(row['Target Date']),
           priority: toPositiveInt_(row['Priority']) || 100,
@@ -78,7 +84,9 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
+        var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          scenarioId: scenarioId,
           scenarioName: row['Scenario Name'],
           emergencyBufferAccount: row['Emergency Buffer Account'],
           emergencyBufferMinimum: toNumber_(row['Emergency Buffer Minimum']) || 0,
@@ -102,7 +110,9 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
+        var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          scenarioId: scenarioId,
           type: row['Type'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
@@ -130,7 +140,9 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
+        var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          scenarioId: scenarioId,
           type: row['Type'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
@@ -160,9 +172,11 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
+        var scenarioId = normalizeScenario_(row['Scenario']);
         var amount = toNumber_(row['Amount']);
         var transferType = normalizeTransferType_(row['Type'], amount);
         return {
+          scenarioId: scenarioId,
           type: transferType,
           behavior: transferType,
           name: row['Name'],
@@ -177,6 +191,24 @@ const Readers = {
           notes: row['Notes'],
         };
       });
+  },
+
+  readScenarios: function () {
+    var ss = SpreadsheetApp.getActive();
+    var range = ss.getRangeByName(Config.NAMED_RANGES.SCENARIOS);
+    if (!range) {
+      return [Config.SCENARIOS.DEFAULT];
+    }
+    var values = range.getValues();
+    var unique = {};
+    values.forEach(function (row) {
+      var scenarioId = normalizeScenario_(row[0]);
+      if (scenarioId) {
+        unique[scenarioId] = true;
+      }
+    });
+    unique[Config.SCENARIOS.DEFAULT] = true;
+    return Object.keys(unique);
   },
 };
 
@@ -326,6 +358,22 @@ function normalizeTransferType_(value, amountValue) {
     return Config.TRANSFER_TYPES.TRANSFER_AMOUNT;
   }
 
+  return cleaned;
+}
+
+function normalizeScenario_(value) {
+  var fallback = Config.SCENARIOS.DEFAULT;
+  if (value === '' || value === null || value === undefined) {
+    return fallback;
+  }
+  var cleaned = String(value).trim();
+  if (!cleaned) {
+    return fallback;
+  }
+  var normalized = cleaned.toLowerCase();
+  if (normalized === String(fallback).toLowerCase()) {
+    return fallback;
+  }
   return cleaned;
 }
 

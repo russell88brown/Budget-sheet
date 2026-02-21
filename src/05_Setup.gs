@@ -24,6 +24,7 @@ function setupStageValidationAndSettings_() {
   ensureAccountNameRanges_(ss);
   ensureCategoryRange_(ss);
   ensureIncomeTypeRange_(ss);
+  ensureScenarioRange_(ss);
   setupStageSeedCategories_();
 
   Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
@@ -233,6 +234,16 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
         incomeTypesBuilder.setAllowInvalid(!column.required);
         range.setDataValidation(incomeTypesBuilder.build());
       }
+    } else if (column.type === 'scenario') {
+      var scenariosRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.SCENARIOS);
+      if (scenariosRange) {
+        var scenariosBuilder = SpreadsheetApp.newDataValidation().requireValueInRange(
+          scenariosRange,
+          true
+        );
+        scenariosBuilder.setAllowInvalid(!column.required);
+        range.setDataValidation(scenariosBuilder.build());
+      }
     }
 
     if (column.format) {
@@ -275,6 +286,14 @@ function ensureIncomeTypeRange_(spreadsheet) {
   setupReferenceLayout_(spreadsheet, listsSheet);
 }
 
+function ensureScenarioRange_(spreadsheet) {
+  var listsSheet = spreadsheet.getSheetByName(Config.LISTS_SHEET);
+  if (!listsSheet) {
+    listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
+  }
+  setupReferenceLayout_(spreadsheet, listsSheet);
+}
+
 function formatReferenceSheet_(spreadsheet) {
   var sheet = spreadsheet.getSheetByName(Config.LISTS_SHEET);
   if (!sheet) {
@@ -283,10 +302,11 @@ function formatReferenceSheet_(spreadsheet) {
 
   setupReferenceLayout_(spreadsheet, sheet);
 
-  var lastCol = Math.max(6, sheet.getLastColumn());
+  var lastCol = Math.max(8, sheet.getLastColumn());
   sheet.getRange('A1:B1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('D1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('F1').setFontWeight('bold').setBackground('#e9eef7');
+  sheet.getRange('H1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.setFrozenRows(1);
   sheet.autoResizeColumns(1, lastCol);
 
@@ -321,6 +341,18 @@ function formatReferenceSheet_(spreadsheet) {
     SpreadsheetApp.BorderStyle.SOLID_MEDIUM
   );
   sheet.getRange(2, 6, incomeTypeBoxRows - 1, 1).setBackground('#eef5ff');
+  var scenarioBoxRows = Math.max(6, sheet.getLastRow());
+  sheet.getRange(2, 8, scenarioBoxRows - 1, 1).setBorder(
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    '#1a73e8',
+    SpreadsheetApp.BorderStyle.SOLID_MEDIUM
+  );
+  sheet.getRange(2, 8, scenarioBoxRows - 1, 1).setBackground('#eef5ff');
 }
 
 function setupReferenceLayout_(spreadsheet, sheet) {
@@ -330,6 +362,7 @@ function setupReferenceLayout_(spreadsheet, sheet) {
   sheet.getRange('A3').setValue('Forecast End');
   sheet.getRange('D1').setValue('Expense Type');
   sheet.getRange('F1').setValue('Income Type');
+  sheet.getRange('H1').setValue('Scenario');
 
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_START, sheet.getRange('B2'));
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_END, sheet.getRange('B3'));
@@ -394,6 +427,16 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
     );
   }
   bindNamedRange_(spreadsheet, Config.NAMED_RANGES.INCOME_TYPES, sheet.getRange('F2:F'));
+
+  var scenarioLastRow = Math.max(sheet.getLastRow(), 2);
+  var existingScenarios = sheet.getRange(2, 8, scenarioLastRow - 1, 1).getValues();
+  var hasAnyScenario = existingScenarios.some(function (row) {
+    return row[0] !== '' && row[0] !== null;
+  });
+  if (!hasAnyScenario) {
+    sheet.getRange(2, 8).setValue(Config.SCENARIOS.DEFAULT);
+  }
+  bindNamedRange_(spreadsheet, Config.NAMED_RANGES.SCENARIOS, sheet.getRange('H2:H'));
 }
 
 function getAccountNames_(spreadsheet) {

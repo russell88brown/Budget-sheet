@@ -408,6 +408,13 @@ function writeRowsByHeader_(sheet, records) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var rows = records.map(function (record) {
     return headers.map(function (header) {
+      if (header === 'Scenario') {
+        var scenarioValue = record[header];
+        if (scenarioValue === undefined || scenarioValue === null || String(scenarioValue).trim() === '') {
+          return Config.SCENARIOS.DEFAULT;
+        }
+        return scenarioValue;
+      }
       if (record[header] === undefined || record[header] === null) {
         return '';
       }

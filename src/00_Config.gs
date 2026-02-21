@@ -40,6 +40,9 @@ const Config = {
     LEFTOVER: 'Leftover',
     PERCENT: 'Percent of Inflow',
   },
+  SCENARIOS: {
+    DEFAULT: 'Base',
+  },
   ACCOUNT_TYPES: {
     CASH: 'Cash',
     CREDIT: 'Credit',
@@ -59,6 +62,7 @@ const Config = {
     ACCOUNT_NAMES: 'AccountNames',
     CATEGORIES: 'ExpenseCategories',
     INCOME_TYPES: 'IncomeTypes',
+    SCENARIOS: 'ScenarioList',
     FORECAST_START: 'ForecastStartDate',
     FORECAST_END: 'ForecastEndDate',
   },

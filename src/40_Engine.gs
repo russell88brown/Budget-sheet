@@ -1,16 +1,25 @@
 // Core forecasting logic that applies events to balances.
 const Engine = {
   runForecast: function () {
+    this.runForecastForScenario(Config.SCENARIOS.DEFAULT);
+  },
+  runForecastForScenario: function (scenarioId) {
+    var activeScenarioId = resolveScenarioId_(scenarioId);
     runJournalPipeline_({
       modeLabel: 'Forecast',
       startToast: 'Starting forecast...',
       completionToast: 'Forecast complete.',
       preprocessInputs: true,
-      refreshSummaries: true,
+      refreshSummaries: activeScenarioId === Config.SCENARIOS.DEFAULT,
       toastDelayMs: 600,
+      scenarioId: activeScenarioId,
     });
   },
   runJournalOnly: function () {
+    this.runJournalForScenario(Config.SCENARIOS.DEFAULT);
+  },
+  runJournalForScenario: function (scenarioId) {
+    var activeScenarioId = resolveScenarioId_(scenarioId);
     runJournalPipeline_({
       modeLabel: 'Journal',
       startToast: 'Running journal...',
@@ -18,6 +27,7 @@ const Engine = {
       preprocessInputs: false,
       refreshSummaries: false,
       toastDelayMs: 0,
+      scenarioId: activeScenarioId,
     });
   },
 };
@@ -25,6 +35,7 @@ const Engine = {
 function runJournalPipeline_(options) {
   options = options || {};
   var modeLabel = options.modeLabel || 'Run';
+  var scenarioId = resolveScenarioId_(options.scenarioId);
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
   var totalSteps = preprocessInputs ? 10 : 7;
@@ -41,14 +52,14 @@ function runJournalPipeline_(options) {
     }
 
     toastStep_('Reading input sheets...');
-    var accounts = Readers.readAccounts();
+    var accounts = filterByScenario_(Readers.readAccounts(), scenarioId);
     var accountTypes = buildAccountTypeMap_(accounts);
-    var incomeRules = Readers.readIncome();
-    var transferRules = Readers.readTransfers();
-    var expenseRules = Readers.readExpenses();
-    var policies = Readers.readPolicies();
-    var goals = Readers.readGoals();
-    var riskSettings = Readers.readRiskSettings();
+    var incomeRules = filterByScenario_(Readers.readIncome(), scenarioId);
+    var transferRules = filterByScenario_(Readers.readTransfers(), scenarioId);
+    var expenseRules = filterByScenario_(Readers.readExpenses(), scenarioId);
+    var policies = filterByScenario_(Readers.readPolicies(), scenarioId);
+    var goals = filterByScenario_(Readers.readGoals(), scenarioId);
+    var riskSettings = filterByScenario_(Readers.readRiskSettings(), scenarioId);
 
     if (refreshSummaries) {
       refreshAccountSummaries_();
@@ -82,7 +93,7 @@ function runJournalPipeline_(options) {
     });
 
     toastStep_('Building journal...');
-    var journalData = buildJournalRows_(accounts, events, policies, riskSettings);
+    var journalData = buildJournalRows_(accounts, events, policies, riskSettings, scenarioId);
     toastStep_('Writing journal...');
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
     toastStep_(options.completionToast || 'Run complete.');
@@ -90,6 +101,21 @@ function runJournalPipeline_(options) {
     endRunProgress_();
     resetForecastWindowCache_();
   }
+}
+
+function resolveScenarioId_(scenarioId) {
+  return normalizeScenario_(scenarioId);
+}
+
+function filterByScenario_(rows, scenarioId) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return [];
+  }
+  var activeScenarioId = resolveScenarioId_(scenarioId);
+  return rows.filter(function (row) {
+    var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
+    return rowScenarioId === activeScenarioId;
+  });
 }
 
 function preprocessInputSheets_() {
@@ -107,6 +133,8 @@ function preprocessInputSheets_() {
 }
 
 function reviewAndCleanupInputSheets_() {
+  var validScenarios = buildScenarioLookup_();
+  validateScenariosAcrossInputs_(validScenarios);
   var validAccounts = validateAccountsSheet_();
   validatePoliciesSheet_(validAccounts);
   validateGoalsSheet_(validAccounts);
@@ -114,6 +142,66 @@ function reviewAndCleanupInputSheets_() {
   validateIncomeSheet_(validAccounts);
   validateTransferSheet_(validAccounts);
   validateExpenseSheet_(validAccounts);
+}
+
+function buildScenarioLookup_() {
+  var scenarios = Readers.readScenarios();
+  var lookup = {};
+  (scenarios || []).forEach(function (scenarioId) {
+    lookup[resolveScenarioId_(scenarioId)] = true;
+  });
+  lookup[Config.SCENARIOS.DEFAULT] = true;
+  return lookup;
+}
+
+function validateScenariosAcrossInputs_(validScenarios) {
+  var inputSheets = [
+    Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.POLICIES,
+    Config.SHEETS.GOALS,
+    Config.SHEETS.RISK,
+    Config.SHEETS.INCOME,
+    Config.SHEETS.TRANSFERS,
+    Config.SHEETS.EXPENSE,
+  ];
+  inputSheets.forEach(function (sheetName) {
+    disableRowsWithUnknownScenario_(sheetName, validScenarios);
+  });
+}
+
+function disableRowsWithUnknownScenario_(sheetName, validScenarios) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  if (!sheet) {
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var includeIdx = headers.indexOf('Include');
+  var scenarioIdx = headers.indexOf('Scenario');
+  if (includeIdx === -1 || scenarioIdx === -1) {
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = false;
+  values.forEach(function (row) {
+    if (!toBoolean_(row[includeIdx])) {
+      return;
+    }
+    var scenarioId = resolveScenarioId_(row[scenarioIdx]);
+    if (!validScenarios[scenarioId]) {
+      row[includeIdx] = false;
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
 }
 
 function buildAccountLookup_() {
@@ -1536,7 +1624,7 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
   return periodsPerYear / 12;
 }
 
-function buildJournalRows_(accounts, events, policies, riskSettings) {
+function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId) {
   var balances = buildBalanceMap_(accounts);
   var forecastable = buildForecastableMap_(accounts);
   var accountTypes = buildAccountTypeMap_(accounts);
@@ -1552,7 +1640,7 @@ function buildJournalRows_(accounts, events, policies, riskSettings) {
   var rows = [];
   var openingDate = events.length ? normalizeDate_(events[0].date) : normalizeDate_(new Date());
 
-  rows = rows.concat(buildOpeningRows_(accounts, openingDate, forecastAccounts, balances));
+  rows = rows.concat(buildOpeningRows_(accounts, openingDate, forecastAccounts, balances, scenarioId));
 
   events.forEach(function (event) {
     rows = rows.concat(
@@ -1562,7 +1650,8 @@ function buildJournalRows_(accounts, events, policies, riskSettings) {
         accountTypes,
         policyRules,
         riskContext,
-        forecastAccounts
+        forecastAccounts,
+        scenarioId
       )
     );
     var snapshots = applyEventWithSnapshots_(balances, event);
@@ -1575,7 +1664,8 @@ function buildJournalRows_(accounts, events, policies, riskSettings) {
         snapshots.afterFrom,
         snapshots.afterTo,
         forecastAccounts,
-        accountTypes
+        accountTypes,
+        scenarioId
       )
     );
   });
@@ -1583,11 +1673,12 @@ function buildJournalRows_(accounts, events, policies, riskSettings) {
   return { rows: rows, forecastAccounts: forecastAccounts };
 }
 
-function buildOpeningRows_(accounts, date, forecastAccounts, balances) {
+function buildOpeningRows_(accounts, date, forecastAccounts, balances, scenarioId) {
   return accounts.map(function (account) {
     var balanceSnapshot = buildForecastBalanceCells_(balances, forecastAccounts);
     return [
       new Date(date.getTime()),
+      scenarioId,
       account.name,
       'Opening',
       'Opening Balance',
@@ -1632,7 +1723,8 @@ function buildJournalEventRows_(
   balancesAfterFrom,
   balancesAfterTo,
   forecastAccounts,
-  accountTypes
+  accountTypes,
+  scenarioId
 ) {
   var balanceSnapshotFrom = buildForecastBalanceCells_(balancesAfterFrom, forecastAccounts);
   var balanceSnapshotTo = buildForecastBalanceCells_(balancesAfterTo, forecastAccounts);
@@ -1661,6 +1753,7 @@ function buildJournalEventRows_(
         rowAmount > 0;
       return [
         event.date,
+        scenarioId,
         accountName,
         transactionType,
         event.name,
@@ -1686,6 +1779,7 @@ function buildJournalEventRows_(
   return [
     [
       event.date,
+      scenarioId,
       accountName || '',
       transactionType,
       event.name,
@@ -1797,7 +1891,8 @@ function applyAutoDeficitCoverRowsBeforeEvent_(
   accountTypes,
   policyRules,
   riskContext,
-  forecastAccounts
+  forecastAccounts,
+  scenarioId
 ) {
   var applicablePolicies = getApplicableAutoDeficitPolicies_(policyRules, event);
   if (!applicablePolicies.length) {
@@ -1865,7 +1960,8 @@ function applyAutoDeficitCoverRowsBeforeEvent_(
         snapshots.afterFrom,
         snapshots.afterTo,
         forecastAccounts,
-        accountTypes
+        accountTypes,
+        scenarioId
       )
     );
     remainingNeed = roundUpCents_(remainingNeed - amount);

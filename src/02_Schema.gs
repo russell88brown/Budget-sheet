@@ -14,6 +14,7 @@ const Schema = {
           enumValues: Object.values(Config.ACCOUNT_TYPES),
         },
         { name: 'Include', type: 'boolean', required: false, description: 'Include in forecast outputs' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         {
           name: 'Money In / Month',
           type: 'number',
@@ -95,6 +96,7 @@ const Schema = {
       name: Config.SHEETS.POLICIES,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Enable this policy rule' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         {
           name: 'Policy Type',
           type: 'enum',
@@ -129,6 +131,7 @@ const Schema = {
       name: Config.SHEETS.GOALS,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in planning' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         { name: 'Goal Name', type: 'string', required: true, description: 'Goal label' },
         { name: 'Target Amount', type: 'number', required: true, description: 'Goal target amount', format: '0.00' },
         { name: 'Target Date', type: 'date', required: true, description: 'Target completion date', format: 'yyyy-mm-dd' },
@@ -150,6 +153,7 @@ const Schema = {
       name: Config.SHEETS.RISK,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Enable this risk profile row' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         { name: 'Scenario Name', type: 'string', required: true, description: 'Scenario label' },
         { name: 'Emergency Buffer Account', type: 'ref', required: false, description: 'Account to preserve buffer in' },
         { name: 'Emergency Buffer Minimum', type: 'number', required: false, description: 'Minimum balance floor', format: '0.00' },
@@ -162,6 +166,7 @@ const Schema = {
       name: Config.SHEETS.INCOME,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         {
           name: 'Monthly Total',
           type: 'number',
@@ -196,6 +201,7 @@ const Schema = {
       name: Config.SHEETS.EXPENSE,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         {
           name: 'Monthly Total',
           type: 'number',
@@ -242,6 +248,7 @@ const Schema = {
       name: Config.SHEETS.TRANSFERS,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
+        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
         {
           name: 'Monthly Total',
           type: 'number',
@@ -297,6 +304,7 @@ const Schema = {
       name: Config.SHEETS.JOURNAL,
       columns: [
         { name: 'Date', type: 'date', required: true, description: 'Event date', format: 'yyyy-mm-dd' },
+        { name: 'Scenario', type: 'string', required: true, description: 'Scenario key for this run' },
         { name: 'Account', type: 'string', required: false, description: 'Debited/credited account' },
         {
           name: 'Transaction Type',

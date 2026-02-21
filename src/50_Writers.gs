@@ -136,9 +136,14 @@ function applyJournalConditionalFormatting_(sheet, forecastAccounts, accountType
 
   var startRow = 2;
   var accountStartCol = headerIndex[forecastAccounts[0]];
+  var accountCol = headerIndex.Account;
   if (!accountStartCol) {
     return;
   }
+  if (!accountCol) {
+    return;
+  }
+  var accountColLetter = columnToA1Letter_(accountCol);
   var newRules = [];
   for (var i = 0; i < forecastAccounts.length; i += 1) {
     var col = accountStartCol + i;
@@ -148,7 +153,8 @@ function applyJournalConditionalFormatting_(sheet, forecastAccounts, accountType
     newRules.push(
       SpreadsheetApp.newConditionalFormatRule()
         .whenFormulaSatisfied(
-          '=AND($B' +
+          '=AND($' +
+            accountColLetter +
             startRow +
             '=' +
             colLetter +
