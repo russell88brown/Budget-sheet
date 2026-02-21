@@ -241,7 +241,7 @@ const Schema = {
           name: 'Transaction Type',
           type: 'enum',
           required: true,
-          description: 'Source Type from Income/Expense/Transfer (plus Opening/Interest system entries)',
+          description: 'Income / Expense / Transfer (with transfer behavior detail) / Interest / Opening',
         },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: 'Event amount', format: '0.00' },

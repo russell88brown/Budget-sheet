@@ -33,11 +33,19 @@ const Events = {
       });
 
       return dates.map(function (date) {
+        var expenseNameParts = [];
+        if (rule.type) {
+          expenseNameParts.push(String(rule.type));
+        }
+        if (rule.name) {
+          expenseNameParts.push(String(rule.name));
+        }
+        var expenseName = expenseNameParts.join(' - ');
         return {
           date: date,
           kind: 'Expense',
           behavior: rule.type || Config.BEHAVIOR_LABELS.Expense,
-          name: rule.name,
+          name: expenseName,
           category: rule.type,
           from: rule.paidFrom,
           to: 'External',

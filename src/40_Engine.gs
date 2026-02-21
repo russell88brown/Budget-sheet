@@ -1362,7 +1362,7 @@ function buildJournalEventRows_(
 ) {
   var balanceSnapshotFrom = buildForecastBalanceCells_(balancesAfterFrom, forecastAccounts);
   var balanceSnapshotTo = buildForecastBalanceCells_(balancesAfterTo, forecastAccounts);
-  var transactionType = event && event.behavior ? event.behavior : event.kind;
+  var transactionType = deriveJournalTransactionType_(event);
   var amount = event.appliedAmount !== undefined ? event.appliedAmount : event.amount || 0;
   var signedAmount = amount;
   if (event.kind === 'Expense' || (event.kind === 'Transfer' && event.from)) {
@@ -1489,6 +1489,29 @@ function applyEventWithSnapshots_(balances, event) {
   }
 
   return { afterFrom: pre, afterTo: pre };
+}
+
+function deriveJournalTransactionType_(event) {
+  if (!event || !event.kind) {
+    return '';
+  }
+  if (event.kind === 'Income') {
+    return 'Income';
+  }
+  if (event.kind === 'Expense') {
+    return 'Expense';
+  }
+  if (event.kind === 'Transfer') {
+    var transferDetail = event.transferBehavior || event.behavior;
+    if (transferDetail) {
+      return 'Transfer (' + transferDetail + ')';
+    }
+    return 'Transfer';
+  }
+  if (event.kind === 'Interest') {
+    return 'Interest';
+  }
+  return event.kind;
 }
 
 function applyAutoCoverRows_(
