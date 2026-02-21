@@ -1,8 +1,49 @@
 // Recurrence expansion based on start and end dates.
 const Recurrence = {
+  normalizeRepeatEvery: function (repeatEvery) {
+    var raw = Number(repeatEvery);
+    if (!isFinite(raw) || raw < 1) {
+      return 1;
+    }
+    return Math.floor(raw);
+  },
+
+  getStepMonths: function (frequency, repeatEvery) {
+    var every = Recurrence.normalizeRepeatEvery(repeatEvery);
+    if (frequency === Config.FREQUENCIES.MONTHLY) {
+      return every;
+    }
+    if (frequency === Config.FREQUENCIES.YEARLY) {
+      return every * 12;
+    }
+    return null;
+  },
+
+  getStepDays: function (frequency, repeatEvery) {
+    if (frequency === Config.FREQUENCIES.DAILY) {
+      return Recurrence.normalizeRepeatEvery(repeatEvery);
+    }
+    return null;
+  },
+
+  periodsPerYear: function (frequency, repeatEvery) {
+    var every = Recurrence.normalizeRepeatEvery(repeatEvery);
+    switch (frequency) {
+      case Config.FREQUENCIES.DAILY:
+        return 365 / every;
+      case Config.FREQUENCIES.MONTHLY:
+        return 12 / every;
+      case Config.FREQUENCIES.YEARLY:
+        return 1 / every;
+      default:
+        return 0;
+    }
+  },
+
   expand: function (options) {
     var startDate = options.startDate;
     var frequency = options.frequency;
+    var repeatEvery = Recurrence.normalizeRepeatEvery(options.repeatEvery);
     var endDate = options.endDate;
 
     if (!startDate || !frequency) {
@@ -24,17 +65,7 @@ const Recurrence = {
       }
       return [new Date(anchor.getTime())];
     }
-    if (frequency === Config.FREQUENCIES.ONCE) {
-      if (anchor < windowStart) {
-        return [];
-      }
-      if (anchor > end || anchor > window.end) {
-        return [];
-      }
-      return [new Date(anchor.getTime())];
-    }
-
-    var start = alignToWindow_(anchor, frequency, windowStart);
+    var start = alignToWindow_(anchor, frequency, repeatEvery, windowStart);
     if (!start) {
       return [];
     }
@@ -50,7 +81,7 @@ const Recurrence = {
     var current = start;
     while (current <= end) {
       dates.push(new Date(current.getTime()));
-      current = Recurrence.stepForward(current, frequency);
+      current = Recurrence.stepForward(current, frequency, repeatEvery);
       if (!current) {
         break;
       }
@@ -59,29 +90,18 @@ const Recurrence = {
     return dates;
   },
 
-  stepForward: function (date, frequency) {
-    switch (frequency) {
-      case Config.FREQUENCIES.DAILY:
-        return addDays_(date, 1);
-      case Config.FREQUENCIES.WEEKLY:
-        return addDays_(date, 7);
-      case Config.FREQUENCIES.FORTNIGHTLY:
-        return addDays_(date, 14);
-      case Config.FREQUENCIES.MONTHLY:
-        return addMonthsClamped_(date, 1);
-      case Config.FREQUENCIES.BIMONTHLY:
-        return addMonthsClamped_(date, 2);
-      case Config.FREQUENCIES.QUARTERLY:
-        return addMonthsClamped_(date, 3);
-      case Config.FREQUENCIES.SEMI_ANNUALLY:
-        return addMonthsClamped_(date, 6);
-      case Config.FREQUENCIES.ANNUALLY:
-        return addMonthsClamped_(date, 12);
-      case Config.FREQUENCIES.ONCE:
-        return null;
-      default:
-        return null;
+  stepForward: function (date, frequency, repeatEvery) {
+    var stepDays = Recurrence.getStepDays(frequency, repeatEvery);
+    if (stepDays) {
+      return addDays_(date, stepDays);
     }
+
+    var stepMonths = Recurrence.getStepMonths(frequency, repeatEvery);
+    if (stepMonths) {
+      return addMonthsClamped_(date, stepMonths);
+    }
+
+    return null;
   },
 };
 
@@ -90,12 +110,15 @@ function getForecastWindow_() {
     start: normalizeDate_(new Date()),
     end: addMonthsClamped_(normalizeDate_(new Date()), 6),
   };
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.LISTS_SHEET);
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(Config.LISTS_SHEET);
   if (!sheet) {
     return defaults;
   }
-  var startValue = sheet.getRange('A2').getValue();
-  var endValue = sheet.getRange('B2').getValue();
+  var startRange = ss.getRangeByName(Config.NAMED_RANGES.FORECAST_START);
+  var endRange = ss.getRangeByName(Config.NAMED_RANGES.FORECAST_END);
+  var startValue = startRange ? startRange.getValue() : sheet.getRange('B2').getValue();
+  var endValue = endRange ? endRange.getValue() : sheet.getRange('B3').getValue();
   var start = startValue ? normalizeDate_(startValue) : defaults.start;
   var end = endValue ? normalizeDate_(endValue) : defaults.end;
   if (start > end) {
@@ -132,22 +155,13 @@ function addMonthsClamped_(date, months) {
   return new Date(targetYear, targetMonth, clampedDay);
 }
 
-function alignToWindow_(anchor, frequency, windowStart) {
+function alignToWindow_(anchor, frequency, repeatEvery, windowStart) {
   if (anchor > windowStart) {
     return anchor;
   }
 
-  if (
-    frequency === Config.FREQUENCIES.DAILY ||
-    frequency === Config.FREQUENCIES.WEEKLY ||
-    frequency === Config.FREQUENCIES.FORTNIGHTLY
-  ) {
-    var stepDays = 1;
-    if (frequency === Config.FREQUENCIES.WEEKLY) {
-      stepDays = 7;
-    } else if (frequency === Config.FREQUENCIES.FORTNIGHTLY) {
-      stepDays = 14;
-    }
+  var stepDays = Recurrence.getStepDays(frequency, repeatEvery);
+  if (stepDays) {
     var daysDiff = Math.floor((windowStart.getTime() - anchor.getTime()) / 86400000);
     var steps = Math.floor(daysDiff / stepDays);
     var candidate = addDays_(anchor, steps * stepDays);
@@ -157,26 +171,9 @@ function alignToWindow_(anchor, frequency, windowStart) {
     return candidate;
   }
 
-  var stepMonths = 0;
-  switch (frequency) {
-    case Config.FREQUENCIES.MONTHLY:
-      stepMonths = 1;
-      break;
-    case Config.FREQUENCIES.BIMONTHLY:
-      stepMonths = 2;
-      break;
-    case Config.FREQUENCIES.QUARTERLY:
-      stepMonths = 3;
-      break;
-    case Config.FREQUENCIES.SEMI_ANNUALLY:
-      stepMonths = 6;
-      break;
-    case Config.FREQUENCIES.ANNUALLY:
-      stepMonths = 12;
-      break;
-    case Config.FREQUENCIES.ONCE:
-    default:
-      return null;
+  var stepMonths = Recurrence.getStepMonths(frequency, repeatEvery);
+  if (!stepMonths) {
+    return null;
   }
 
   var monthsDiff =

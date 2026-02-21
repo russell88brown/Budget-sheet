@@ -37,6 +37,13 @@ const Schema = {
           enumValues: Object.values(Config.FREQUENCIES),
         },
         {
+          name: 'Interest Repeat Every',
+          type: 'positive_int',
+          required: false,
+          description: 'Interval multiplier (default 1)',
+          format: '0',
+        },
+        {
           name: 'Interest Start Date',
           type: 'date',
           required: false,
@@ -49,6 +56,13 @@ const Schema = {
           required: false,
           description: 'Optional last interest date',
           format: 'yyyy-mm-dd',
+        },
+        {
+          name: 'Expense Avg / Month',
+          type: 'number',
+          required: false,
+          description: 'Computed from Expense by From Account',
+          format: '0.00',
         },
       ],
     },
@@ -64,6 +78,13 @@ const Schema = {
           required: true,
           description: 'Recurrence',
           enumValues: Object.values(Config.FREQUENCIES),
+        },
+        {
+          name: 'Repeat Every',
+          type: 'positive_int',
+          required: false,
+          description: 'Interval multiplier (default 1)',
+          format: '0',
         },
         { name: 'Start Date', type: 'date', required: true, description: 'First occurrence', format: 'yyyy-mm-dd' },
         { name: 'End Date', type: 'date', required: false, description: 'Optional stop date', format: 'yyyy-mm-dd' },
@@ -86,6 +107,13 @@ const Schema = {
           enumValues: Object.values(Config.FREQUENCIES),
         },
         {
+          name: 'Repeat Every',
+          type: 'positive_int',
+          required: false,
+          description: 'Interval multiplier (default 1)',
+          format: '0',
+        },
+        {
           name: 'Start Date',
           type: 'date',
           required: false,
@@ -101,6 +129,13 @@ const Schema = {
         },
         { name: 'From Account', type: 'ref', required: true, description: 'Source account' },
         { name: 'Notes', type: 'string', required: false, description: 'Optional' },
+        {
+          name: 'Monthly Average',
+          type: 'number',
+          required: false,
+          description: 'Computed monthly average for recurring rows',
+          format: '0.00',
+        },
       ],
     },
     {
@@ -122,6 +157,13 @@ const Schema = {
           required: false,
           description: 'Recurrence',
           enumValues: Object.values(Config.FREQUENCIES),
+        },
+        {
+          name: 'Repeat Every',
+          type: 'positive_int',
+          required: false,
+          description: 'Interval multiplier (default 1)',
+          format: '0',
         },
         {
           name: 'Start Date',

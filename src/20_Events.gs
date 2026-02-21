@@ -5,6 +5,7 @@ const Events = {
       var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,
+        repeatEvery: rule.repeatEvery,
         endDate: rule.endDate,
       });
       return dates.map(function (date) {
@@ -27,6 +28,7 @@ const Events = {
       var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,
+        repeatEvery: rule.repeatEvery,
         endDate: rule.endDate,
       });
 
@@ -50,6 +52,7 @@ const Events = {
       var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,
+        repeatEvery: rule.repeatEvery,
         endDate: rule.endDate,
       });
       return dates.map(function (date) {
@@ -81,6 +84,7 @@ const Events = {
       var dates = Recurrence.expand({
         startDate: startDate,
         frequency: account.interestFrequency,
+        repeatEvery: account.interestRepeatEvery,
         endDate: endDate,
       });
       if (!dates.length) {
@@ -96,8 +100,10 @@ const Events = {
           rate: account.interestRate,
           method: account.interestMethod,
           frequency: account.interestFrequency,
+          repeatEvery: account.interestRepeatEvery,
         };
       });
     });
   },
 };
+

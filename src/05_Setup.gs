@@ -4,9 +4,6 @@ function setupSpreadsheet() {
 
   ensureAccountNameRanges_(ss);
   ensureCategoryRange_(ss);
-  ensureSinkFundRange_(ss);
-  removeExpenseColumns_(ss, ['Monthly Spend', 'Archive']);
-  migrateLegacyTransfersFromExpense_(ss);
 
   Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
@@ -18,32 +15,6 @@ function setupSpreadsheet() {
 
   reorderSheets_(ss);
   formatReferenceSheet_(ss);
-}
-
-function removeExpenseColumns_(spreadsheet, columnNames) {
-  var sheet = spreadsheet.getSheetByName(Config.SHEETS.EXPENSE);
-  if (!sheet || !columnNames || !columnNames.length) {
-    return;
-  }
-  var lastCol = sheet.getLastColumn();
-  if (lastCol < 1) {
-    return;
-  }
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var indices = [];
-  columnNames.forEach(function (name) {
-    var idx = headers.indexOf(name);
-    if (idx !== -1) {
-      indices.push(idx + 1);
-    }
-  });
-  indices
-    .sort(function (a, b) {
-      return b - a;
-    })
-    .forEach(function (colIndex) {
-      sheet.deleteColumn(colIndex);
-    });
 }
 
 function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
@@ -87,6 +58,10 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
       var booleanBuilder = SpreadsheetApp.newDataValidation().requireCheckbox();
       booleanBuilder.setAllowInvalid(!column.required);
       range.setDataValidation(booleanBuilder.build());
+    } else if (column.type === 'positive_int') {
+      var intBuilder = SpreadsheetApp.newDataValidation().requireNumberGreaterThanOrEqualTo(1);
+      intBuilder.setAllowInvalid(!column.required);
+      range.setDataValidation(intBuilder.build());
     } else if (column.type === 'ref') {
       var accounts = getAccountNames_(spreadsheet);
       if (accounts.length) {
@@ -94,14 +69,6 @@ function applyColumnRules_(spreadsheet, sheet, columns) {
         refBuilder.setAllowInvalid(!column.required);
         range.setDataValidation(refBuilder.build());
       }
-    } else if (column.type === 'ref_or_external_conditional' && sheet.getName() === Config.SHEETS.EXPENSE) {
-      // Legacy type retained for compatibility with older schemas.
-      var paidToCol = columnToLetter_(colIndex);
-      var accounts = getAccountNames_(spreadsheet);
-      var accountsWithExternal = ['External'].concat(accounts);
-      var listBuilder = SpreadsheetApp.newDataValidation().requireValueInList(accountsWithExternal, true);
-      listBuilder.setAllowInvalid(!column.required);
-      range.setDataValidation(listBuilder.build());
     } else if (column.type === 'category') {
       var categoriesRange = spreadsheet.getRangeByName(Config.NAMED_RANGES.CATEGORIES);
       if (categoriesRange) {
@@ -133,21 +100,7 @@ function ensureAccountNameRanges_(spreadsheet) {
     listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
   }
 
-  listsSheet.getRange('A1').setValue('Forecast Start');
-  listsSheet.getRange('B1').setValue('Forecast End');
-  listsSheet.getRange('D1').setValue('Sink Fund Account');
-  listsSheet.getRange('E1').setValue('Sink Fund Amount Per Week');
-  var startCell = listsSheet.getRange('A2');
-  var endCell = listsSheet.getRange('B2');
-  if (!startCell.getValue()) {
-    startCell.setValue(new Date());
-  }
-  if (!endCell.getValue()) {
-    var endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 24);
-    endCell.setValue(endDate);
-  }
-
+  setupReferenceLayout_(spreadsheet, listsSheet);
 }
 
 function ensureCategoryRange_(spreadsheet) {
@@ -156,29 +109,7 @@ function ensureCategoryRange_(spreadsheet) {
     listsSheet = spreadsheet.insertSheet(Config.LISTS_SHEET);
   }
 
-  listsSheet.getRange('C1').setValue('Expense Category');
-  var existing = listsSheet.getRange('C2').getValue();
-  if (existing) {
-    return;
-  }
-  var categories = [
-    '01. Utilities',
-    '02. Living',
-    '03. Health',
-    '04. Car Expense',
-    '05. Luxury',
-    '06. Debt',
-    '07. Investment - Liquid',
-    '08. Investment - Locked',
-  ];
-
-  listsSheet.getRange(2, 3, categories.length, 1).setValues(
-    categories.map(function (value) {
-      return [value];
-    })
-  );
-
-  spreadsheet.setNamedRange(Config.NAMED_RANGES.CATEGORIES, listsSheet.getRange('C2:C'));
+  setupReferenceLayout_(spreadsheet, listsSheet);
 }
 
 function formatReferenceSheet_(spreadsheet) {
@@ -187,28 +118,112 @@ function formatReferenceSheet_(spreadsheet) {
     return;
   }
 
-  var lastCol = Math.max(5, sheet.getLastColumn());
-  sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#e9eef7');
+  setupReferenceLayout_(spreadsheet, sheet);
+
+  var lastCol = Math.max(4, sheet.getLastColumn());
+  sheet.getRange('A1:B1').setFontWeight('bold').setBackground('#e9eef7');
+  sheet.getRange('D1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.setFrozenRows(1);
   sheet.autoResizeColumns(1, lastCol);
 
-  sheet.getRange('A2:B').setNumberFormat('yyyy-mm-dd');
-  sheet.getRange('E2:E').setNumberFormat('0.00');
+  sheet.getRange('B2:B3').setNumberFormat('yyyy-mm-dd');
+  sheet.getRange('A2:A6').setFontWeight('bold');
+  sheet.getRange('A2:B6').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange('D1:D').setHorizontalAlignment('left');
+  // Input boxes for expected user-edited values.
+  sheet.getRange('B2:B6').setBorder(true, true, true, true, false, false, '#1a73e8', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.getRange('B2:B6').setBackground('#eef5ff');
+  var categoryBoxRows = Math.max(12, sheet.getLastRow());
+  sheet.getRange(2, 4, categoryBoxRows - 1, 1).setBorder(
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    '#1a73e8',
+    SpreadsheetApp.BorderStyle.SOLID_MEDIUM
+  );
+  sheet.getRange(2, 4, categoryBoxRows - 1, 1).setBackground('#eef5ff');
+
+  applyBooleanSettingsValidation_(sheet);
 }
 
-function ensureSinkFundRange_(spreadsheet) {
-  var accountsSheet = spreadsheet.getSheetByName(Config.SHEETS.ACCOUNTS);
-  if (!accountsSheet) {
-    return;
+function setupReferenceLayout_(spreadsheet, sheet) {
+  sheet.getRange('A1').setValue('Settings / Policies');
+  sheet.getRange('B1').setValue('Policy Setting');
+  sheet.getRange('A2').setValue('Forecast Start');
+  sheet.getRange('A3').setValue('Forecast End');
+  sheet.getRange('A4').setValue('Auto-deactivate expired rows');
+  sheet.getRange('A5').setValue('Transfers before expenses');
+  sheet.getRange('A6').setValue('Cap repayments to outstanding');
+  sheet.getRange('D1').setValue('Expense Category');
+
+  bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_START, sheet.getRange('B2'));
+  bindNamedRange_(spreadsheet, Config.NAMED_RANGES.FORECAST_END, sheet.getRange('B3'));
+  seedReferenceDefaults_(spreadsheet, sheet);
+}
+
+function bindNamedRange_(spreadsheet, name, range) {
+  try {
+    spreadsheet.setNamedRange(name, range);
+  } catch (_err) {
+    spreadsheet.removeNamedRange(name);
+    spreadsheet.setNamedRange(name, range);
+  }
+}
+
+function seedReferenceDefaults_(spreadsheet, sheet) {
+  var startCell = sheet.getRange('B2');
+  var endCell = sheet.getRange('B3');
+  if (!startCell.getValue()) {
+    startCell.setValue(new Date());
+  }
+  if (!endCell.getValue()) {
+    var endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 24);
+    endCell.setValue(endDate);
+  }
+  if (!sheet.getRange('B4').getValue()) {
+    sheet.getRange('B4').setValue('TRUE');
+  }
+  if (!sheet.getRange('B5').getValue()) {
+    sheet.getRange('B5').setValue('TRUE');
+  }
+  if (!sheet.getRange('B6').getValue()) {
+    sheet.getRange('B6').setValue('TRUE');
   }
 
-  var lastRow = accountsSheet.getLastRow();
-  if (lastRow < 2) {
-    return;
+  var lastRow = Math.max(sheet.getLastRow(), 2);
+  var existingCategories = sheet.getRange(2, 4, lastRow - 1, 1).getValues();
+  var hasAnyCategory = existingCategories.some(function (row) {
+    return row[0] !== '' && row[0] !== null;
+  });
+  if (!hasAnyCategory) {
+    var categories = [
+      '01. Utilities',
+      '02. Living',
+      '03. Health',
+      '04. Car Expense',
+      '05. Luxury',
+      '06. Debt',
+      '07. Investment - Liquid',
+      '08. Investment - Locked',
+    ];
+    sheet.getRange(2, 4, categories.length, 1).setValues(
+      categories.map(function (value) {
+        return [value];
+      })
+    );
   }
+  bindNamedRange_(spreadsheet, Config.NAMED_RANGES.CATEGORIES, sheet.getRange('D2:D'));
+}
 
-  var range = accountsSheet.getRange('A2:A');
-  spreadsheet.setNamedRange(Config.NAMED_RANGES.SINK_FUNDS, range);
+function applyBooleanSettingsValidation_(sheet) {
+  var boolRange = sheet.getRange('B4:B6');
+  var boolBuilder = SpreadsheetApp.newDataValidation().requireValueInList(['TRUE', 'FALSE'], true);
+  boolBuilder.setAllowInvalid(false);
+  boolRange.setDataValidation(boolBuilder.build());
 }
 
 function getAccountNames_(spreadsheet) {
@@ -245,101 +260,15 @@ function reorderSheets_(spreadsheet) {
     Config.SHEETS.LOGS,
   ];
 
-  order.forEach(function (name, index) {
+  var targetPosition = 1;
+  order.forEach(function (name) {
     var sheet = spreadsheet.getSheetByName(name);
     if (sheet) {
       spreadsheet.setActiveSheet(sheet);
-      spreadsheet.moveActiveSheet(index + 1);
+      spreadsheet.moveActiveSheet(targetPosition);
+      targetPosition += 1;
     }
   });
-}
-
-function migrateLegacyTransfersFromExpense_(spreadsheet) {
-  var expenseSheet = spreadsheet.getSheetByName(Config.SHEETS.EXPENSE);
-  if (!expenseSheet) {
-    return;
-  }
-
-  var lastRow = expenseSheet.getLastRow();
-  var lastCol = expenseSheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return;
-  }
-
-  var headers = expenseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var typeIdx = headers.indexOf('Transaction Type');
-  if (typeIdx === -1) {
-    return;
-  }
-
-  var includeIdx = headers.indexOf('Include');
-  var categoryIdx = headers.indexOf('Category');
-  var nameIdx = headers.indexOf('Name');
-  var amountIdx = headers.indexOf('Amount');
-  var frequencyIdx = headers.indexOf('Frequency');
-  var startIdx = headers.indexOf('Start Date');
-  var endIdx = headers.indexOf('End Date');
-  var fromIdx = headers.indexOf('From Account');
-  var toIdx = headers.indexOf('To Account');
-  var notesIdx = headers.indexOf('Notes');
-  if (includeIdx === -1 || nameIdx === -1) {
-    return;
-  }
-
-  var transferSheet = spreadsheet.getSheetByName(Config.SHEETS.TRANSFERS);
-  if (!transferSheet) {
-    transferSheet = spreadsheet.insertSheet(Config.SHEETS.TRANSFERS);
-  }
-  if (transferSheet.getLastRow() > 1) {
-    return;
-  }
-
-  var values = expenseSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var expenseRows = [];
-  var transferRows = [];
-
-  values.forEach(function (row) {
-    var type = normalizeBehavior_(row[typeIdx]);
-    if (type === Config.BEHAVIOR_LABELS.Transfer || type === Config.BEHAVIOR_LABELS.Repayment) {
-      transferRows.push([
-        row[includeIdx],
-        type,
-        nameIdx === -1 ? '' : row[nameIdx],
-        amountIdx === -1 ? '' : row[amountIdx],
-        frequencyIdx === -1 ? '' : row[frequencyIdx],
-        startIdx === -1 ? '' : row[startIdx],
-        endIdx === -1 ? '' : row[endIdx],
-        fromIdx === -1 ? '' : row[fromIdx],
-        toIdx === -1 ? '' : row[toIdx],
-        notesIdx === -1 ? '' : row[notesIdx],
-      ]);
-      return;
-    }
-
-    expenseRows.push([
-      row[includeIdx],
-      categoryIdx === -1 ? '' : row[categoryIdx],
-      nameIdx === -1 ? '' : row[nameIdx],
-      amountIdx === -1 ? '' : row[amountIdx],
-      frequencyIdx === -1 ? '' : row[frequencyIdx],
-      startIdx === -1 ? '' : row[startIdx],
-      endIdx === -1 ? '' : row[endIdx],
-      fromIdx === -1 ? '' : row[fromIdx],
-      notesIdx === -1 ? '' : row[notesIdx],
-    ]);
-  });
-
-  if (!expenseRows.length && !transferRows.length) {
-    return;
-  }
-
-  expenseSheet.getRange(2, 1, Math.max(lastRow - 1, 1), lastCol).clearContent();
-  if (expenseRows.length) {
-    expenseSheet.getRange(2, 1, expenseRows.length, expenseRows[0].length).setValues(expenseRows);
-  }
-  if (transferRows.length) {
-    transferSheet.getRange(2, 1, transferRows.length, transferRows[0].length).setValues(transferRows);
-  }
 }
 
 function columnToLetter_(column) {

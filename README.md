@@ -20,7 +20,7 @@ Use **Budget Forecast → Setup…** to create or refresh all sheets.
 Setup will:
 - 🧱 Rebuild **header rows**
 - ✅ Restore **dropdowns + checkboxes**
-- 🧭 Recreate **Reference** ranges
+- 🧭 Recreate **Settings** ranges
 
 ### 2) Fill in your inputs
 - **Accounts**: current balances
@@ -80,19 +80,16 @@ Opens a setup dialog with these actions:
 - **Logs** (engine logs)
 
 ### Other
-- **Reference** (helper lists + settings)
+- **Settings** (helper lists + settings)
 - **Export** (compact export output)
 
 ---
 
-## 🧪 Reference Sheet (what it does)
-The **Reference** sheet contains shared values used by the model:
+## 🧪 Settings Sheet (what it does)
+The **Settings** sheet contains shared values used by the model:
 
 - **Forecast Start / End** (summary window)
 - **Expense Categories** (dropdowns in Expense)
-- **Sink Fund settings** (weekly estimate)
-
-The model will **populate sink funds marked in Accounts** and **calculate sink fund totals automatically** (weekly estimate).
 
 You usually don’t need to edit this manually — **Setup** will recreate it if needed.
 
@@ -125,8 +122,7 @@ That’s it. The model is forward-only and always rebuilds outputs from scratch.
 
 ## 💡 Tips
 - Use **Include** checkboxes to control what gets forecasted.
-- Use **Frequency + Start Date** to schedule recurring items.
-- Use **One-off** for single future payments.
+- Use **Frequency + Repeat Every + Start Date** to schedule recurring items.
 - Repayments with **Amount = 0** are treated as **“pay off the full balance”** at that time (only if the balance is negative).
 - If headers or dropdowns look wrong, just run **Setup** again.
 

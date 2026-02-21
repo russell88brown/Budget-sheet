@@ -7,6 +7,12 @@ const Readers = {
         return row['Account Name'];
       })
       .map(function (row) {
+        var interestRecurrence = normalizeRecurrence_(
+          row['Interest Frequency'],
+          row['Interest Repeat Every'],
+          row['Interest Start Date'],
+          row['Interest End Date']
+        );
         return {
           name: row['Account Name'],
           balance: toNumber_(row['Balance']),
@@ -15,9 +21,10 @@ const Readers = {
           sinkFund: toBoolean_(row['Sink Fund']),
           interestRate: toNumber_(row['Interest Rate (APR %)']),
           interestMethod: row['Interest Method'],
-          interestFrequency: normalizeFrequency_(row['Interest Frequency']),
-          interestStartDate: toDate_(row['Interest Start Date']),
-          interestEndDate: toDate_(row['Interest End Date']),
+          interestFrequency: interestRecurrence.frequency,
+          interestRepeatEvery: interestRecurrence.repeatEvery,
+          interestStartDate: interestRecurrence.startDate,
+          interestEndDate: interestRecurrence.endDate,
         };
       });
   },
@@ -29,12 +36,19 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
+        var recurrence = normalizeRecurrence_(
+          row['Frequency'],
+          row['Repeat Every'],
+          row['Start Date'],
+          row['End Date']
+        );
         return {
           name: row['Name'],
           amount: toNumber_(row['Amount']),
-          frequency: normalizeFrequency_(row['Frequency']),
-          startDate: toDate_(row['Start Date']),
-          endDate: toDate_(row['End Date']),
+          frequency: recurrence.frequency,
+          repeatEvery: recurrence.repeatEvery,
+          startDate: recurrence.startDate,
+          endDate: recurrence.endDate,
           paidTo: row['To Account'],
           notes: row['Notes'],
         };
@@ -48,13 +62,20 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
+        var recurrence = normalizeRecurrence_(
+          row['Frequency'],
+          row['Repeat Every'],
+          row['Start Date'],
+          row['End Date']
+        );
         return {
           category: row['Category'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
-          frequency: normalizeFrequency_(row['Frequency']),
-          startDate: toDate_(row['Start Date']),
-          endDate: toDate_(row['End Date']),
+          frequency: recurrence.frequency,
+          repeatEvery: recurrence.repeatEvery,
+          startDate: recurrence.startDate,
+          endDate: recurrence.endDate,
           paidFrom: row['From Account'],
           paidTo: 'External',
           behavior: Config.BEHAVIOR_LABELS.Expense,
@@ -70,13 +91,20 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
+        var recurrence = normalizeRecurrence_(
+          row['Frequency'],
+          row['Repeat Every'],
+          row['Start Date'],
+          row['End Date']
+        );
         return {
           behavior: normalizeBehavior_(row['Transfer Type']),
           name: row['Name'],
           amount: toNumber_(row['Amount']),
-          frequency: normalizeFrequency_(row['Frequency']),
-          startDate: toDate_(row['Start Date']),
-          endDate: toDate_(row['End Date']),
+          frequency: recurrence.frequency,
+          repeatEvery: recurrence.repeatEvery,
+          startDate: recurrence.startDate,
+          endDate: recurrence.endDate,
           paidFrom: row['From Account'],
           paidTo: row['To Account'],
           notes: row['Notes'],
@@ -138,14 +166,75 @@ function toDate_(value) {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function normalizeRecurrence_(frequencyValue, repeatEveryValue, startDateValue, endDateValue) {
+  var startDate = toDate_(startDateValue);
+  var endDate = toDate_(endDateValue);
+  var normalized = normalizeFrequency_(frequencyValue);
+  var repeatEvery = normalized.repeatEvery || toPositiveInt_(repeatEveryValue) || 1;
+
+  if (normalized.isSingleOccurrence && startDate && !endDate) {
+    endDate = startDate;
+  }
+
+  return {
+    frequency: normalized.frequency,
+    repeatEvery: repeatEvery,
+    startDate: startDate,
+    endDate: endDate,
+  };
+}
+
 function normalizeFrequency_(value) {
   if (!value) {
-    return value;
+    return { frequency: value, repeatEvery: null, isSingleOccurrence: false };
   }
-  if (value === 'Once' || value === 'One-off') {
-    return Config.FREQUENCIES.ONCE;
+
+  var cleaned = String(value).trim();
+  var lower = cleaned.toLowerCase();
+
+  if (lower === 'daily') {
+    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: null, isSingleOccurrence: false };
   }
-  return value;
+  if (lower === 'monthly') {
+    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: null, isSingleOccurrence: false };
+  }
+  if (lower === 'yearly' || lower === 'annually') {
+    return { frequency: Config.FREQUENCIES.YEARLY, repeatEvery: lower === 'annually' ? 1 : null, isSingleOccurrence: false };
+  }
+  if (lower === 'weekly') {
+    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: 7, isSingleOccurrence: false };
+  }
+  if (lower === 'fortnightly') {
+    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: 14, isSingleOccurrence: false };
+  }
+  if (lower === 'bi-monthly' || lower === 'bimonthly') {
+    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: 2, isSingleOccurrence: false };
+  }
+  if (lower === 'quarterly') {
+    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: 3, isSingleOccurrence: false };
+  }
+  if (lower === 'semiannually' || lower === 'semi-annually') {
+    return { frequency: Config.FREQUENCIES.MONTHLY, repeatEvery: 6, isSingleOccurrence: false };
+  }
+  if (lower === 'once' || lower === 'one-off') {
+    return { frequency: Config.FREQUENCIES.DAILY, repeatEvery: 1, isSingleOccurrence: true };
+  }
+
+  return { frequency: cleaned, repeatEvery: null, isSingleOccurrence: false };
+}
+
+function toPositiveInt_(value) {
+  if (value === '' || value === null || value === undefined) {
+    return null;
+  }
+  var num = Number(value);
+  if (!isFinite(num)) {
+    return null;
+  }
+  if (num < 1) {
+    return null;
+  }
+  return Math.floor(num);
 }
 
 function normalizeBehavior_(value) {

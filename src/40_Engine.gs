@@ -4,16 +4,14 @@ const Engine = {
     toastStep_('Starting forecast...');
     Logger.info('Run started');
     resetRunState_();
-    toastStep_('Checking active expenses...');
-    deactivateExpiredExpenses_();
     toastStep_('Checking active transfers...');
     deactivateExpiredTransfers_();
-    toastStep_('Styling inactive expenses...');
-    styleExpenseRows_();
+    toastStep_('Checking active expenses...');
+    deactivateExpiredExpenses_();
     toastStep_('Styling inactive transfers...');
     styleTransferRows_();
-    toastStep_('Updating sink fund reference...');
-    updateSinkFundReference_();
+    toastStep_('Styling inactive expenses...');
+    styleExpenseRows_();
     toastStep_('Reading input sheets...');
     Logger.info('Reading inputs...');
     var accounts = Readers.readAccounts();
@@ -21,16 +19,17 @@ const Engine = {
     var accountTypes = buildAccountTypeMap_(accounts);
     var incomeRules = Readers.readIncome();
     Logger.info('Income rules read: ' + incomeRules.length);
-    var expenseRules = Readers.readExpenses();
-    Logger.info('Expense rules read: ' + expenseRules.length);
     var transferRules = Readers.readTransfers();
     Logger.info('Transfer rules read: ' + transferRules.length);
+    var expenseRules = Readers.readExpenses();
+    Logger.info('Expense rules read: ' + expenseRules.length);
+    updateExpenseMonthlyAverages_();
 
     toastStep_('Building events...');
     Logger.info('Building events...');
     var events = Events.buildIncomeEvents(incomeRules)
-      .concat(Events.buildExpenseEvents(expenseRules))
       .concat(Events.buildTransferEvents(transferRules))
+      .concat(Events.buildExpenseEvents(expenseRules))
       .concat(Events.buildInterestEvents(accounts));
     Logger.info('Events built: ' + events.length);
 
@@ -101,7 +100,6 @@ function deactivateExpiredRows_(sheetName, label) {
   var includeIndex = headers.indexOf('Include');
   var endDateIndex = headers.indexOf('End Date');
   var startDateIndex = headers.indexOf('Start Date');
-  var freqIndex = headers.indexOf('Frequency');
   var nameIndex = headers.indexOf('Name');
 
   if (includeIndex === -1 || startDateIndex === -1) {
@@ -122,8 +120,6 @@ function deactivateExpiredRows_(sheetName, label) {
     }
     var endDate = endDateIndex !== -1 ? row[endDateIndex] : null;
     var startDate = row[startDateIndex];
-    var frequency = freqIndex !== -1 ? row[freqIndex] : null;
-
     var shouldDeactivate = false;
     var endKey = endDate ? Utilities.formatDate(normalizeDate_(endDate), tz, 'yyyy-MM-dd') : null;
     var startKey = startDate ? Utilities.formatDate(normalizeDate_(startDate), tz, 'yyyy-MM-dd') : null;
@@ -138,8 +134,6 @@ function deactivateExpiredRows_(sheetName, label) {
     }
 
     if (endKey && endKey < todayKey) {
-      shouldDeactivate = true;
-    } else if (frequency === Config.FREQUENCIES.ONCE && startKey && startKey < todayKey) {
       shouldDeactivate = true;
     }
 
@@ -197,208 +191,113 @@ function styleInactiveRows_(sheetName, label) {
   dataRange.setBackgrounds(backgrounds);
 }
 
-
-function monthlyFactorForFrequency_(frequency) {
-  switch (frequency) {
-    case Config.FREQUENCIES.DAILY:
-      return 30.44;
-    case Config.FREQUENCIES.WEEKLY:
-      return 52 / 12;
-    case Config.FREQUENCIES.FORTNIGHTLY:
-      return 26 / 12;
-    case Config.FREQUENCIES.MONTHLY:
-      return 1;
-    case Config.FREQUENCIES.BIMONTHLY:
-      return 1 / 2;
-    case Config.FREQUENCIES.QUARTERLY:
-      return 1 / 3;
-    case Config.FREQUENCIES.SEMI_ANNUALLY:
-      return 1 / 6;
-    case Config.FREQUENCIES.ANNUALLY:
-      return 1 / 12;
-    case Config.FREQUENCIES.ONCE:
-      return 1 / 12;
-    default:
-      return null;
-  }
-}
-
-function getFormulaSeparator_() {
-  var locale = SpreadsheetApp.getActive().getSpreadsheetLocale();
-  var semicolonLocales = [
-    'de',
-    'fr',
-    'es',
-    'it',
-    'pt',
-    'nl',
-    'fi',
-    'sv',
-    'da',
-    'no',
-    'ru',
-    'tr',
-    'pl',
-    'cs',
-    'sk',
-    'hu',
-    'ro',
-    'bg',
-    'hr',
-    'sl',
-    'sr',
-    'lt',
-    'lv',
-    'et',
-  ];
-  var prefix = locale ? locale.split('_')[0] : '';
-  return semicolonLocales.indexOf(prefix) !== -1 ? ';' : ',';
-}
-
-function updateSinkFundReference_() {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.LISTS_SHEET);
-  if (!sheet) {
+function updateExpenseMonthlyAverages_() {
+  var ss = SpreadsheetApp.getActive();
+  var expenseSheet = ss.getSheetByName(Config.SHEETS.EXPENSE);
+  var accountsSheet = ss.getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!expenseSheet || !accountsSheet) {
     return;
   }
 
-  var accounts = Readers.readAccounts();
-  var sinkFunds = accounts.filter(function (account) {
-    return account.sinkFund === true;
+  var expenseLastRow = expenseSheet.getLastRow();
+  var expenseLastCol = expenseSheet.getLastColumn();
+  if (expenseLastRow < 2 || expenseLastCol < 1) {
+    return;
+  }
+
+  var expenseHeaders = expenseSheet.getRange(1, 1, 1, expenseLastCol).getValues()[0];
+  var includeIdx = expenseHeaders.indexOf('Include');
+  var amountIdx = expenseHeaders.indexOf('Amount');
+  var freqIdx = expenseHeaders.indexOf('Frequency');
+  var repeatIdx = expenseHeaders.indexOf('Repeat Every');
+  var startIdx = expenseHeaders.indexOf('Start Date');
+  var endIdx = expenseHeaders.indexOf('End Date');
+  var fromIdx = expenseHeaders.indexOf('From Account');
+  var avgIdx = expenseHeaders.indexOf('Monthly Average');
+  if (
+    includeIdx === -1 ||
+    amountIdx === -1 ||
+    freqIdx === -1 ||
+    repeatIdx === -1 ||
+    fromIdx === -1 ||
+    avgIdx === -1
+  ) {
+    return;
+  }
+
+  var expenseValues = expenseSheet.getRange(2, 1, expenseLastRow - 1, expenseLastCol).getValues();
+  var avgOut = [];
+  var accountTotals = {};
+
+  expenseValues.forEach(function (row) {
+    var include = row[includeIdx] === true;
+    var amount = toNumber_(row[amountIdx]);
+    var frequency = row[freqIdx];
+    var repeatEvery = row[repeatIdx];
+    var startDate = startIdx !== -1 ? row[startIdx] : null;
+    var endDate = endIdx !== -1 ? row[endIdx] : null;
+    var fromAccount = row[fromIdx];
+
+    var recurring = isRecurringExpense_(startDate, endDate);
+    var monthlyAverage = null;
+    if (include && recurring && amount !== null && amount >= 0 && frequency) {
+      monthlyAverage = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(frequency, repeatEvery));
+      if (fromAccount) {
+        accountTotals[fromAccount] = roundUpCents_((accountTotals[fromAccount] || 0) + monthlyAverage);
+      }
+    }
+    avgOut.push([monthlyAverage === null ? '' : monthlyAverage]);
   });
-  var sinkFundNames = sinkFunds.map(function (account) {
-    return account.name;
-  });
-  var sinkFundSet = {};
-  sinkFundNames.forEach(function (name) {
-    sinkFundSet[name] = true;
-  });
 
-  var expenses = Readers.readExpenses();
-  var windowWeeks = 78; // 18 months assumed at 4.333 weeks/month
-
-  var totalInWindow = expenses.reduce(function (sum, rule) {
-    if (!rule) {
-      Logger.warn('Sink fund skip: empty rule');
-      return sum;
-    }
-    if (!rule.paidFrom || !sinkFundSet[rule.paidFrom]) {
-      return sum;
-    }
-    if (rule.behavior !== 'Expense') {
-      Logger.warn('Sink fund skip: not Expense - ' + rule.name);
-      return sum;
-    }
-    if (!rule.frequency) {
-      Logger.warn('Sink fund skip: missing frequency - ' + rule.name);
-      return sum;
-    }
-    var total = 0;
-    var count = 0;
-    var start = rule.startDate ? normalizeDate_(rule.startDate) : null;
-    var endForCalc = rule.endDate ? normalizeDate_(rule.endDate) : null;
-    if (!start) {
-      Logger.warn('Sink fund skip: missing start date - ' + rule.name);
-      return sum;
-    }
-
-    var divisorWeeks = windowWeeks;
-    if (endForCalc) {
-      var days = Math.max(1, Math.round((endForCalc.getTime() - start.getTime()) / 86400000));
-      divisorWeeks = Math.max(1, Math.round(days / 7));
-    }
-
-    if (rule.frequency === Config.FREQUENCIES.ONCE) {
-      total = rule.amount || 0;
-      count = total ? 1 : 0;
-    } else {
-      var calcEnd = endForCalc ? endForCalc : addMonthsClamped_(start, 18);
-      count = countOccurrences_(start, calcEnd, rule.frequency);
-      total = (rule.amount || 0) * count;
-    }
-
-    if (total === 0) {
-      Logger.warn('Sink fund skip: zero total - ' + rule.name + ' (count=' + count + ')');
-      return sum;
-    }
-    Logger.info(
-      'Sink fund include: ' +
-        rule.name +
-        ' amount=' +
-        rule.amount +
-        ' freq=' +
-        rule.frequency +
-        ' count=' +
-        count +
-        ' total=' +
-        total
-    );
-    return sum + total * (windowWeeks / divisorWeeks);
-  }, 0);
-
-  var weeklyTotal = totalInWindow / windowWeeks;
-
-  sheet.getRange('D1').setValue('Sink Fund Account');
-  sheet.getRange('E1').setValue('Sink Fund Amount Per Week');
-  sheet.getRange('D2').setValue(sinkFundNames.length ? sinkFundNames.join(', ') : '');
-  sheet.getRange('E2').setValue(weeklyTotal);
+  expenseSheet.getRange(2, avgIdx + 1, avgOut.length, 1).setValues(avgOut);
+  updateAccountExpenseAverageRollup_(accountsSheet, accountTotals);
 }
 
-function getSinkFundWindow_() {
-  var defaults = {
-    start: normalizeDate_(new Date()),
-    end: addMonthsClamped_(normalizeDate_(new Date()), 6),
-  };
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.LISTS_SHEET);
-  if (!sheet) {
-    return defaults;
+function updateAccountExpenseAverageRollup_(accountsSheet, totalsByAccount) {
+  var lastRow = accountsSheet.getLastRow();
+  var lastCol = accountsSheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
   }
-  var startValue = sheet.getRange('A2').getValue();
-  var endValue = sheet.getRange('B2').getValue();
-  var start = startValue ? normalizeDate_(startValue) : defaults.start;
-  var end = endValue ? normalizeDate_(endValue) : defaults.end;
-  if (start > end) {
-    return defaults;
+  var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var nameIdx = headers.indexOf('Account Name');
+  var avgIdx = headers.indexOf('Expense Avg / Month');
+  if (nameIdx === -1 || avgIdx === -1) {
+    return;
   }
-  return { start: start, end: end };
+  var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var avgValues = rows.map(function (row) {
+    var name = row[nameIdx];
+    var value = totalsByAccount[name];
+    return [value === undefined ? '' : value];
+  });
+  var nameNotes = rows.map(function (row) {
+    var name = row[nameIdx];
+    var value = totalsByAccount[name];
+    if (value === undefined) {
+      return [''];
+    }
+    return ['Expense avg/month: ' + value];
+  });
+  accountsSheet.getRange(2, avgIdx + 1, avgValues.length, 1).setValues(avgValues);
+  accountsSheet.getRange(2, nameIdx + 1, nameNotes.length, 1).setNotes(nameNotes);
 }
 
-function frequencyToAnnualFactor_(frequency) {
-  switch (frequency) {
-    case Config.FREQUENCIES.DAILY:
-      return 365;
-    case Config.FREQUENCIES.WEEKLY:
-      return 52;
-    case Config.FREQUENCIES.FORTNIGHTLY:
-      return 26;
-    case Config.FREQUENCIES.MONTHLY:
-      return 12;
-    case Config.FREQUENCIES.BIMONTHLY:
-      return 6;
-    case Config.FREQUENCIES.QUARTERLY:
-      return 4;
-    case Config.FREQUENCIES.SEMI_ANNUALLY:
-      return 2;
-    case Config.FREQUENCIES.ANNUALLY:
-      return 1;
-    case Config.FREQUENCIES.ONCE:
-      return 1;
-    default:
-      return 0;
+function isRecurringExpense_(startDateValue, endDateValue) {
+  var start = toDate_(startDateValue);
+  var end = toDate_(endDateValue);
+  if (!start || !end) {
+    return true;
   }
+  return normalizeDate_(start).getTime() !== normalizeDate_(end).getTime();
 }
 
-function countOccurrences_(start, end, frequency) {
-  if (!start || !end || start > end) {
+function monthlyFactorForRecurrence_(frequency, repeatEvery) {
+  var periodsPerYear = Recurrence.periodsPerYear(frequency, repeatEvery);
+  if (!periodsPerYear) {
     return 0;
   }
-  var count = 0;
-  var current = normalizeDate_(start);
-  var last = normalizeDate_(end);
-  while (current && current <= last) {
-    count += 1;
-    current = Recurrence.stepForward(current, frequency);
-  }
-  return count;
+  return periodsPerYear / 12;
 }
 
 function buildJournalRows_(accounts, events) {
@@ -427,7 +326,6 @@ function buildJournalRows_(accounts, events) {
         event,
         snapshots.afterFrom,
         snapshots.afterTo,
-        forecastable,
         forecastAccounts,
         accountTypes
       )
@@ -481,87 +379,10 @@ function buildForecastBalanceCells_(balances, forecastAccounts) {
   });
 }
 
-function applyEvent_(balances, event) {
-  var amount = roundUpCents_(event.amount || 0);
-
-  if (event.kind === 'Income') {
-    if (event.to) {
-      balances[event.to] = roundUpCents_((balances[event.to] || 0) + amount);
-    }
-    event.appliedAmount = amount;
-    return;
-  }
-
-  if (event.kind === 'Expense') {
-    if (event.from) {
-      balances[event.from] = roundUpCents_((balances[event.from] || 0) - amount);
-    }
-    event.appliedAmount = amount;
-    return;
-  }
-
-  if (event.kind === 'Interest') {
-    var interestAccount = event.account;
-    var interestAmount = computeInterestAmount_(balances, event);
-    event.appliedAmount = interestAmount;
-    if (interestAccount) {
-      balances[interestAccount] = roundUpCents_((balances[interestAccount] || 0) + interestAmount);
-    }
-    return;
-  }
-
-  if (event.kind === 'Transfer') {
-    if (event.behavior === 'Repayment') {
-      var target = event.to ? balances[event.to] || 0 : 0;
-      if (target < 0) {
-        var required = Math.abs(target);
-        if (amount === 0 || amount > required) {
-          amount = roundUpCents_(required);
-        }
-      } else {
-        event.appliedAmount = 0;
-        return;
-      }
-    }
-    if (event.from) {
-      balances[event.from] = roundUpCents_((balances[event.from] || 0) - amount);
-    }
-    if (event.to) {
-      balances[event.to] = roundUpCents_((balances[event.to] || 0) + amount);
-    }
-    event.appliedAmount = amount;
-  }
-}
-
-function computeTotals_(balances, accountTypes) {
-  var cash = 0;
-  var debt = 0;
-  Object.keys(balances).forEach(function (name) {
-    var amount = balances[name] || 0;
-    if (accountTypes[name] === Config.ACCOUNT_TYPES.CREDIT) {
-      debt += amount;
-    } else {
-      cash += amount;
-    }
-  });
-  return {
-    cash: roundUpCents_(cash),
-    debt: roundUpCents_(debt),
-    net: roundUpCents_(cash + debt),
-  };
-}
-
-function normalizeDate_(value) {
-  var date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
-
 function buildJournalEventRows_(
   event,
   balancesAfterFrom,
   balancesAfterTo,
-  forecastable,
   forecastAccounts,
   accountTypes
 ) {
@@ -671,22 +492,10 @@ function applyEventWithSnapshots_(balances, event) {
   }
 
   if (event.kind === 'Transfer') {
-    if (event.behavior === 'Repayment') {
-      var target = event.to ? balances[event.to] || 0 : 0;
-      if (target < 0) {
-        var required = Math.abs(target);
-        if (amount === 0 || amount > required) {
-          amount = roundUpCents_(required);
-        }
-      } else {
-        event.appliedAmount = 0;
-        event.skipJournal = true;
-        if (!runState_.creditPaidOffWarned[event.name]) {
-          Logger.warn('Credit paid off, skipping repayment: ' + event.name);
-          runState_.creditPaidOffWarned[event.name] = true;
-        }
-        return { afterFrom: pre, afterTo: pre };
-      }
+    var transferResolution = resolveTransferAmount_(balances, event, amount);
+    amount = transferResolution.amount;
+    if (transferResolution.skip) {
+      return { afterFrom: pre, afterTo: pre };
     }
 
     var afterFrom = cloneBalances_(pre);
@@ -707,6 +516,30 @@ function applyEventWithSnapshots_(balances, event) {
   return { afterFrom: pre, afterTo: pre };
 }
 
+function resolveTransferAmount_(balances, event, amount) {
+  if (event.behavior !== 'Repayment') {
+    return { amount: amount, skip: false };
+  }
+
+  var target = event.to ? balances[event.to] || 0 : 0;
+  if (target >= 0) {
+    event.appliedAmount = 0;
+    event.skipJournal = true;
+    if (!runState_.creditPaidOffWarned[event.name]) {
+      Logger.warn('Credit paid off, skipping repayment: ' + event.name);
+      runState_.creditPaidOffWarned[event.name] = true;
+    }
+    return { amount: 0, skip: true };
+  }
+
+  var required = Math.abs(target);
+  var resolvedAmount = amount;
+  if (resolvedAmount === 0 || resolvedAmount > required) {
+    resolvedAmount = roundUpCents_(required);
+  }
+  return { amount: resolvedAmount, skip: false };
+}
+
 function computeInterestAmount_(balances, event) {
   if (!event) {
     return 0;
@@ -720,7 +553,7 @@ function computeInterestAmount_(balances, event) {
     return 0;
   }
   var frequency = event.frequency;
-  var periodsPerYear = frequencyToAnnualFactor_(frequency);
+  var periodsPerYear = Recurrence.periodsPerYear(frequency, event.repeatEvery);
   if (!periodsPerYear) {
     return 0;
   }

@@ -31,34 +31,34 @@ function loadDefaultData() {
   var dateStr = Utilities.formatDate(today, ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
 
   var accounts = [
-    ['Savings', 5000, Config.ACCOUNT_TYPES.CASH, true, false, '', '', '', '', ''],
-    ['Everyday', 1500, Config.ACCOUNT_TYPES.CASH, true, false, '', '', '', '', ''],
-    ['Credit Card', -1200, Config.ACCOUNT_TYPES.CREDIT, true, false, '', '', '', '', ''],
-    ['Car Loan', -15000, Config.ACCOUNT_TYPES.CREDIT, true, false, '', '', '', '', ''],
-    ['Sink Fund', 0, Config.ACCOUNT_TYPES.CASH, true, true, '', '', '', '', ''],
+    ['Savings', 5000, Config.ACCOUNT_TYPES.CASH, true, false, '', '', '', '', '', '', ''],
+    ['Everyday', 1500, Config.ACCOUNT_TYPES.CASH, true, false, '', '', '', '', '', '', ''],
+    ['Credit Card', -1200, Config.ACCOUNT_TYPES.CREDIT, true, false, '', '', '', '', '', '', ''],
+    ['Car Loan', -15000, Config.ACCOUNT_TYPES.CREDIT, true, false, '', '', '', '', '', '', ''],
+    ['Sink Fund', 0, Config.ACCOUNT_TYPES.CASH, true, true, '', '', '', '', '', '', ''],
   ];
 
   var income = [
-    [true, 'Salary', 3500, Config.FREQUENCIES.FORTNIGHTLY, dateStr, '', 'Savings', ''],
+    [true, 'Salary', 3500, Config.FREQUENCIES.DAILY, 14, dateStr, '', 'Savings', ''],
   ];
 
   var expenses = [
-    [true, '01. Utilities', 'Rent', 1800, Config.FREQUENCIES.MONTHLY, dateStr, '', 'Savings', ''],
-    [true, '01. Utilities', 'Electricity', 120, Config.FREQUENCIES.MONTHLY, dateStr, '', 'Credit Card', ''],
-    [true, '01. Utilities', 'Internet', 75, Config.FREQUENCIES.MONTHLY, dateStr, '', 'Credit Card', ''],
-    [true, '02. Living', 'Groceries', 180, Config.FREQUENCIES.WEEKLY, dateStr, '', 'Credit Card', ''],
-    [true, '02. Living', 'Fuel', 120, Config.FREQUENCIES.FORTNIGHTLY, dateStr, '', 'Credit Card', ''],
-    [true, '05. Luxury', 'Streaming', 25, Config.FREQUENCIES.MONTHLY, dateStr, '', 'Credit Card', ''],
-    [true, '04. Car Expense', 'Car Registration', 900, Config.FREQUENCIES.SEMI_ANNUALLY, dateStr, '', 'Sink Fund', ''],
-    [true, '04. Car Expense', 'Car Insurance', 1500, Config.FREQUENCIES.ANNUALLY, dateStr, '', 'Sink Fund', ''],
-    [true, '04. Car Expense', 'Car Maintenance', 500, Config.FREQUENCIES.ANNUALLY, dateStr, '', 'Sink Fund', ''],
-    [true, '05. Luxury', 'Holiday', 2000, Config.FREQUENCIES.ANNUALLY, dateStr, '', 'Sink Fund', ''],
+    [true, '01. Utilities', 'Rent', 1800, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', '', ''],
+    [true, '01. Utilities', 'Electricity', 120, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Credit Card', '', ''],
+    [true, '01. Utilities', 'Internet', 75, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Credit Card', '', ''],
+    [true, '02. Living', 'Groceries', 180, Config.FREQUENCIES.DAILY, 7, dateStr, '', 'Credit Card', '', ''],
+    [true, '02. Living', 'Fuel', 120, Config.FREQUENCIES.DAILY, 14, dateStr, '', 'Credit Card', '', ''],
+    [true, '05. Luxury', 'Streaming', 25, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Credit Card', '', ''],
+    [true, '04. Car Expense', 'Car Registration', 900, Config.FREQUENCIES.MONTHLY, 6, dateStr, '', 'Sink Fund', '', ''],
+    [true, '04. Car Expense', 'Car Insurance', 1500, Config.FREQUENCIES.YEARLY, 1, dateStr, '', 'Sink Fund', '', ''],
+    [true, '04. Car Expense', 'Car Maintenance', 500, Config.FREQUENCIES.YEARLY, 1, dateStr, '', 'Sink Fund', '', ''],
+    [true, '05. Luxury', 'Holiday', 2000, Config.FREQUENCIES.YEARLY, 1, dateStr, '', 'Sink Fund', '', ''],
   ];
 
   var transfers = [
-    [true, 'Repayment', 'Credit Card Repayment', 0, Config.FREQUENCIES.MONTHLY, dateStr, '', 'Savings', 'Credit Card', 'Auto-clear'],
-    [true, 'Repayment', 'Car Loan Repayment', 420, Config.FREQUENCIES.MONTHLY, dateStr, '', 'Savings', 'Car Loan', ''],
-    [true, 'Transfer', 'Sink Fund Top-up', 150, Config.FREQUENCIES.FORTNIGHTLY, dateStr, '', 'Savings', 'Sink Fund', ''],
+    [true, 'Repayment', 'Credit Card Repayment', 0, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', 'Credit Card', 'Auto-clear'],
+    [true, 'Repayment', 'Car Loan Repayment', 420, Config.FREQUENCIES.MONTHLY, 1, dateStr, '', 'Savings', 'Car Loan', ''],
+    [true, 'Transfer', 'Sink Fund Top-up', 150, Config.FREQUENCIES.DAILY, 14, dateStr, '', 'Savings', 'Sink Fund', ''],
   ];
 
   accountsSheet.getRange(2, 1, accounts.length, accounts[0].length).setValues(accounts);
