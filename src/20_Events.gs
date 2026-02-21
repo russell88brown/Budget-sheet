@@ -12,7 +12,7 @@ const Events = {
         return {
           date: date,
           kind: 'Income',
-          behavior: 'Income',
+          behavior: rule.type || 'Income',
           name: rule.name,
           category: null,
           from: null,
@@ -36,9 +36,9 @@ const Events = {
         return {
           date: date,
           kind: 'Expense',
-          behavior: Config.BEHAVIOR_LABELS.Expense,
+          behavior: rule.type || Config.BEHAVIOR_LABELS.Expense,
           name: rule.name,
-          category: rule.category,
+          category: rule.type,
           from: rule.paidFrom,
           to: 'External',
           amount: rule.amount,
@@ -59,7 +59,8 @@ const Events = {
         return {
           date: date,
           kind: 'Transfer',
-          behavior: rule.behavior,
+          behavior: rule.type || rule.behavior,
+          transferBehavior: rule.type || rule.behavior,
           name: rule.name,
           category: null,
           from: rule.paidFrom,

@@ -42,6 +42,7 @@ const Readers = {
           row['End Date']
         );
         return {
+          type: row['Type'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
           frequency: recurrence.frequency,
@@ -69,7 +70,7 @@ const Readers = {
           row['End Date']
         );
         return {
-          category: row['Category'],
+          type: row['Type'],
           name: row['Name'],
           amount: toNumber_(row['Amount']),
           frequency: recurrence.frequency,
@@ -99,8 +100,10 @@ const Readers = {
           row['End Date']
         );
         var amount = toNumber_(row['Amount']);
+        var transferType = normalizeTransferType_(row['Type'], amount);
         return {
-          behavior: normalizeTransferType_(row['Transfer Type'], amount),
+          type: transferType,
+          behavior: transferType,
           name: row['Name'],
           amount: amount,
           frequency: recurrence.frequency,

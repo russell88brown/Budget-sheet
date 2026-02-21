@@ -95,6 +95,7 @@ function loadDefaultData() {
   var income = [
     {
       Include: true,
+      Type: 'Salary',
       Name: 'Salary',
       Amount: 3500,
       Frequency: Config.FREQUENCIES.DAILY,
@@ -104,6 +105,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
+      Type: 'Other Income',
       Name: 'Allowance',
       Amount: 500,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -113,6 +115,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
+      Type: 'Other Income',
       Name: 'Tax Refund',
       Amount: 1200,
       Frequency: Config.FREQUENCIES.ONCE,
@@ -127,7 +130,7 @@ function loadDefaultData() {
   var expenses = [
     {
       Include: true,
-      Category: '01. Utilities',
+      Type: '01. Utilities',
       Name: 'Rent',
       Amount: 1800,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -137,7 +140,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '01. Utilities',
+      Type: '01. Utilities',
       Name: 'Electricity',
       Amount: 120,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -147,7 +150,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '01. Utilities',
+      Type: '01. Utilities',
       Name: 'Internet',
       Amount: 75,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -157,7 +160,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '02. Living',
+      Type: '02. Living',
       Name: 'Groceries',
       Amount: 180,
       Frequency: Config.FREQUENCIES.DAILY,
@@ -167,7 +170,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '02. Living',
+      Type: '02. Living',
       Name: 'Fuel',
       Amount: 240,
       Frequency: Config.FREQUENCIES.DAILY,
@@ -177,7 +180,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '05. Luxury',
+      Type: '05. Luxury',
       Name: 'Streaming',
       Amount: 25,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -187,7 +190,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '04. Car Expense',
+      Type: '04. Car Expense',
       Name: 'Car Registration',
       Amount: 900,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -197,7 +200,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '04. Car Expense',
+      Type: '04. Car Expense',
       Name: 'Car Insurance',
       Amount: 1500,
       Frequency: Config.FREQUENCIES.YEARLY,
@@ -207,7 +210,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '04. Car Expense',
+      Type: '04. Car Expense',
       Name: 'Car Maintenance',
       Amount: 500,
       Frequency: Config.FREQUENCIES.YEARLY,
@@ -217,7 +220,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '05. Luxury',
+      Type: '05. Luxury',
       Name: 'Holiday',
       Amount: 2000,
       Frequency: Config.FREQUENCIES.YEARLY,
@@ -227,7 +230,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      Category: '05. Luxury',
+      Type: '05. Luxury',
       Name: 'Laptop Upgrade',
       Amount: 1800,
       Frequency: Config.FREQUENCIES.ONCE,
@@ -242,7 +245,7 @@ function loadDefaultData() {
   var transfers = [
     {
       Include: true,
-      'Transfer Type': Config.TRANSFER_TYPES.REPAYMENT_ALL,
+      Type: Config.TRANSFER_TYPES.REPAYMENT_ALL,
       Name: 'Credit Card Repayment',
       Amount: 0,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -254,7 +257,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      'Transfer Type': Config.TRANSFER_TYPES.REPAYMENT_AMOUNT,
+      Type: Config.TRANSFER_TYPES.REPAYMENT_AMOUNT,
       Name: 'Car Loan Repayment',
       Amount: 420,
       Frequency: Config.FREQUENCIES.MONTHLY,
@@ -265,7 +268,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      'Transfer Type': Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+      Type: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
       Name: 'Weekly Buffer Transfer',
       Amount: 150,
       Frequency: Config.FREQUENCIES.DAILY,
@@ -276,7 +279,7 @@ function loadDefaultData() {
     },
     {
       Include: true,
-      'Transfer Type': Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
+      Type: Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
       Name: 'Sweep to High Yield',
       Amount: 2000,
       Frequency: Config.FREQUENCIES.MONTHLY,

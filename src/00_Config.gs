@@ -47,6 +47,7 @@ const Config = {
   NAMED_RANGES: {
     ACCOUNT_NAMES: 'AccountNames',
     CATEGORIES: 'ExpenseCategories',
+    INCOME_TYPES: 'IncomeTypes',
     FORECAST_START: 'ForecastStartDate',
     FORECAST_END: 'ForecastEndDate',
   },

@@ -149,45 +149,38 @@ function applyJournalConditionalFormatting_(sheet, forecastAccounts, accountType
   });
 
   var startRow = 2;
-  var endRow = startRow + rowCount - 1;
-  var newRules = [];
-
-  var nameCol = headerIndex['Name'];
-  var alertCol = headerIndex['Alerts'];
-  if (nameCol && alertCol) {
-    var alertRange = sheet.getRange(startRow, nameCol, endRow - startRow + 1, 1);
-    newRules.push(
-      SpreadsheetApp.newConditionalFormatRule()
-        .whenFormulaSatisfied('=$' + columnToLetter_(alertCol) + startRow + '=\"NEGATIVE_CASH\"')
-        .setFontColor('#8b0000')
-        .setRanges([alertRange])
-        .build()
-    );
+  var accountStartCol = headerIndex[forecastAccounts[0]];
+  if (!accountStartCol) {
+    return;
   }
-  forecastAccounts.forEach(function (accountName) {
-    var col = headerIndex[accountName];
-    if (!col) {
-      return;
-    }
-    var range = sheet.getRange(startRow, col, endRow - startRow + 1, 1);
-    if (accountTypes[accountName] === Config.ACCOUNT_TYPES.CREDIT) {
-      newRules.push(
-        SpreadsheetApp.newConditionalFormatRule()
-          .whenNumberGreaterThanOrEqualTo(0)
-          .setBackground('#d4edda')
-          .setRanges([range])
-          .build()
-      );
-    } else {
-      newRules.push(
-        SpreadsheetApp.newConditionalFormatRule()
-          .whenNumberLessThan(0)
-          .setBackground('#f8d7da')
-          .setRanges([range])
-          .build()
-      );
-    }
-  });
+  var accountRange = sheet.getRange(startRow, accountStartCol, rowCount, forecastAccounts.length);
+  var newRules = [
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=AND($B' + startRow + '<>\"\",$B' + startRow + '=INDEX($1:$1,COLUMN()))')
+      .setFontColor('#0b57d0')
+      .setRanges([accountRange])
+      .build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(
+        '=AND(ROW()>' +
+          startRow +
+          ',INDIRECT(ADDRESS(ROW()-1,COLUMN()))<0,INDIRECT(ADDRESS(ROW(),COLUMN()))>=0)'
+      )
+      .setBackground('#d4edda')
+      .setFontColor('#0f5132')
+      .setRanges([accountRange])
+      .build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(
+        '=AND(ROW()>' +
+          startRow +
+          ',INDIRECT(ADDRESS(ROW()-1,COLUMN()))>0,INDIRECT(ADDRESS(ROW(),COLUMN()))<0)'
+      )
+      .setBackground('#f8d7da')
+      .setFontColor('#8b0000')
+      .setRanges([accountRange])
+      .build(),
+  ];
 
   sheet.setConditionalFormatRules(filtered.concat(newRules));
 }

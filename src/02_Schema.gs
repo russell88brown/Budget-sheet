@@ -102,6 +102,7 @@ const Schema = {
           description: 'Computed monthly equivalent for this row',
           format: '0.00',
         },
+        { name: 'Type', type: 'income_type', required: true, description: 'Salary / Other Income' },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: '> 0', format: '0.00' },
         {
@@ -135,7 +136,7 @@ const Schema = {
           description: 'Computed monthly equivalent for this row',
           format: '0.00',
         },
-        { name: 'Category', type: 'category', required: false, description: 'Reporting' },
+        { name: 'Type', type: 'category', required: true, description: 'Expense type/category' },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: '>= 0', format: '0.00' },
         {
@@ -182,7 +183,7 @@ const Schema = {
           format: '0.00',
         },
         {
-          name: 'Transfer Type',
+          name: 'Type',
           type: 'enum',
           required: true,
           description: 'Repayment/Transfer behavior mode',
@@ -234,7 +235,7 @@ const Schema = {
           name: 'Transaction Type',
           type: 'enum',
           required: true,
-          description: 'Income / Expense / Transfer / Interest',
+          description: 'Source Type from Income/Expense/Transfer (plus Opening/Interest system entries)',
         },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: 'Event amount', format: '0.00' },

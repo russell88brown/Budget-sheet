@@ -218,6 +218,9 @@ function validateAccountsSheet_() {
 function validateIncomeSheet_(validAccounts) {
   validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
     var reasons = [];
+    if (!row[indexes.type]) {
+      reasons.push('missing type');
+    }
     if (!row[indexes.name]) {
       reasons.push('missing name');
     }
@@ -288,6 +291,9 @@ function validateTransferSheet_(validAccounts) {
 function validateExpenseSheet_(validAccounts) {
   validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
     var reasons = [];
+    if (!row[indexes.type]) {
+      reasons.push('missing type');
+    }
     if (!row[indexes.name]) {
       reasons.push('missing name');
     }
@@ -325,7 +331,7 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var indexes = {
     include: headers.indexOf('Include'),
-    type: headers.indexOf('Transfer Type'),
+    type: headers.indexOf('Type'),
     name: headers.indexOf('Name'),
     amount: headers.indexOf('Amount'),
     frequency: headers.indexOf('Frequency'),
@@ -337,6 +343,7 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
 
   if (
     indexes.include === -1 ||
+    indexes.type === -1 ||
     indexes.name === -1 ||
     indexes.amount === -1 ||
     indexes.frequency === -1 ||
@@ -488,7 +495,7 @@ function normalizeTransferRows_() {
   }
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var typeIdx = headers.indexOf('Transfer Type');
+  var typeIdx = headers.indexOf('Type');
   var amountIdx = headers.indexOf('Amount');
   if (typeIdx === -1 || amountIdx === -1) {
     return;
@@ -1079,7 +1086,7 @@ function updateTransferMonthlyTotals_(incomeTotalsByAccount, expenseTotalsByAcco
   }
   var headers = transferSheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIdx = headers.indexOf('Include');
-  var typeIdx = headers.indexOf('Transfer Type');
+  var typeIdx = headers.indexOf('Type');
   var amountIdx = headers.indexOf('Amount');
   var freqIdx = headers.indexOf('Frequency');
   var repeatIdx = headers.indexOf('Repeat Every');
@@ -1448,7 +1455,7 @@ function applyEventWithSnapshots_(balances, event) {
 }
 
 function resolveTransferAmount_(balances, event, amount) {
-  var transferType = event.behavior;
+  var transferType = event.transferBehavior || event.behavior;
 
   if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
     var sourceBalance = event.from ? balances[event.from] || 0 : 0;
