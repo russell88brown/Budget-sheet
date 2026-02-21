@@ -819,13 +819,39 @@ function eventSortPriority_(event) {
   if (!event || !event.kind) {
     return 50;
   }
-  if (event.kind === 'Interest' && event.interestAccrual === true) {
+  if (event.kind === 'Income') {
+    return 0;
+  }
+  if (event.kind === 'Transfer') {
+    var transferPriority = transferBehaviorSortPriority_(event.behavior);
+    return 10 + transferPriority;
+  }
+  if (event.kind === 'Expense') {
     return 20;
   }
-  if (event.kind === 'Interest') {
+  if (event.kind === 'Interest' && event.interestAccrual === true) {
     return 30;
   }
+  if (event.kind === 'Interest') {
+    return 40;
+  }
   return 10;
+}
+
+function transferBehaviorSortPriority_(behavior) {
+  if (behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
+    return 0;
+  }
+  if (behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT) {
+    return 1;
+  }
+  if (behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
+    return 2;
+  }
+  if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+    return 3;
+  }
+  return 9;
 }
 
 function updateExpenseMonthlyAverages_() {
