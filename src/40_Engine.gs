@@ -176,10 +176,12 @@ function validateAccountsSheet_() {
   var includeIdx = headers.indexOf('Include');
   var typeIdx = headers.indexOf('Type');
   var balanceIdx = headers.indexOf('Balance');
+  var coverIdx = headers.indexOf('Cover Deficit From');
   if (nameIdx === -1 || includeIdx === -1 || typeIdx === -1 || balanceIdx === -1) {
     return buildAccountLookup_();
   }
 
+  var validAccounts = buildAccountLookup_();
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var seen = {};
 
@@ -206,13 +208,23 @@ function validateAccountsSheet_() {
     if (balance === null) {
       reasons.push('invalid balance');
     }
+    if (coverIdx !== -1 && row[coverIdx]) {
+      var coverFrom = normalizeAccountLookupKey_(row[coverIdx]);
+      var accountKey = normalizeAccountLookupKey_(name);
+      if (coverFrom && !validAccounts[coverFrom]) {
+        reasons.push('invalid cover deficit account');
+      }
+      if (coverFrom && accountKey && coverFrom === accountKey) {
+        reasons.push('cover deficit account cannot match account');
+      }
+    }
 
     if (reasons.length) {
       Logger.warn('Account invalid: row ' + (idx + 2) + ' [' + reasons.join(', ') + ']');
     }
   });
 
-  return buildAccountLookup_();
+  return validAccounts;
 }
 
 function validateIncomeSheet_(validAccounts) {
@@ -1247,6 +1259,7 @@ function buildJournalRows_(accounts, events) {
   var balances = buildBalanceMap_(accounts);
   var forecastable = buildForecastableMap_(accounts);
   var accountTypes = buildAccountTypeMap_(accounts);
+  var coverDeficitFrom = buildCoverDeficitMap_(accounts);
   var forecastAccounts = accounts
     .filter(function (account) {
       return forecastable[account.name];
@@ -1271,6 +1284,16 @@ function buildJournalRows_(accounts, events) {
         snapshots.afterTo,
         forecastAccounts,
         accountTypes
+      )
+    );
+    rows = rows.concat(
+      applyAutoCoverRows_(
+        balances,
+        event.date,
+        accounts,
+        accountTypes,
+        coverDeficitFrom,
+        forecastAccounts
       )
     );
   });
@@ -1304,6 +1327,14 @@ function buildAccountTypeMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
+  });
+  return map;
+}
+
+function buildCoverDeficitMap_(accounts) {
+  var map = {};
+  accounts.forEach(function (account) {
+    map[account.name] = account.coverDeficitFrom || '';
   });
   return map;
 }
@@ -1458,6 +1489,82 @@ function applyEventWithSnapshots_(balances, event) {
   }
 
   return { afterFrom: pre, afterTo: pre };
+}
+
+function applyAutoCoverRows_(
+  balances,
+  eventDate,
+  accounts,
+  accountTypes,
+  coverDeficitFrom,
+  forecastAccounts
+) {
+  var rows = [];
+  var maxIterations = accounts.length * 2;
+  var iteration = 0;
+
+  while (iteration < maxIterations) {
+    var progressed = false;
+    for (var i = 0; i < accounts.length; i += 1) {
+      var account = accounts[i];
+      if (!account || !account.name) {
+        continue;
+      }
+      if (accountTypes[account.name] === Config.ACCOUNT_TYPES.CREDIT) {
+        continue;
+      }
+      var currentBalance = roundUpCents_(balances[account.name] || 0);
+      if (currentBalance >= 0) {
+        continue;
+      }
+      var sourceAccount = (coverDeficitFrom[account.name] || '').toString().trim();
+      if (!sourceAccount || sourceAccount === account.name) {
+        continue;
+      }
+      if (balances[sourceAccount] === undefined) {
+        continue;
+      }
+      var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
+      if (available <= 0) {
+        continue;
+      }
+      var needed = roundUpCents_(Math.abs(currentBalance));
+      var amount = roundUpCents_(Math.min(needed, available));
+      if (amount <= 0) {
+        continue;
+      }
+
+      var coverEvent = {
+        date: eventDate,
+        kind: 'Transfer',
+        behavior: 'Auto Cover Deficit',
+        transferBehavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+        name: 'Auto cover ' + account.name,
+        from: sourceAccount,
+        to: account.name,
+        amount: amount,
+      };
+      var snapshots = applyEventWithSnapshots_(balances, coverEvent);
+      if (!coverEvent.skipJournal) {
+        rows = rows.concat(
+          buildJournalEventRows_(
+            coverEvent,
+            snapshots.afterFrom,
+            snapshots.afterTo,
+            forecastAccounts,
+            accountTypes
+          )
+        );
+      }
+      progressed = true;
+    }
+    if (!progressed) {
+      break;
+    }
+    iteration += 1;
+  }
+
+  return rows;
 }
 
 function resolveTransferAmount_(balances, event, amount) {

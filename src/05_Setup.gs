@@ -530,6 +530,7 @@ function applyAccountsTheme_(spreadsheet) {
     'Interest Frequency',
     'Interest Repeat Every',
     'Interest Start Date',
+    'Cover Deficit From',
   ];
 
   colorHeaderGroup_(sheet, headers, coreHeaders, '#e8f0fe');

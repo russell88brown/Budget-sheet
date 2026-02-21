@@ -24,6 +24,7 @@ const Readers = {
           interestPostingFrequency: interestRecurrence.frequency,
           interestPostingRepeatEvery: interestRecurrence.repeatEvery,
           interestPostingStartDate: interestRecurrence.startDate,
+          coverDeficitFrom: row['Cover Deficit From'],
         };
       });
   },

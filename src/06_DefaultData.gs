@@ -53,6 +53,7 @@ function loadDefaultData() {
       Balance: 1500,
       Type: Config.ACCOUNT_TYPES.CASH,
       Include: true,
+      'Cover Deficit From': 'Savings',
     },
     {
       'Account Name': 'High Yield',

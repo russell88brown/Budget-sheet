@@ -89,6 +89,12 @@ const Schema = {
           description: 'First interest posting date',
           format: 'yyyy-mm-dd',
         },
+        {
+          name: 'Cover Deficit From',
+          type: 'ref',
+          required: false,
+          description: 'Optional source account used to auto-cover negative cash balances',
+        },
       ],
     },
     {
