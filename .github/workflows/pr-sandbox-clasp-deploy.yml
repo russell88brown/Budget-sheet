@@ -1,14 +1,10 @@
 name: PR Sandbox Deploy (clasp)
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
 
 permissions:
   contents: read
@@ -20,7 +16,7 @@ concurrency:
 jobs:
   deploy-sandbox:
     # Secrets are not available to forked PRs; skip safely.
-    if: github.event.pull_request.head.repo.fork == false && github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     env:
       CLASP_SANDBOX_SCRIPT_ID: ${{ secrets.CLASP_SANDBOX_SCRIPT_ID }}
