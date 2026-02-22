@@ -1,5 +1,5 @@
 // Centralized configuration and enums for the forecast engine.
-// 2026-02-22T10:53:23.9371653+11:00
+// BUILD_TIMESTAMP: '2026-02-22T00:00:00Z'
 const Config = {
   SHEETS: {
     DASHBOARD: 'Dashboard',
