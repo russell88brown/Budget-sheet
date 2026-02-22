@@ -70,3 +70,6 @@ If you want pull requests to `main` to deploy `src/` to a sandbox Apps Script pr
 - `CLASP_OAUTH_CREDENTIALS`: JSON content of your local `~/.clasprc.json` after `clasp login`.
 
 The workflow should create `.clasp.json` at runtime using the sandbox script ID, then run `clasp push --force`.
+## CI automation
+
+For GitHub Actions deploy/test flows and required secrets, see `docs/CI.md`.
