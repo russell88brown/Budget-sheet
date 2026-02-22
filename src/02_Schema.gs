@@ -97,6 +97,7 @@ const Schema = {
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Enable this policy rule' },
         { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Policy Type',
           type: 'enum',
@@ -132,6 +133,7 @@ const Schema = {
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in planning' },
         { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         { name: 'Goal Name', type: 'string', required: true, description: 'Goal label' },
         { name: 'Target Amount', type: 'number', required: true, description: 'Goal target amount', format: '0.00' },
         { name: 'Target Date', type: 'date', required: true, description: 'Target completion date', format: 'yyyy-mm-dd' },
@@ -154,6 +156,7 @@ const Schema = {
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Enable this risk profile row' },
         { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         { name: 'Scenario Name', type: 'string', required: true, description: 'Scenario label' },
         { name: 'Emergency Buffer Account', type: 'ref', required: false, description: 'Account to preserve buffer in' },
         { name: 'Emergency Buffer Minimum', type: 'number', required: false, description: 'Minimum balance floor', format: '0.00' },
@@ -167,6 +170,7 @@ const Schema = {
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
         { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Monthly Total',
           type: 'number',
@@ -202,6 +206,7 @@ const Schema = {
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
         { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Monthly Total',
           type: 'number',
@@ -249,6 +254,7 @@ const Schema = {
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
         { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Monthly Total',
           type: 'number',
@@ -314,6 +320,7 @@ const Schema = {
         },
         { name: 'Name', type: 'string', required: true, description: 'Label' },
         { name: 'Amount', type: 'number', required: true, description: 'Event amount', format: '0.00' },
+        { name: 'Source Rule ID', type: 'string', required: false, description: 'Originating input rule identifier' },
         { name: 'Alerts', type: 'string', required: false, description: 'Engine flags' },
       ],
     },

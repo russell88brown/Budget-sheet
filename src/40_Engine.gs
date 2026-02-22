@@ -139,6 +139,7 @@ function preprocessInputSheets_() {
   normalizeAccountRows_();
   normalizeTransferRows_();
   normalizeRecurrenceRows_();
+  assignMissingRuleIds_();
   toastStep_('Reviewing and validating input sheets...');
   var validationReport = reviewAndCleanupInputSheets_();
   toastStep_('Applying date-based include flags...');
@@ -151,6 +152,98 @@ function preprocessInputSheets_() {
       ? validationReport.scenarioValidation
       : { totalDisabled: 0, bySheet: {} },
   };
+}
+
+function assignMissingRuleIds_() {
+  var prefixesBySheet = {};
+  prefixesBySheet[Config.SHEETS.INCOME] = 'INC';
+  prefixesBySheet[Config.SHEETS.EXPENSE] = 'EXP';
+  prefixesBySheet[Config.SHEETS.TRANSFERS] = 'TRN';
+  prefixesBySheet[Config.SHEETS.POLICIES] = 'POL';
+  prefixesBySheet[Config.SHEETS.GOALS] = 'GOL';
+  prefixesBySheet[Config.SHEETS.RISK] = 'RSK';
+
+  var totalAssigned = 0;
+  Object.keys(prefixesBySheet).forEach(function (sheetName) {
+    totalAssigned += assignMissingRuleIdsForSheet_(sheetName, prefixesBySheet[sheetName]);
+  });
+  if (totalAssigned > 0) {
+    toastStep_('Assigned ' + totalAssigned + ' missing Rule ID value(s).');
+  }
+}
+
+function assignMissingRuleIdsForSheet_(sheetName, prefix) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  if (!sheet) {
+    return 0;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return 0;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var ruleIdIdx = headers.indexOf('Rule ID');
+  if (ruleIdIdx === -1) {
+    return 0;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var existing = {};
+  values.forEach(function (row) {
+    var id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+    if (id) {
+      existing[id] = true;
+    }
+  });
+
+  var nextNumber = 1;
+  var assigned = 0;
+  values.forEach(function (row) {
+    var current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+    if (current) {
+      return;
+    }
+    if (!hasMeaningfulRowDataForRuleId_(row, ruleIdIdx)) {
+      return;
+    }
+
+    var candidate = '';
+    while (!candidate) {
+      var serial = ('00000' + nextNumber).slice(-5);
+      var trial = prefix + '-' + serial;
+      nextNumber += 1;
+      if (!existing[trial]) {
+        candidate = trial;
+      }
+    }
+    row[ruleIdIdx] = candidate;
+    existing[candidate] = true;
+    assigned += 1;
+  });
+
+  if (assigned > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
+  return assigned;
+}
+
+function hasMeaningfulRowDataForRuleId_(row, ruleIdIdx) {
+  for (var i = 0; i < row.length; i += 1) {
+    if (i === ruleIdIdx) {
+      continue;
+    }
+    var value = row[i];
+    if (value === null || value === '') {
+      continue;
+    }
+    if (value === false) {
+      continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 function reviewAndCleanupInputSheets_() {
@@ -2023,14 +2116,15 @@ function runJournalForScenarioIds_(scenarioIds) {
     });
 
     var combinedRows = [];
+    var baseColumnCount = getJournalBaseColumnCount_();
     artifacts.forEach(function (artifact) {
       var localIndex = {};
       (artifact.forecastAccounts || []).forEach(function (name, idx) {
         localIndex[name] = idx;
       });
       (artifact.rows || []).forEach(function (row) {
-        var base = row.slice(0, 7);
-        var localSnapshot = row.slice(7);
+        var base = row.slice(0, baseColumnCount);
+        var localSnapshot = row.slice(baseColumnCount);
         var aligned = globalForecastAccounts.map(function (name) {
           var idx = localIndex[name];
           if (idx === undefined) {
@@ -2054,6 +2148,18 @@ function runJournalForScenarioIds_(scenarioIds) {
   }
 }
 
+function getJournalBaseColumnCount_() {
+  if (typeof Schema !== 'undefined' && Schema && Array.isArray(Schema.outputs)) {
+    var journalSpec = Schema.outputs.filter(function (spec) {
+      return spec && spec.name === Config.SHEETS.JOURNAL;
+    })[0];
+    if (journalSpec && Array.isArray(journalSpec.columns) && journalSpec.columns.length) {
+      return journalSpec.columns.length;
+    }
+  }
+  return 8;
+}
+
 function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId) {
   return CoreApplyEvents.buildJournalRows({
     accounts: accounts || [],
@@ -2074,6 +2180,7 @@ function buildOpeningRows_(accounts, date, forecastAccounts, balances, scenarioI
       'Opening',
       'Opening Balance',
       account.balance || 0,
+      '',
       '',
     ].concat(balanceSnapshot);
   });
@@ -2149,6 +2256,7 @@ function buildJournalEventRows_(
         transactionType,
         event.name,
         rowAmount,
+        event.sourceRuleId || '',
         buildAlerts_(cashNegative, creditPaidOff, event.alertTag),
       ].concat(snapshot);
     });
@@ -2175,6 +2283,7 @@ function buildJournalEventRows_(
       transactionType,
       event.name,
       signedAmount,
+      event.sourceRuleId || '',
       buildAlerts_(cashNegative, creditPaidOff, event.alertTag),
     ].concat(balanceSnapshotTo),
   ];
@@ -2339,6 +2448,7 @@ function applyAutoDeficitCoverRowsBeforeEvent_(
       from: sourceAccount,
       to: coveredAccount,
       amount: amount,
+      sourceRuleId: policy.ruleId || ('POL:' + (policy.name || 'AUTO_DEFICIT_COVER')),
       alertTag: 'AUTO_DEFICIT_COVER',
     };
     var snapshots = applyEventWithSnapshots_(balances, coverEvent);

@@ -15,6 +15,12 @@ Two layers:
 
 The workbook is the source of truth. Outputs are deterministically regenerated on each run; there is no hidden state in code.
 
+### Current program of work
+
+- Week 1 (completed): extract domain core for event compile/apply, keep behavior unchanged, add deterministic fixture runners.
+- Week 2 (in progress): add stable rule traceability (`Rule ID` -> `Source Rule ID`) while keeping explainability intentionally minimal.
+- Next: scenario comparison metrics and onboarding/sanity checks.
+
 ---
 
 ## 2) Sheet Model
@@ -27,28 +33,28 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Include: boolean, controls whether account appears in forecast outputs
 
 #### Income
-- Columns: Include, Name, Amount, Frequency, Repeat Every, Start Date, End Date, To Account, Notes
+- Columns: Include, Scenario, Rule ID, Monthly Total, Type, Name, Amount, Frequency, Repeat Every, Start Date, End Date, To Account, Notes
 - Include: boolean, if false rule is ignored
 - Frequency: enum (Daily, Monthly, Yearly)
 
 #### Expense
-- Columns: Include, Category, Name, Amount, Frequency, Repeat Every, Start Date, End Date, From Account, Notes, Monthly Average
+- Columns: Include, Scenario, Rule ID, Monthly Total, Type, Name, Amount, Frequency, Repeat Every, Start Date, End Date, From Account, Notes
 
 #### Transfers
-- Columns: Include, Transfer Type, Name, Amount, Frequency, Repeat Every, Start Date, End Date, From Account, To Account, Notes
+- Columns: Include, Scenario, Rule ID, Monthly Total, Type, Name, Amount, Frequency, Repeat Every, Start Date, End Date, From Account, To Account, Notes
 - Transfer Type: enum { Repayment - Amount, Repayment - All, Transfer - Amount, Transfer - Everything Except }
 
 #### Policies
-- Columns: Include, Policy Type, Name, Priority, Start Date, End Date, Trigger Account, Funding Account, Threshold, Max Per Event, Notes
+- Columns: Include, Scenario, Rule ID, Policy Type, Name, Priority, Start Date, End Date, Trigger Account, Funding Account, Threshold, Max Per Event, Notes
 - Policy Type: enum { Auto Deficit Cover }
 - Used to inject transfers that cover cash deficits before an event posts.
 
 #### Goals
-- Columns: Include, Goal Name, Target Amount, Target Date, Priority, Funding Account, Funding Policy, Amount Per Month, Percent Of Inflow, Notes
+- Columns: Include, Scenario, Rule ID, Goal Name, Target Amount, Target Date, Priority, Funding Account, Funding Policy, Amount Per Month, Percent Of Inflow, Notes
 - Goals are validated and read, but not yet applied in the forecast output.
 
 #### Risk
-- Columns: Include, Scenario Name, Emergency Buffer Account, Emergency Buffer Minimum, Income Shock Percent, Expense Shock Percent, Notes
+- Columns: Include, Scenario, Rule ID, Scenario Name, Emergency Buffer Account, Emergency Buffer Minimum, Income Shock Percent, Expense Shock Percent, Notes
 - Emergency buffer settings are used by auto deficit cover to keep a minimum balance.
 
 ### Outputs
@@ -57,10 +63,12 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Each row is a forecasted event, plus running balances for each forecast account.
 - Column shape:
   - Date
+  - Scenario
   - Account
   - Transaction Type
   - Name
   - Amount
+  - Source Rule ID
   - Alerts
   - One column per forecast account (running balance)
 
@@ -84,6 +92,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 
 ### a) Preprocess + validate inputs
 - Normalize rows and recurrence fields.
+- Assign missing stable `Rule ID` values for input rule sheets.
 - Validate each input sheet; invalid rows are deactivated.
 - Flag rules that are out of date.
 
@@ -107,13 +116,14 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
   (Implementation: [src/20_Events.gs](../src/20_Events.gs))
 
 ### e) Build journal
-- `buildJournalRows_()` ([src/40_Engine.gs](../src/40_Engine.gs)) applies events in chronological order and produces running balances.
+- `CoreCompileRules` + `CoreApplyEvents` apply events in chronological order and produce running balances.
 - Interest accrues daily per account and posts in bulk on configured posting dates.
 - Repayment transfers are capped to the remaining credit balance.
 - If a credit balance is already >= 0, repayment transfers are skipped once per name.
 - `Transfer - Everything Except` keeps the specified amount in the source account and moves any excess.
 - Auto deficit cover policies insert transfers to prevent cash accounts from dropping below a threshold.
 - Emergency buffer settings can reserve a minimum balance from deficit coverage.
+- Journal rows carry `Source Rule ID` for rule-level traceability.
 
 ### f) Write outputs
 - `Writers.writeJournal()` ([src/50_Writers.gs](../src/50_Writers.gs)) writes the Journal and applies formatting/filters.
@@ -240,6 +250,16 @@ Main modules:
 - Outputs are fully reproducible.
 - Inputs are the only state.
 - Rerunning forecast always regenerates Journal and downstream summaries.
+
+## 11.1) Traceability boundary (Week 2)
+
+- Implemented now:
+  - Stable `Rule ID` columns on rule inputs.
+  - Automatic assignment of missing `Rule ID` values during preprocessing.
+  - `Source Rule ID` written to Journal rows.
+- Explicitly deferred:
+  - Rich explainability UI and advanced attribution APIs.
+  - Multi-step causal narratives beyond rule-to-event mapping.
 ---
 
 ## 12) Schema Demonstration (Canonical)

@@ -39,6 +39,7 @@ const Readers = {
       .map(function (row) {
         var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          ruleId: row['Rule ID'],
           type: normalizePolicyType_(row['Policy Type']),
           name: row['Name'],
           scenarioId: scenarioId,
@@ -63,6 +64,7 @@ const Readers = {
       .map(function (row) {
         var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          ruleId: row['Rule ID'],
           name: row['Goal Name'],
           scenarioId: scenarioId,
           targetAmount: toNumber_(row['Target Amount']),
@@ -86,6 +88,7 @@ const Readers = {
       .map(function (row) {
         var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          ruleId: row['Rule ID'],
           scenarioId: scenarioId,
           scenarioName: row['Scenario Name'],
           emergencyBufferAccount: row['Emergency Buffer Account'],
@@ -112,6 +115,7 @@ const Readers = {
         );
         var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          ruleId: row['Rule ID'],
           scenarioId: scenarioId,
           type: row['Type'],
           name: row['Name'],
@@ -142,6 +146,7 @@ const Readers = {
         );
         var scenarioId = normalizeScenario_(row['Scenario']);
         return {
+          ruleId: row['Rule ID'],
           scenarioId: scenarioId,
           type: row['Type'],
           name: row['Name'],
@@ -176,6 +181,7 @@ const Readers = {
         var amount = toNumber_(row['Amount']);
         var transferType = normalizeTransferType_(row['Type'], amount);
         return {
+          ruleId: row['Rule ID'],
           scenarioId: scenarioId,
           type: transferType,
           behavior: transferType,

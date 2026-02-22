@@ -137,19 +137,19 @@ function buildJournalContextForScenarioSet_(scenarioId) {
   var ss = SpreadsheetApp.getActive();
   var journal = ss.getSheetByName(Config.SHEETS.JOURNAL);
   if (!journal) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [], alertsIndex: -1 };
   }
   var lastRow = journal.getLastRow();
   var lastCol = journal.getLastColumn();
   if (lastRow < 2 || lastCol < 1) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [], alertsIndex: -1 };
   }
 
   var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
   var scenarioIndex = headerRow.indexOf('Scenario');
   var alertsIndex = headerRow.indexOf('Alerts');
   if (alertsIndex === -1) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [], alertsIndex: -1 };
   }
   var accountNames = headerRow.slice(alertsIndex + 1).filter(function (name) {
     return name !== '' && name !== null;
@@ -161,7 +161,7 @@ function buildJournalContextForScenarioSet_(scenarioId) {
     }
     return !!lookup[normalizeScenario_(row[scenarioIndex])];
   });
-  return { scenarioSet: scenarioSet, accountNames: accountNames, rows: rows };
+  return { scenarioSet: scenarioSet, accountNames: accountNames, rows: rows, alertsIndex: alertsIndex };
 }
 
 function assertJournalRowsAvailableForScenarioSet_(scenarioId) {
@@ -200,7 +200,8 @@ function assertDailyReconcilesWithJournal_(daily, scenarioId) {
       return;
     }
     var key = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM-dd');
-    dayClosings[key] = row.slice(7, 7 + context.accountNames.length);
+    var snapshotStart = context.alertsIndex + 1;
+    dayClosings[key] = row.slice(snapshotStart, snapshotStart + context.accountNames.length);
   });
 
   daily.rows.forEach(function (row) {

@@ -219,7 +219,7 @@ function runDeterministicFixtureTestsPhase2_FixtureE() {
   });
   assertFixtureBalances_(journal, { Cash: 0, Savings: 250 });
   var hasAutoCover = journal.rows.some(function (row) {
-    return String(row[6] || '').indexOf('AUTO_DEFICIT_COVER') !== -1;
+    return String(row[7] || '').indexOf('AUTO_DEFICIT_COVER') !== -1;
   });
   assertFixtureEqual_('Fixture E auto cover alert', true, hasAutoCover);
   return 'Fixture E passed';
