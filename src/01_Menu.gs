@@ -64,7 +64,7 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
   }
   selectedActions.forEach(function (actionType) {
     if (
-      actionType !== 'validate_accounts' &&
+      actionType !== 'summarise_accounts' &&
       actionType !== 'journal' &&
       actionType !== 'daily' &&
       actionType !== 'monthly' &&
@@ -92,12 +92,14 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
   });
 
   var executed = [];
+  var accountSummariesDone = false;
   selectedScenarios.forEach(function (scenarioId) {
     var daily = null;
     var monthly = null;
 
-    if (selectedActions.indexOf('validate_accounts') !== -1) {
-      runValidationAndAccountSummaries_(scenarioId);
+    if (selectedActions.indexOf('summarise_accounts') !== -1 && !accountSummariesDone) {
+      runAccountSummariesOnly_(scenarioId);
+      accountSummariesDone = true;
     }
     if (selectedActions.indexOf('journal') !== -1) {
       if (Engine && Engine.runJournalForScenario) {
@@ -131,8 +133,8 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
 
   var actionLabel = selectedActions
     .map(function (value) {
-      if (value === 'validate_accounts') {
-        return 'Validate + Account Summaries';
+      if (value === 'summarise_accounts') {
+        return 'Summarise Accounts';
       }
       if (value === 'journal') {
         return 'Journal';
@@ -152,21 +154,15 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
   return actionLabel + ' complete for: ' + executed.join(', ') + '.';
 }
 
-function runScenarioSelections(mode, actions, scenarioIds) {
-  return runBudgetSelections(actions, mode === 'custom' ? 'custom' : 'base', scenarioIds);
-}
-
-function runValidationAndAccountSummaries_(scenarioId) {
-  startRunProgress_('Validate + Accounts (' + normalizeScenario_(scenarioId) + ')', 6);
+function runAccountSummariesOnly_(scenarioId) {
+  startRunProgress_('Account Summaries (' + normalizeScenario_(scenarioId) + ')', 3);
   try {
-    toastStep_('Normalizing and validating input rows...');
-    resetRunState_();
-    preprocessInputSheets_();
     toastStep_('Refreshing account summary values...');
     refreshAccountSummaries_();
-    recordLastRunMetadata_('Validate + Account Summaries', scenarioId, 'Success');
+    recordLastRunMetadata_('Account Summaries', scenarioId, 'Success');
+    toastStep_('Account summaries complete.');
   } catch (err) {
-    recordLastRunMetadata_('Validate + Account Summaries', scenarioId, 'Failed');
+    recordLastRunMetadata_('Account Summaries', scenarioId, 'Failed');
     throw err;
   } finally {
     endRunProgress_();
@@ -174,21 +170,7 @@ function runValidationAndAccountSummaries_(scenarioId) {
 }
 
 function summariseAccounts() {
-  startRunProgress_('Account Summaries', 6);
-  try {
-    toastStep_('Starting account summaries...');
-    resetRunState_();
-    preprocessInputSheets_();
-    toastStep_('Refreshing account summary values...');
-    refreshAccountSummaries_();
-    recordLastRunMetadata_('Account Summaries', Config.SCENARIOS.DEFAULT, 'Success');
-    toastStep_('Account summaries complete.');
-  } catch (err) {
-    recordLastRunMetadata_('Account Summaries', Config.SCENARIOS.DEFAULT, 'Failed');
-    throw err;
-  } finally {
-    endRunProgress_();
-  }
+  runAccountSummariesOnly_(Config.SCENARIOS.DEFAULT);
 }
 
 function validateTransfersExpenses() {

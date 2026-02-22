@@ -12,7 +12,9 @@ This file defines manual regression tests for the scenario-enabled planning engi
 
 1. Base run parity
 - Leave all rows blank for `Scenario` or set all to `Base`.
-- Run `Run journal (Base)`.
+- Run `Run Budget...` with:
+  - scenario mode: `Use Base scenario`
+  - operations: `Generate journal`
 - Expected:
   - Journal rows are generated.
   - Journal `Scenario` column is `Base` for all rows.
@@ -20,15 +22,22 @@ This file defines manual regression tests for the scenario-enabled planning engi
 
 2. Scenario isolation
 - Duplicate one income/expense row and set duplicate `Scenario=Stress`.
-- Run `Run journal for scenario...` and choose `Base`.
+- Run `Run Budget...` with:
+  - scenario mode: `Use Base scenario`
+  - operations: `Generate journal`
 - Expected:
   - Stress-only row does not affect Journal amounts.
-- Run again for `Stress`.
+- Run again with:
+  - scenario mode: `Choose custom scenario(s)`
+  - scenario selected: `Stress`
+  - operations: `Generate journal`
 - Expected:
   - Stress row affects results.
 
 3. Summary scenario filter
-- After a `Stress` journal run, run `Run summaries for scenario...` with `Stress`.
+- After a `Stress` journal run, run `Run Budget...` with:
+  - scenario mode: `Choose custom scenario(s)` and select `Stress`
+  - operations: `Generate daily`, `Generate monthly`, `Generate dashboard`
 - Expected:
   - `Dashboard` metrics include `Scenario = Stress`.
   - Daily/Monthly values are based on Stress journal rows only.
@@ -49,7 +58,9 @@ This file defines manual regression tests for the scenario-enabled planning engi
   - Toast indicates rows were disabled for unknown scenario values.
 
 6. Run metadata tracking
-- Run `Run journal for scenario...` with `Stress`.
+- Run `Run Budget...` with:
+  - scenario mode: `Choose custom scenario(s)` and select `Stress`
+  - operations: `Generate journal`
 - Expected in `Settings`:
   - `B5 = Journal` or `Forecast` (depending on action)
   - `B6 = Stress`
@@ -74,7 +85,9 @@ This file defines manual regression tests for the scenario-enabled planning engi
 
 3. Backward compatibility
 - Remove `Scenario` values from existing rows.
-- Run `Run journal (Base)`.
+- Run `Run Budget...` with:
+  - scenario mode: `Use Base scenario`
+  - operations: `Generate journal`
 - Expected:
   - Behavior matches Base default path.
   - No validation failures due solely to blank scenario.

@@ -33,7 +33,7 @@ You now have a complete base forecast.
 - `Run Budget...`:
   - opens popup
   - choose one or more operation checkboxes:
-    - `Validate inputs and generate account summaries`
+    - `Summarise Accounts`
     - `Generate journal`
     - `Generate daily`
     - `Generate monthly`
@@ -49,14 +49,14 @@ You now have a complete base forecast.
 
 When you click a run button and choose operations, the engine can execute:
 
-1. Validate inputs and generate account summaries
+1. Summarise Accounts
 2. Generate journal
 3. Generate daily
 4. Generate monthly
 5. Generate dashboard
 
 Practical combinations:
-- `Validate + Journal + Daily + Monthly + Dashboard`: full end-to-end refresh.
+- `Summarise Accounts + Journal + Daily + Monthly + Dashboard`: full end-to-end refresh.
 - `Journal` only: refreshes core forecast ledger.
 - `Daily + Monthly + Dashboard` only: rebuilds reporting from current journal.
 

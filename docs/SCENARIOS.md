@@ -36,7 +36,7 @@ Scenario-capable input sheets:
 - Scenario buttons in menu:
   - `Run Budget...`:
     - popup with operation checkboxes:
-      - `Validate inputs and generate account summaries`
+      - `Summarise Accounts`
       - `Generate journal`
       - `Generate daily`
       - `Generate monthly`
