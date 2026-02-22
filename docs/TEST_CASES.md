@@ -32,6 +32,85 @@ Run this quick sequence after housekeeping or setup changes:
 - Run `Run Budget...` with `Generate dashboard` only.
 - Expected: dashboard metrics/charts refresh and show the selected scenario.
 
+## Phase 2 (No Dashboard)
+
+### Scope and done criteria
+
+1. Accounts hardening
+- Goal: make Accounts summaries deterministic and scenario-safe.
+- Scope: `Summarise Accounts` only.
+- Done when:
+  - Base/Stress summaries do not overwrite each other.
+  - Re-running gives identical results.
+
+2. Journal reliability
+- Goal: make journal generation the trusted source of truth.
+- Scope: event build/sort/write and scenario filtering.
+- Done when:
+  - Base vs Stress isolation is exact.
+  - Row counts/balances are repeatable for fixtures.
+
+3. Daily integrity
+- Goal: ensure Daily is a clean projection of Journal.
+- Scope: per-day aggregation and scenario filtering.
+- Done when:
+  - Daily totals reconcile to journal balances.
+  - No stale rows after reruns.
+
+4. Monthly integrity
+- Goal: ensure Monthly correctly rolls up Daily.
+- Scope: min/max/net-change/ending by account.
+- Done when:
+  - Month start/end math reconciles to Daily.
+  - Repeat runs are idempotent.
+
+5. Guardrails + tests
+- Goal: lock behavior before adding Dashboard.
+- Scope:
+  - Expand test cases for Accounts -> Journal -> Daily -> Monthly only.
+  - Add one known fixture expected-output check.
+  - Known fixture check: run `Deterministic Fixture Tests (Phase 2) -> Fixture A` and verify expected `Accounts` and `Journal` values exactly.
+- Done when:
+  - Full non-dashboard regression passes in one click path.
+
+### Suggested run sequence each cycle
+
+1. `Fix Structure`
+2. `Fix Rules`
+3. `Summarise Accounts`
+4. `Generate journal`
+5. `Generate daily`
+6. `Generate monthly`
+
+### Phase 2 execution checks
+
+1. Accounts hardening: duplicate-name guard
+- In `Accounts`, create two included rows with the same `Account Name` under the same `Scenario`.
+- Run `Run Budget...` with `Summarise Accounts`.
+- Expected:
+  - Run fails fast with a duplicate-account error for that scenario.
+  - No partial cross-scenario overwrite is performed.
+
+2. Accounts hardening: repeatability
+- Use valid unique account names per scenario.
+- Run `Summarise Accounts` twice for `Base`, then twice for `Stress`.
+- Expected:
+  - Summary columns are identical across repeat runs for the same scenario.
+  - Running `Stress` does not alter `Base` rows and vice versa.
+
+3. Journal prerequisite guard
+- Select scenario mode `Choose custom scenario(s)` and pick a scenario set that has no Journal rows yet.
+- Run `Generate daily` (or `Generate monthly`) without running `Generate journal` first.
+- Expected:
+  - Run fails with message indicating no Journal rows found for the selected scenario set.
+
+4. Reconciliation guardrails
+- Run sequence for a scenario set: `Generate journal` -> `Generate daily` -> `Generate monthly`.
+- Expected:
+  - Daily reconciliation against Journal passes (no mismatch error).
+  - Monthly reconciliation against Daily passes (no mismatch error).
+  - Re-running the same sequence is idempotent.
+
 ## Core Scenario Tests
 
 1. Base run parity
@@ -103,9 +182,17 @@ Run this quick sequence after housekeeping or setup changes:
 
 ## Deterministic Fixture Tests (Phase 2)
 
+Script editor runners (automated):
+- `runDeterministicFixtureTestsPhase2_All`
+- `runDeterministicFixtureTestsPhase2_FixtureA`
+- `runDeterministicFixtureTestsPhase2_FixtureB`
+- `runDeterministicFixtureTestsPhase2_FixtureC`
+- `runDeterministicFixtureTestsPhase2_FixtureD`
+- `runDeterministicFixtureTestsPhase2_FixtureE`
+
 1. Fixture A: single-month baseline
-- Set named range `ForecastStartDate` to `2026-01-01`.
-- Set named range `ForecastEndDate` to `2026-01-31`.
+- Set named range `ForecastStartDate` to `2030-01-01`.
+- Set named range `ForecastEndDate` to `2030-01-31`.
 - Clear data rows (keep headers) in `Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`.
 - Add exactly these `Accounts` rows:
   - `Operating | 1000 | Cash | TRUE | Base`
@@ -123,7 +210,7 @@ Run this quick sequence after housekeeping or setup changes:
   - `Operating`: `Money In / Month = 1200`, `Money Out / Month = 900`, `Net Interest / Month = 0`, `Net Change / Month = 300`
   - `Card`: `Money In / Month = 200`, `Money Out / Month = 0`, `Net Interest / Month = 0`, `Net Change / Month = 200`
 - Expected `Journal` values:
-  - `COUNTIFS(Scenario,"Base") = 5` (2 opening + 3 transactions)
+  - `COUNTIFS(Scenario,"Base") = 6` (2 opening + income + expense + 2 transfer rows)
   - last `Operating` balance = `1300`
   - last `Card` balance = `-300`
 
@@ -131,7 +218,7 @@ Run this quick sequence after housekeeping or setup changes:
 - Without changing any input rows, run the same `Run Budget...` operation again.
 - Expected:
   - Account summary values are identical to prior run.
-  - Journal row count for `Base` remains `5`.
+  - Journal row count for `Base` remains `6`.
   - End balances remain `Operating=1300`, `Card=-300`.
 
 ## Setup Data Integration Tests

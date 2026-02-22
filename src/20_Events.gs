@@ -11,6 +11,7 @@ const Events = {
       return dates.map(function (date) {
         return {
           date: date,
+          scenarioId: rule.scenarioId,
           kind: 'Income',
           behavior: rule.type || 'Income',
           name: rule.name,
@@ -43,6 +44,7 @@ const Events = {
         var expenseName = expenseNameParts.join(' - ');
         return {
           date: date,
+          scenarioId: rule.scenarioId,
           kind: 'Expense',
           behavior: rule.type || Config.BEHAVIOR_LABELS.Expense,
           name: expenseName,
@@ -66,6 +68,7 @@ const Events = {
       return dates.map(function (date) {
         return {
           date: date,
+          scenarioId: rule.scenarioId,
           kind: 'Transfer',
           behavior: rule.type || rule.behavior,
           transferBehavior: rule.type || rule.behavior,
@@ -108,6 +111,7 @@ const Events = {
       var accrualEvents = accrualDates.map(function (date) {
         return {
           date: date,
+          scenarioId: account.scenarioId,
           kind: 'Interest',
           behavior: 'Interest Accrual',
           name: 'Interest Accrual',
@@ -121,6 +125,7 @@ const Events = {
       var postingEvents = postingDates.map(function (date) {
         return {
           date: date,
+          scenarioId: account.scenarioId,
           kind: 'Interest',
           behavior: 'Interest',
           name: 'Interest',

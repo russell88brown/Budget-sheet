@@ -6,6 +6,17 @@ function onOpen() {
     .createMenu('Budget Forecast')
     .addItem('Run Budget...', 'showRunBudgetDialog')
     .addSeparator()
+    .addSubMenu(
+      ui
+        .createMenu('Deterministic Fixture Tests (Phase 2)')
+        .addItem('Run All', 'runDeterministicFixtureTestsPhase2_All')
+        .addItem('Fixture A', 'runDeterministicFixtureTestsPhase2_FixtureA')
+        .addItem('Fixture B', 'runDeterministicFixtureTestsPhase2_FixtureB')
+        .addItem('Fixture C', 'runDeterministicFixtureTestsPhase2_FixtureC')
+        .addItem('Fixture D', 'runDeterministicFixtureTestsPhase2_FixtureD')
+        .addItem('Fixture E', 'runDeterministicFixtureTestsPhase2_FixtureE')
+    )
+    .addSeparator()
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
     .addToUi();
@@ -89,47 +100,6 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
     }
   });
 
-  var executed = [];
-  selectedScenarios.forEach(function (scenarioId) {
-    var scenarioModel = buildScenarioModel_(scenarioId);
-    var daily = null;
-    var monthly = null;
-
-    if (selectedActions.indexOf('summarise_accounts') !== -1) {
-      runAccountSummariesOnly_(scenarioModel);
-    }
-    if (selectedActions.indexOf('journal') !== -1) {
-      if (Engine && Engine.runJournalForScenarioModel) {
-        Engine.runJournalForScenarioModel(scenarioModel);
-      } else if (Engine && Engine.runJournalForScenario) {
-        Engine.runJournalForScenario(scenarioId);
-      } else {
-        runJournal();
-      }
-    }
-    if (selectedActions.indexOf('daily') !== -1) {
-      daily = buildDailySummary_(scenarioId);
-      writeDailySummary_(daily);
-    }
-    if (selectedActions.indexOf('monthly') !== -1) {
-      if (!daily) {
-        daily = buildDailySummary_(scenarioId);
-      }
-      monthly = buildMonthlySummary_(daily);
-      writeMonthlySummary_(monthly);
-    }
-    if (selectedActions.indexOf('dashboard') !== -1) {
-      if (!daily) {
-        daily = buildDailySummary_(scenarioId);
-      }
-      if (!monthly) {
-        monthly = buildMonthlySummary_(daily);
-      }
-      writeDashboard_(buildDashboardData_(daily, monthly, scenarioId));
-    }
-    executed.push(scenarioId);
-  });
-
   var actionLabel = selectedActions
     .map(function (value) {
       if (value === 'summarise_accounts') {
@@ -150,7 +120,84 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
       return value;
     })
     .join(' + ');
-  return actionLabel + ' complete for: ' + executed.join(', ') + '.';
+  var scenarioLabel = selectedScenarios.join(', ');
+
+  try {
+    if (selectedActions.indexOf('summarise_accounts') !== -1) {
+      selectedScenarios.forEach(function (scenarioId) {
+        runAccountSummariesOnly_(buildScenarioModel_(scenarioId));
+      });
+    }
+
+    if (selectedActions.indexOf('journal') !== -1) {
+      if (selectedScenarios.length > 1 && typeof runJournalForScenarioIds_ === 'function') {
+        runJournalForScenarioIds_(selectedScenarios);
+      } else {
+        var singleScenarioId = selectedScenarios[0];
+        var scenarioModel = buildScenarioModel_(singleScenarioId);
+        if (Engine && Engine.runJournalForScenarioModel) {
+          Engine.runJournalForScenarioModel(scenarioModel);
+        } else if (Engine && Engine.runJournalForScenario) {
+          Engine.runJournalForScenario(singleScenarioId);
+        } else {
+          runJournal();
+        }
+      }
+    }
+
+    var daily = null;
+    var monthly = null;
+    var summaryScenarioFilter = selectedScenarios.length > 1 ? selectedScenarios : selectedScenarios[0];
+    var needsJournalData =
+      selectedActions.indexOf('daily') !== -1 ||
+      selectedActions.indexOf('monthly') !== -1 ||
+      selectedActions.indexOf('dashboard') !== -1;
+    if (needsJournalData && typeof assertJournalRowsAvailableForScenarioSet_ === 'function') {
+      assertJournalRowsAvailableForScenarioSet_(summaryScenarioFilter);
+    }
+
+    if (selectedActions.indexOf('daily') !== -1) {
+      daily = buildDailySummary_(summaryScenarioFilter);
+      if (typeof assertDailyReconcilesWithJournal_ === 'function') {
+        assertDailyReconcilesWithJournal_(daily, summaryScenarioFilter);
+      }
+      writeDailySummary_(daily);
+    }
+    if (selectedActions.indexOf('monthly') !== -1) {
+      if (!daily) {
+        daily = buildDailySummary_(summaryScenarioFilter);
+        if (typeof assertDailyReconcilesWithJournal_ === 'function') {
+          assertDailyReconcilesWithJournal_(daily, summaryScenarioFilter);
+        }
+      }
+      monthly = buildMonthlySummary_(daily);
+      if (typeof assertMonthlyReconcilesWithDaily_ === 'function') {
+        assertMonthlyReconcilesWithDaily_(monthly, daily);
+      }
+      writeMonthlySummary_(monthly);
+    }
+    if (selectedActions.indexOf('dashboard') !== -1) {
+      if (!daily) {
+        daily = buildDailySummary_(summaryScenarioFilter);
+        if (typeof assertDailyReconcilesWithJournal_ === 'function') {
+          assertDailyReconcilesWithJournal_(daily, summaryScenarioFilter);
+        }
+      }
+      if (!monthly) {
+        monthly = buildMonthlySummary_(daily);
+        if (typeof assertMonthlyReconcilesWithDaily_ === 'function') {
+          assertMonthlyReconcilesWithDaily_(monthly, daily);
+        }
+      }
+      writeDashboard_(buildDashboardData_(daily, monthly, summaryScenarioFilter));
+    }
+
+    recordLastRunMetadata_('Run Budget: ' + actionLabel, scenarioLabel, 'Success');
+    return actionLabel + ' complete for: ' + scenarioLabel + '.';
+  } catch (err) {
+    recordLastRunMetadata_('Run Budget: ' + actionLabel, scenarioLabel, 'Failed');
+    throw err;
+  }
 }
 
 function runAccountSummariesOnly_(scenarioModel) {
