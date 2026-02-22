@@ -612,8 +612,12 @@ function summarizeNegativeCashTopSourcesFromRows_(rows, alertsIndex, amountIndex
     if (alerts.indexOf('NEGATIVE_CASH') === -1) {
       return;
     }
+    var rawAmount = toNumber_(row[amountIndex]);
+    if (rawAmount === null || rawAmount >= 0) {
+      return;
+    }
     var key = String(row[sourceRuleIdIndex] || '').trim() || '(Unattributed)';
-    var amount = Math.abs(toNumber_(row[amountIndex]) || 0);
+    var amount = Math.abs(rawAmount);
     if (!totals[key]) {
       totals[key] = { total: 0, events: 0 };
     }

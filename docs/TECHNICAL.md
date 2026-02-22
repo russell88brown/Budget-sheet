@@ -257,11 +257,20 @@ Main modules:
   - Stable `Rule ID` columns on rule inputs.
   - Automatic assignment of missing `Rule ID` values during preprocessing.
   - `Source Rule ID` written to Journal rows.
-  - Dashboard block `Negative Cash Top Sources` (top 5 by absolute amount across `NEGATIVE_CASH`-flagged journal rows).
+  - Dashboard block `Negative Cash Top Sources` (top 5 by absolute amount across `NEGATIVE_CASH` rows with outflow amounts only).
 - Explicitly deferred:
   - Rich explainability UI and advanced attribution APIs.
   - Multi-step causal narratives beyond rule-to-event mapping.
 ---
+
+## 11.2) Compatibility Ledger
+
+- `src/50_Writers.gs`:
+  - Keeps rename fallback from legacy `Forecast Journal` sheet name to current `Journal`.
+  - Remove only after confirming no live sheets still use the legacy tab.
+- `src/10_Readers.gs`:
+  - Keeps legacy value normalization path for backward compatibility.
+  - Remove only after migration confirms all supported datasets use canonical values.
 
 ## 12) Schema Demonstration (Canonical)
 

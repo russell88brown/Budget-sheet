@@ -207,6 +207,7 @@ Run this quick sequence after housekeeping or setup changes:
 - Expected:
   - Dashboard includes `Negative Cash Top Sources` only when there are `NEGATIVE_CASH` alerts in Journal.
   - Rows show `Source Rule ID`, `Abs Amount`, and `Events`.
+  - Only outflow rows (`Amount < 0`) contribute; corrective inflows on negative days are excluded.
   - Entries are sorted by `Abs Amount` descending.
 
 ## Deterministic Fixture Tests (Phase 2)
@@ -256,6 +257,7 @@ Script editor runners (automated):
 - Run `runDeterministicFixtureTestsPhase2_FixtureF`.
 - Expected:
   - Aggregation returns top contributors for rows containing `NEGATIVE_CASH`.
+  - Positive `Amount` rows are excluded even when flagged `NEGATIVE_CASH`.
   - Source IDs are ordered by absolute amount descending.
   - Blank `Source Rule ID` rows are grouped under `(Unattributed)`.
 

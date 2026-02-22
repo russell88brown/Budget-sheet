@@ -239,6 +239,7 @@ function runDeterministicFixtureTestsPhase2_FixtureF() {
     [null, null, null, null, null, -120, 'EXP:RENT', 'NEGATIVE_CASH'],
     [null, null, null, null, null, -25, 'EXP:RENT', 'NEGATIVE_CASH'],
     [null, null, null, null, null, -60, 'EXP:GROCERIES', 'NEGATIVE_CASH | AUTO_DEFICIT_COVER'],
+    [null, null, null, null, null, 35, 'INC:TOPUP', 'NEGATIVE_CASH'],
     [null, null, null, null, null, -40, '', 'NEGATIVE_CASH'],
     [null, null, null, null, null, 150, 'INC:SALARY', ''],
   ];
@@ -256,6 +257,9 @@ function runDeterministicFixtureTestsPhase2_FixtureF() {
   assertFixtureEqual_('Fixture F top #2 amount', 60, top[1][1]);
   assertFixtureEqual_('Fixture F top #3 id', '(Unattributed)', top[2][0]);
   assertFixtureEqual_('Fixture F top #3 amount', 40, top[2][1]);
+  assertFixtureEqual_('Fixture F excludes inflow on negative-cash row', false, !!top.filter(function (item) {
+    return item[0] === 'INC:TOPUP';
+  }).length);
   return 'Fixture F passed';
 }
 
