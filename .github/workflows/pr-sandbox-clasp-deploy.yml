@@ -34,7 +34,7 @@ jobs:
       - name: Resolve and validate secrets
         shell: bash
         run: |
-          SCRIPT_ID="${CLASP_SANDBOX_SCRIPT_ID:-$CLASP_SCRIPT_ID_TEST}"
+          SCRIPT_ID="$(printf '%s' "${CLASP_SANDBOX_SCRIPT_ID:-$CLASP_SCRIPT_ID_TEST}" | tr -d '\r\n')"
           CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
 
           if [ -z "$SCRIPT_ID" ]; then
@@ -45,8 +45,6 @@ jobs:
             echo "Missing secret: CLASP_OAUTH_CREDENTIALS (or CLASP_CREDENTIALS_JSON)"
             exit 1
           fi
-
-          echo "SCRIPT_ID=$SCRIPT_ID" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -63,6 +61,7 @@ jobs:
       - name: Configure sandbox script target
         shell: bash
         run: |
+          SCRIPT_ID="$(printf '%s' "${CLASP_SANDBOX_SCRIPT_ID:-$CLASP_SCRIPT_ID_TEST}" | tr -d '\r\n')"
           cat > .clasp.json <<EOF
           {
             "scriptId": "${SCRIPT_ID}",
