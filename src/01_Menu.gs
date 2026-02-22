@@ -1,23 +1,25 @@
 // Entrypoints and menu wiring.
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
+  var fixtureMenu = ui
+    .createMenu('Deterministic Fixture Tests (Phase 2)')
+    .addItem('Run All + Report', 'runDeterministicFixtureTestsPhase2_RunAllWithReport')
+    .addItem('Run All (Raw)', 'runDeterministicFixtureTestsPhase2_All');
+  var fixtureSpecs = typeof getDeterministicFixtureTestsPhase2Specs_ === 'function'
+    ? getDeterministicFixtureTestsPhase2Specs_()
+    : [];
+  fixtureSpecs.forEach(function (fixture) {
+    if (!fixture || !fixture.name || !fixture.handler) {
+      return;
+    }
+    fixtureMenu.addItem(fixture.name, fixture.handler);
+  });
 
   ui
     .createMenu('Budget Forecast')
     .addItem('Run Budget...', 'showRunBudgetDialog')
     .addSeparator()
-    .addSubMenu(
-      ui
-        .createMenu('Deterministic Fixture Tests (Phase 2)')
-        .addItem('Run All + Report', 'runDeterministicFixtureTestsPhase2_RunAllWithReport')
-        .addItem('Run All (Raw)', 'runDeterministicFixtureTestsPhase2_All')
-        .addItem('Fixture A', 'runDeterministicFixtureTestsPhase2_FixtureA')
-        .addItem('Fixture B', 'runDeterministicFixtureTestsPhase2_FixtureB')
-        .addItem('Fixture C', 'runDeterministicFixtureTestsPhase2_FixtureC')
-        .addItem('Fixture D', 'runDeterministicFixtureTestsPhase2_FixtureD')
-        .addItem('Fixture E', 'runDeterministicFixtureTestsPhase2_FixtureE')
-        .addItem('Fixture F', 'runDeterministicFixtureTestsPhase2_FixtureF')
-    )
+    .addSubMenu(fixtureMenu)
     .addSeparator()
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
@@ -84,17 +86,6 @@ function runDeterministicFixtureTestsPhase2_RunAllWithReport() {
   } finally {
     endRunProgress_();
   }
-}
-
-function getDeterministicFixtureTestsPhase2Specs_() {
-  return [
-    { name: 'Fixture A', run: runDeterministicFixtureTestsPhase2_FixtureA },
-    { name: 'Fixture B', run: runDeterministicFixtureTestsPhase2_FixtureB },
-    { name: 'Fixture C', run: runDeterministicFixtureTestsPhase2_FixtureC },
-    { name: 'Fixture D', run: runDeterministicFixtureTestsPhase2_FixtureD },
-    { name: 'Fixture E', run: runDeterministicFixtureTestsPhase2_FixtureE },
-    { name: 'Fixture F', run: runDeterministicFixtureTestsPhase2_FixtureF },
-  ];
 }
 
 function showRunBudgetDialog() {

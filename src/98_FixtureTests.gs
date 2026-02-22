@@ -1,13 +1,19 @@
 // Deterministic fixture tests for the domain-core compile/apply flow.
+function getDeterministicFixtureTestsPhase2Specs_() {
+  return [
+    { name: 'Fixture A', handler: 'runDeterministicFixtureTestsPhase2_FixtureA', run: runDeterministicFixtureTestsPhase2_FixtureA },
+    { name: 'Fixture B', handler: 'runDeterministicFixtureTestsPhase2_FixtureB', run: runDeterministicFixtureTestsPhase2_FixtureB },
+    { name: 'Fixture C', handler: 'runDeterministicFixtureTestsPhase2_FixtureC', run: runDeterministicFixtureTestsPhase2_FixtureC },
+    { name: 'Fixture D', handler: 'runDeterministicFixtureTestsPhase2_FixtureD', run: runDeterministicFixtureTestsPhase2_FixtureD },
+    { name: 'Fixture E', handler: 'runDeterministicFixtureTestsPhase2_FixtureE', run: runDeterministicFixtureTestsPhase2_FixtureE },
+    { name: 'Fixture F', handler: 'runDeterministicFixtureTestsPhase2_FixtureF', run: runDeterministicFixtureTestsPhase2_FixtureF },
+  ];
+}
+
 function runDeterministicFixtureTestsPhase2_All() {
-  var results = [];
-  results.push(runDeterministicFixtureTestsPhase2_FixtureA());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureB());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureC());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureD());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureE());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureF());
-  return results;
+  return getDeterministicFixtureTestsPhase2Specs_().map(function (fixture) {
+    return fixture.run();
+  });
 }
 
 function runDeterministicFixtureTestsPhase2_FixtureA() {
