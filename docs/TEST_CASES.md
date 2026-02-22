@@ -161,6 +161,12 @@ Run this quick sequence after housekeeping or setup changes:
   - Journal export files/rows are partitioned by `Scenario + Month`.
   - JSON payload includes `scenario`.
 
+5a. Export includes summary sheets
+- Run `Export` including `Daily`, `Monthly`, and `Dashboard`.
+- Expected:
+  - Export output includes all selected sheets.
+  - Dashboard export contains the `Scenario Delta` block when dashboard was built for a non-Base scenario.
+
 6. Unknown scenario validation
 - Put `Scenario=BadScenario` on an included input row.
 - Run forecast/journal with preprocessing path (`Run forecast`).
