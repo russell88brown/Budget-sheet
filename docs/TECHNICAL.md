@@ -1,4 +1,4 @@
-﻿Subject: Budget Forecast Engine Full Technical Reference
+Subject: Budget Forecast Engine Full Technical Reference
 
 # Technical Reference
 
@@ -97,23 +97,23 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Flag rules that are out of date.
 
 ### b) Read inputs
-- `Readers.readAccounts()` ([src/10_Readers.gs](../src/10_Readers.gs))
-- `Readers.readIncome()` ([src/10_Readers.gs](../src/10_Readers.gs))
-- `Readers.readExpenses()` ([src/10_Readers.gs](../src/10_Readers.gs))
-- `Readers.readTransfers()` ([src/10_Readers.gs](../src/10_Readers.gs))
-- `Readers.readPolicies()` ([src/10_Readers.gs](../src/10_Readers.gs))
-- `Readers.readGoals()` ([src/10_Readers.gs](../src/10_Readers.gs))
-- `Readers.readRiskSettings()` ([src/10_Readers.gs](../src/10_Readers.gs))
+- `Readers.readAccounts()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
+- `Readers.readIncome()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
+- `Readers.readExpenses()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
+- `Readers.readTransfers()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
+- `Readers.readPolicies()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
+- `Readers.readGoals()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
+- `Readers.readRiskSettings()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
 
 ### c) Refresh account summaries (optional)
-- `refreshAccountSummaries_()` ([src/40_Engine.gs](../src/40_Engine.gs)) updates monthly averages on the Accounts sheet.
+- `refreshAccountSummaries_()` ([src/engine/40_Engine.gs](../src/engine/40_Engine.gs)) updates monthly averages on the Accounts sheet.
 
 ### d) Generate events
 - Income rules -> income events
 - Expense rules -> expense events
 - Transfer rules -> transfer events
 - Interest rules -> interest events
-  (Implementation: [src/20_Events.gs](../src/20_Events.gs))
+  (Implementation: [src/engine/20_Events.gs](../src/engine/20_Events.gs))
 
 ### e) Build journal
 - `CoreCompileRules` + `CoreApplyEvents` apply events in chronological order and produce running balances.
@@ -126,14 +126,14 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Journal rows carry `Source Rule ID` for rule-level traceability.
 
 ### f) Write outputs
-- `Writers.writeJournal()` ([src/50_Writers.gs](../src/50_Writers.gs)) writes the Journal and applies formatting/filters.
+- `Writers.writeJournal()` ([src/reports/50_Writers.gs](../src/reports/50_Writers.gs)) writes the Journal and applies formatting/filters.
 - Summary pipeline (from Journal):
-  - `buildDailySummary_()` ([src/60_Summary.gs](../src/60_Summary.gs))
-  - `writeDailySummary_()` ([src/60_Summary.gs](../src/60_Summary.gs))
-  - `buildMonthlySummary_()` ([src/60_Summary.gs](../src/60_Summary.gs))
-  - `writeMonthlySummary_()` ([src/60_Summary.gs](../src/60_Summary.gs))
-  - `buildDashboardData_()` ([src/60_Summary.gs](../src/60_Summary.gs))
-  - `writeDashboard_()` ([src/60_Summary.gs](../src/60_Summary.gs))
+  - `buildDailySummary_()` ([src/reports/60_Summary.gs](../src/reports/60_Summary.gs))
+  - `writeDailySummary_()` ([src/reports/60_Summary.gs](../src/reports/60_Summary.gs))
+  - `buildMonthlySummary_()` ([src/reports/60_Summary.gs](../src/reports/60_Summary.gs))
+  - `writeMonthlySummary_()` ([src/reports/60_Summary.gs](../src/reports/60_Summary.gs))
+  - `buildDashboardData_()` ([src/reports/60_Summary.gs](../src/reports/60_Summary.gs))
+  - `writeDashboard_()` ([src/reports/60_Summary.gs](../src/reports/60_Summary.gs))
 
 ---
 
@@ -229,19 +229,32 @@ Setup actions include:
 
 ## 10) Source Map
 
+Top-level folders:
+- `src/config`: constants and schema
+- `src/ui`: menu + dialogs
+- `src/admin`: setup/defaults/export
+- `src/engine`: readers + recurrence + forecast core
+- `src/reports`: Journal and summary writers
+- `src/shared`: shared utilities
+- `src/tests`: deterministic fixture tests
+
 Main modules:
-- [`00_Config.gs`](../src/00_Config.gs) (constants + names)
-- [`01_Menu.gs`](../src/01_Menu.gs) (menu wiring + setup dialog)
-- [`02_Schema.gs`](../src/02_Schema.gs) (schema definitions)
-- [`05_Setup.gs`](../src/05_Setup.gs) (sheet creation + validation)
-- [`06_DefaultData.gs`](../src/06_DefaultData.gs) (default seed data)
-- [`07_Export.gs`](../src/07_Export.gs) (export routines)
-- [`10_Readers.gs`](../src/10_Readers.gs) (input parsing)
-- [`20_Events.gs`](../src/20_Events.gs) (event generation)
-- [`30_Recurrence.gs`](../src/30_Recurrence.gs) (date stepping)
-- [`40_Engine.gs`](../src/40_Engine.gs) (forecast pipeline)
-- [`50_Writers.gs`](../src/50_Writers.gs) (journal writer)
-- [`60_Summary.gs`](../src/60_Summary.gs) (daily/monthly/dashboard)
+- [`00_Config.gs`](../src/config/00_Config.gs) (constants + names)
+- [`01_Menu.gs`](../src/ui/01_Menu.gs) (menu wiring + setup dialog)
+- [`02_Schema.gs`](../src/config/02_Schema.gs) (schema definitions)
+- [`05_Setup.gs`](../src/admin/05_Setup.gs) (sheet creation + validation)
+- [`06_DefaultData.gs`](../src/admin/06_DefaultData.gs) (default seed data)
+- [`07_Export.gs`](../src/admin/07_Export.gs) (export routines)
+- [`10_Readers.gs`](../src/engine/10_Readers.gs) (input parsing)
+- [`15_ScenarioModel.gs`](../src/engine/15_ScenarioModel.gs) (scenario/domain normalization)
+- [`20_Events.gs`](../src/engine/20_Events.gs) (event generation)
+- [`30_Recurrence.gs`](../src/engine/30_Recurrence.gs) (date stepping)
+- [`40_Engine.gs`](../src/engine/40_Engine.gs) (forecast pipeline)
+- [`Core_Model.gs`](../src/engine/Core_Model.gs) (domain model helpers)
+- [`Core_CompileRules.gs`](../src/engine/Core_CompileRules.gs) (rule compile stage)
+- [`Core_ApplyEvents.gs`](../src/engine/Core_ApplyEvents.gs) (event application stage)
+- [`50_Writers.gs`](../src/reports/50_Writers.gs) (journal writer)
+- [`60_Summary.gs`](../src/reports/60_Summary.gs) (daily/monthly/dashboard)
 
 ---
 
@@ -265,16 +278,16 @@ Main modules:
 
 ## 11.2) Compatibility Ledger
 
-- `src/50_Writers.gs`:
+- `src/reports/50_Writers.gs`:
   - Keeps rename fallback from legacy `Forecast Journal` sheet name to current `Journal`.
   - Remove only after confirming no live sheets still use the legacy tab.
-- `src/10_Readers.gs`:
+- `src/engine/10_Readers.gs`:
   - Keeps legacy value normalization path for backward compatibility.
   - Remove only after migration confirms all supported datasets use canonical values.
 
 ## 12) Schema Demonstration (Canonical)
 
-Canonical schema source is `src/02_Schema.gs` (`Schema.inputs`, `Schema.outputs`).
+Canonical schema source is `src/config/02_Schema.gs` (`Schema.inputs`, `Schema.outputs`).
 
 ### Sample input schema shapes
 
@@ -341,6 +354,7 @@ Canonical schema source is `src/02_Schema.gs` (`Schema.inputs`, `Schema.outputs`
 ### Document library
 
 - `README.md`: project overview and top-level doc index.
+- `docs/SOURCE_STRUCTURE.md`: source layout and ownership map.
 - `docs/CLASP.md`: setup/sync paths (manual Apps Script copy or clasp).
 - `docs/CODEX.md`: local Codex development configuration notes.
 - `docs/SCENARIOS.md`: scenario setup/runtime integration notes.
@@ -349,7 +363,7 @@ Canonical schema source is `src/02_Schema.gs` (`Schema.inputs`, `Schema.outputs`
 
 ### Function index (entrypoints and core modules)
 
-Menu/UI entrypoints (`src/01_Menu.gs`):
+Menu/UI entrypoints (`src/ui/01_Menu.gs`):
 - `onOpen`
 - `runForecast`
 - `runJournal`
@@ -368,17 +382,17 @@ Menu/UI entrypoints (`src/01_Menu.gs`):
 - `runDeterministicFixtureTestsPhase2_FixtureE`
 - `runDeterministicFixtureTestsPhase2_FixtureF`
 
-Export entrypoints (`src/07_Export.gs`):
+Export entrypoints (`src/admin/07_Export.gs`):
 - `showExportDialog`
 - `runExportWithSelection`
 - `exportAllSheetsToJson`
 
-Summary entrypoints (`src/60_Summary.gs`):
+Summary entrypoints (`src/reports/60_Summary.gs`):
 - `runSummary`
 - `runSummaryForScenario`
 
 Core module APIs:
-- `Engine.runForecast`, `Engine.runForecastForScenario`, `Engine.runJournalOnly`, `Engine.runJournalForScenario` (`src/40_Engine.gs`)
-- `Readers.readAccounts`, `Readers.readIncome`, `Readers.readExpenses`, `Readers.readTransfers`, `Readers.readPolicies`, `Readers.readGoals`, `Readers.readRiskSettings`, `Readers.readScenarios` (`src/10_Readers.gs`)
-- `Writers.writeJournal` (`src/50_Writers.gs`)
-- `Recurrence.expand`, `Recurrence.stepForward`, `Recurrence.periodsPerYear` (`src/30_Recurrence.gs`)
+- `Engine.runForecast`, `Engine.runForecastForScenario`, `Engine.runJournalOnly`, `Engine.runJournalForScenario` (`src/engine/40_Engine.gs`)
+- `Readers.readAccounts`, `Readers.readIncome`, `Readers.readExpenses`, `Readers.readTransfers`, `Readers.readPolicies`, `Readers.readGoals`, `Readers.readRiskSettings`, `Readers.readScenarios` (`src/engine/10_Readers.gs`)
+- `Writers.writeJournal` (`src/reports/50_Writers.gs`)
+- `Recurrence.expand`, `Recurrence.stepForward`, `Recurrence.periodsPerYear` (`src/engine/30_Recurrence.gs`)
