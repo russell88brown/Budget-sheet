@@ -1,6 +1,6 @@
 // Export helpers.
 function showExportDialog() {
-  var template = HtmlService.createTemplateFromFile('ExportDialog');
+  var template = createTemplateFromFileCompat_('ExportDialog', 'ui');
   template.sheetNames = getExportableSheetNames_();
   template.journalInfo = getJournalExportInfo_();
   template.journalSheetName = Config.SHEETS.JOURNAL;

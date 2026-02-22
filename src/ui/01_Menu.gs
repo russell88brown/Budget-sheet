@@ -89,7 +89,7 @@ function runDeterministicFixtureTestsPhase2_RunAllWithReport() {
 }
 
 function showRunBudgetDialog() {
-  var template = HtmlService.createTemplateFromFile('ScenarioRunDialog');
+  var template = createTemplateFromFileCompat_('ScenarioRunDialog', 'ui');
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
       return normalizeScenario_(value);
@@ -279,7 +279,7 @@ function validateTransfersExpenses() {
 }
 
 function showSetupDialog() {
-  var html = HtmlService.createHtmlOutputFromFile('SetupDialog')
+  var html = createHtmlOutputFromFileCompat_('SetupDialog', 'ui')
     .setWidth(560)
     .setHeight(460);
   SpreadsheetApp.getUi().showModalDialog(html, 'Setup Options');
