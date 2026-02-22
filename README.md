@@ -84,4 +84,5 @@ Practical combinations:
 - `docs/TEST_CASES.md`: manual regression test cases
 - `docs/TECHNICAL.md`: full technical reference
 - `docs/CLASP.md`: Apps Script/clasp setup
+- `docs/CI.md`: CI + PR deploy/test automation
 - `docs/CODEX.md`: local development notes

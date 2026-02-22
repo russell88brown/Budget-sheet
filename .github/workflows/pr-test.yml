@@ -1,0 +1,29 @@
+name: Branch Apps Script Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Push to test Apps Script and run fixtures
+        env:
+          CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
+          CLASP_SCRIPT_ID_TEST: ${{ secrets.CLASP_SCRIPT_ID_TEST }}
+          TEST_RUNNER_FUNCTION: runDeterministicFixtureTestsPhase2_All
+        run: npm run pr:test-branch
