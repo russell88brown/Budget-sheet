@@ -22,6 +22,7 @@ const CoreModel = {
     normalized.behavior = source.behavior || '';
     normalized.name = source.name || '';
     normalized.category = source.category || '';
+    normalized.sourceRuleId = source.sourceRuleId || '';
     normalized.from = source.from || '';
     normalized.to = source.to || '';
     normalized.account = source.account || '';

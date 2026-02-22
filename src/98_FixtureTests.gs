@@ -1,12 +1,19 @@
 // Deterministic fixture tests for the domain-core compile/apply flow.
+function getDeterministicFixtureTestsPhase2Specs_() {
+  return [
+    { name: 'Fixture A', handler: 'runDeterministicFixtureTestsPhase2_FixtureA', run: runDeterministicFixtureTestsPhase2_FixtureA },
+    { name: 'Fixture B', handler: 'runDeterministicFixtureTestsPhase2_FixtureB', run: runDeterministicFixtureTestsPhase2_FixtureB },
+    { name: 'Fixture C', handler: 'runDeterministicFixtureTestsPhase2_FixtureC', run: runDeterministicFixtureTestsPhase2_FixtureC },
+    { name: 'Fixture D', handler: 'runDeterministicFixtureTestsPhase2_FixtureD', run: runDeterministicFixtureTestsPhase2_FixtureD },
+    { name: 'Fixture E', handler: 'runDeterministicFixtureTestsPhase2_FixtureE', run: runDeterministicFixtureTestsPhase2_FixtureE },
+    { name: 'Fixture F', handler: 'runDeterministicFixtureTestsPhase2_FixtureF', run: runDeterministicFixtureTestsPhase2_FixtureF },
+  ];
+}
+
 function runDeterministicFixtureTestsPhase2_All() {
-  var results = [];
-  results.push(runDeterministicFixtureTestsPhase2_FixtureA());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureB());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureC());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureD());
-  results.push(runDeterministicFixtureTestsPhase2_FixtureE());
-  return results;
+  return getDeterministicFixtureTestsPhase2Specs_().map(function (fixture) {
+    return fixture.run();
+  });
 }
 
 function runDeterministicFixtureTestsPhase2_FixtureA() {
@@ -21,6 +28,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     incomeRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'INC_FIX_A_PAYCHECK',
         type: 'Salary',
         name: 'Paycheck',
         amount: 1200,
@@ -34,6 +42,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     expenseRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'EXP_FIX_A_RENT',
         type: 'Fixed',
         name: 'Rent',
         amount: 700,
@@ -47,6 +56,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     transferRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'TRN_FIX_A_CARD_PAYMENT',
         type: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
         behavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
         name: 'Card Payment',
@@ -74,6 +84,11 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
   });
   assertFixtureEqual_('Fixture A row count', 6, journal.rows.length);
   assertFixtureBalances_(journal, { Operating: 1300, Card: -300 });
+  assertJournalSourceRuleIdsPresent_(journal, [
+    'INC_FIX_A_PAYCHECK',
+    'EXP_FIX_A_RENT',
+    'TRN_FIX_A_CARD_PAYMENT',
+  ]);
   return 'Fixture A passed';
 }
 
@@ -219,10 +234,39 @@ function runDeterministicFixtureTestsPhase2_FixtureE() {
   });
   assertFixtureBalances_(journal, { Cash: 0, Savings: 250 });
   var hasAutoCover = journal.rows.some(function (row) {
-    return String(row[6] || '').indexOf('AUTO_DEFICIT_COVER') !== -1;
+    return String(row[7] || '').indexOf('AUTO_DEFICIT_COVER') !== -1;
   });
   assertFixtureEqual_('Fixture E auto cover alert', true, hasAutoCover);
   return 'Fixture E passed';
+}
+
+function runDeterministicFixtureTestsPhase2_FixtureF() {
+  var rows = [
+    [null, null, null, null, null, -120, 'EXP:RENT', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, -25, 'EXP:RENT', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, -60, 'EXP:GROCERIES', 'NEGATIVE_CASH | AUTO_DEFICIT_COVER'],
+    [null, null, null, null, null, 35, 'INC:TOPUP', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, -40, '', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, 150, 'INC:SALARY', ''],
+  ];
+  var top = summarizeNegativeCashTopSourcesFromRows_(
+    rows,
+    7, // Alerts
+    5, // Amount
+    6 // Source Rule ID
+  );
+  assertFixtureEqual_('Fixture F top count', 3, top.length);
+  assertFixtureEqual_('Fixture F top #1 id', 'EXP:RENT', top[0][0]);
+  assertFixtureEqual_('Fixture F top #1 amount', 145, top[0][1]);
+  assertFixtureEqual_('Fixture F top #1 events', 2, top[0][2]);
+  assertFixtureEqual_('Fixture F top #2 id', 'EXP:GROCERIES', top[1][0]);
+  assertFixtureEqual_('Fixture F top #2 amount', 60, top[1][1]);
+  assertFixtureEqual_('Fixture F top #3 id', '(Unattributed)', top[2][0]);
+  assertFixtureEqual_('Fixture F top #3 amount', 40, top[2][1]);
+  assertFixtureEqual_('Fixture F excludes inflow on negative-cash row', false, !!top.filter(function (item) {
+    return item[0] === 'INC:TOPUP';
+  }).length);
+  return 'Fixture F passed';
 }
 
 function fixtureAnchorDate_() {
@@ -262,6 +306,32 @@ function assertFixtureEqual_(label, expected, actual) {
   if (expected !== actual) {
     throw new Error(label + ' expected "' + expected + '" but got "' + actual + '".');
   }
+}
+
+function assertJournalSourceRuleIdsPresent_(journal, expectedRuleIds) {
+  if (!journal || !Array.isArray(journal.rows) || !journal.rows.length) {
+    throw new Error('Fixture assertion failed: no journal rows for source-rule checks.');
+  }
+  var expected = Array.isArray(expectedRuleIds) ? expectedRuleIds.slice() : [];
+  var seen = {};
+
+  journal.rows.forEach(function (row) {
+    var transactionType = String(row[3] || '');
+    if (transactionType === 'Opening') {
+      return;
+    }
+    var sourceRuleId = String(row[6] || '').trim();
+    if (!sourceRuleId) {
+      throw new Error('Fixture assertion failed: missing Source Rule ID on non-opening row.');
+    }
+    seen[sourceRuleId] = true;
+  });
+
+  expected.forEach(function (ruleId) {
+    if (!seen[ruleId]) {
+      throw new Error('Fixture assertion failed: expected Source Rule ID "' + ruleId + '" not found.');
+    }
+  });
 }
 
 function resetFixtureRunState_() {

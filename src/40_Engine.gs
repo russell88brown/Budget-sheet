@@ -139,6 +139,7 @@ function preprocessInputSheets_() {
   normalizeAccountRows_();
   normalizeTransferRows_();
   normalizeRecurrenceRows_();
+  assignMissingRuleIds_();
   toastStep_('Reviewing and validating input sheets...');
   var validationReport = reviewAndCleanupInputSheets_();
   toastStep_('Applying date-based include flags...');
@@ -151,6 +152,98 @@ function preprocessInputSheets_() {
       ? validationReport.scenarioValidation
       : { totalDisabled: 0, bySheet: {} },
   };
+}
+
+function assignMissingRuleIds_() {
+  var prefixesBySheet = {};
+  prefixesBySheet[Config.SHEETS.INCOME] = 'INC';
+  prefixesBySheet[Config.SHEETS.EXPENSE] = 'EXP';
+  prefixesBySheet[Config.SHEETS.TRANSFERS] = 'TRN';
+  prefixesBySheet[Config.SHEETS.POLICIES] = 'POL';
+  prefixesBySheet[Config.SHEETS.GOALS] = 'GOL';
+  prefixesBySheet[Config.SHEETS.RISK] = 'RSK';
+
+  var totalAssigned = 0;
+  Object.keys(prefixesBySheet).forEach(function (sheetName) {
+    totalAssigned += assignMissingRuleIdsForSheet_(sheetName, prefixesBySheet[sheetName]);
+  });
+  if (totalAssigned > 0) {
+    toastStep_('Assigned ' + totalAssigned + ' missing Rule ID value(s).');
+  }
+}
+
+function assignMissingRuleIdsForSheet_(sheetName, prefix) {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  if (!sheet) {
+    return 0;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return 0;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var ruleIdIdx = headers.indexOf('Rule ID');
+  if (ruleIdIdx === -1) {
+    return 0;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var existing = {};
+  values.forEach(function (row) {
+    var id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+    if (id) {
+      existing[id] = true;
+    }
+  });
+
+  var nextNumber = 1;
+  var assigned = 0;
+  values.forEach(function (row) {
+    var current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+    if (current) {
+      return;
+    }
+    if (!hasMeaningfulRowDataForRuleId_(row, ruleIdIdx)) {
+      return;
+    }
+
+    var candidate = '';
+    while (!candidate) {
+      var serial = ('00000' + nextNumber).slice(-5);
+      var trial = prefix + '-' + serial;
+      nextNumber += 1;
+      if (!existing[trial]) {
+        candidate = trial;
+      }
+    }
+    row[ruleIdIdx] = candidate;
+    existing[candidate] = true;
+    assigned += 1;
+  });
+
+  if (assigned > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
+  return assigned;
+}
+
+function hasMeaningfulRowDataForRuleId_(row, ruleIdIdx) {
+  for (var i = 0; i < row.length; i += 1) {
+    if (i === ruleIdIdx) {
+      continue;
+    }
+    var value = row[i];
+    if (value === null || value === '') {
+      continue;
+    }
+    if (value === false) {
+      continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 function reviewAndCleanupInputSheets_() {
@@ -255,7 +348,8 @@ function recordLastRunMetadata_(modeLabel, scenarioId, status, details) {
   settingsSheet.getRange('B6').setValue(resolveScenarioId_(scenarioId));
   settingsSheet.getRange('B7').setValue(new Date());
   settingsSheet.getRange('B8').setValue(status || '');
-  settingsSheet.getRange('C5').setValue('');
+  var note = details && details.note ? String(details.note).trim() : '';
+  settingsSheet.getRange('C5').setValue(note);
   settingsSheet.getRange('B7').setNumberFormat('yyyy-mm-dd hh:mm');
   appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, details);
 }
@@ -265,9 +359,13 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
     return;
   }
   var scenarioValidation = details && details.scenarioValidation ? details.scenarioValidation : null;
+  var explicitNote = details && details.note ? String(details.note).trim() : '';
   var notes = '';
   if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
     notes = 'Disabled unknown scenario rows: ' + scenarioValidation.totalDisabled;
+  }
+  if (explicitNote) {
+    notes = notes ? notes + ' | ' + explicitNote : explicitNote;
   }
 
   var row = 2;
@@ -2023,14 +2121,15 @@ function runJournalForScenarioIds_(scenarioIds) {
     });
 
     var combinedRows = [];
+    var baseColumnCount = getJournalBaseColumnCount_();
     artifacts.forEach(function (artifact) {
       var localIndex = {};
       (artifact.forecastAccounts || []).forEach(function (name, idx) {
         localIndex[name] = idx;
       });
       (artifact.rows || []).forEach(function (row) {
-        var base = row.slice(0, 7);
-        var localSnapshot = row.slice(7);
+        var base = row.slice(0, baseColumnCount);
+        var localSnapshot = row.slice(baseColumnCount);
         var aligned = globalForecastAccounts.map(function (name) {
           var idx = localIndex[name];
           if (idx === undefined) {
@@ -2054,6 +2153,18 @@ function runJournalForScenarioIds_(scenarioIds) {
   }
 }
 
+function getJournalBaseColumnCount_() {
+  if (typeof Schema !== 'undefined' && Schema && Array.isArray(Schema.outputs)) {
+    var journalSpec = Schema.outputs.filter(function (spec) {
+      return spec && spec.name === Config.SHEETS.JOURNAL;
+    })[0];
+    if (journalSpec && Array.isArray(journalSpec.columns) && journalSpec.columns.length) {
+      return journalSpec.columns.length;
+    }
+  }
+  return 8;
+}
+
 function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId) {
   return CoreApplyEvents.buildJournalRows({
     accounts: accounts || [],
@@ -2064,193 +2175,12 @@ function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId)
   });
 }
 
-function buildOpeningRows_(accounts, date, forecastAccounts, balances, scenarioId) {
-  return accounts.map(function (account) {
-    var balanceSnapshot = buildForecastBalanceCells_(balances, forecastAccounts);
-    return [
-      new Date(date.getTime()),
-      scenarioId,
-      account.name,
-      'Opening',
-      'Opening Balance',
-      account.balance || 0,
-      '',
-    ].concat(balanceSnapshot);
-  });
-}
-
-function buildBalanceMap_(accounts) {
-  var map = {};
-  accounts.forEach(function (account) {
-    map[account.name] = roundUpCents_(account.balance || 0);
-  });
-  return map;
-}
-
 function buildAccountTypeMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
   });
   return map;
-}
-
-function buildForecastableMap_(accounts) {
-  var map = {};
-  accounts.forEach(function (account) {
-    map[account.name] = account.forecast === true;
-  });
-  return map;
-}
-
-function buildForecastBalanceCells_(balances, forecastAccounts) {
-  return forecastAccounts.map(function (name) {
-    return balances[name] || 0;
-  });
-}
-
-function buildJournalEventRows_(
-  event,
-  balancesAfterFrom,
-  balancesAfterTo,
-  forecastAccounts,
-  accountTypes,
-  scenarioId
-) {
-  var balanceSnapshotFrom = buildForecastBalanceCells_(balancesAfterFrom, forecastAccounts);
-  var balanceSnapshotTo = buildForecastBalanceCells_(balancesAfterTo, forecastAccounts);
-  var transactionType = deriveJournalTransactionType_(event);
-  var amount = event.appliedAmount !== undefined ? event.appliedAmount : event.amount || 0;
-  var signedAmount = amount;
-  if (event.kind === 'Expense' || (event.kind === 'Transfer' && event.from)) {
-    signedAmount = -amount;
-  }
-  if (event.kind === 'Transfer') {
-    var accounts = [event.from, event.to].filter(function (name) {
-      return name && name !== 'External';
-    });
-    return accounts.map(function (accountName) {
-      var rowAmount = signedAmount;
-      if (accountName === event.to) {
-        rowAmount = amount;
-      }
-      var snapshot = accountName === event.to ? balanceSnapshotTo : balanceSnapshotFrom;
-      var balanceForRow = accountName === event.to ? balancesAfterTo : balancesAfterFrom;
-      var cashNegative =
-        accountTypes[accountName] !== Config.ACCOUNT_TYPES.CREDIT && balanceForRow[accountName] < 0;
-      var creditPaidOff =
-        accountTypes[accountName] === Config.ACCOUNT_TYPES.CREDIT &&
-        Math.abs(roundUpCents_(balanceForRow[accountName])) === 0 &&
-        rowAmount > 0;
-      return [
-        event.date,
-        scenarioId,
-        accountName,
-        transactionType,
-        event.name,
-        rowAmount,
-        buildAlerts_(cashNegative, creditPaidOff, event.alertTag),
-      ].concat(snapshot);
-    });
-  }
-
-  var accountName;
-  if (event.kind === 'Interest') {
-    accountName = event.account;
-  } else {
-    accountName = event.kind === 'Income' ? event.to : event.from;
-  }
-  var cashNegative =
-    accountTypes[accountName] !== Config.ACCOUNT_TYPES.CREDIT &&
-    balancesAfterTo[accountName] < 0;
-  var creditPaidOff =
-    accountTypes[accountName] === Config.ACCOUNT_TYPES.CREDIT &&
-    Math.abs(roundUpCents_(balancesAfterTo[accountName])) === 0 &&
-    signedAmount > 0;
-  return [
-    [
-      event.date,
-      scenarioId,
-      accountName || '',
-      transactionType,
-      event.name,
-      signedAmount,
-      buildAlerts_(cashNegative, creditPaidOff, event.alertTag),
-    ].concat(balanceSnapshotTo),
-  ];
-}
-
-function buildAlerts_(cashNegative, creditPaidOff, explicitAlert) {
-  var alerts = [];
-  if (cashNegative) {
-    alerts.push('NEGATIVE_CASH');
-  }
-  if (creditPaidOff) {
-    alerts.push('CREDIT_PAID_OFF');
-  }
-  if (explicitAlert) {
-    alerts.push(explicitAlert);
-  }
-  return alerts.join(' | ');
-}
-
-function applyEventWithSnapshots_(balances, event) {
-  var pre = cloneBalances_(balances);
-  var amount = roundUpCents_(event.amount || 0);
-
-  if (event.kind === 'Income') {
-    if (event.to) {
-      balances[event.to] = roundUpCents_((balances[event.to] || 0) + amount);
-    }
-    event.appliedAmount = amount;
-    return { afterFrom: cloneBalances_(balances), afterTo: cloneBalances_(balances) };
-  }
-
-  if (event.kind === 'Expense') {
-    if (event.from) {
-      balances[event.from] = roundUpCents_((balances[event.from] || 0) - amount);
-    }
-    event.appliedAmount = amount;
-    return { afterFrom: cloneBalances_(balances), afterTo: cloneBalances_(balances) };
-  }
-
-  if (event.kind === 'Interest') {
-    var interestAccount = event.account;
-    var interestAmount = computeInterestAmount_(balances, event);
-    event.appliedAmount = interestAmount;
-    if (interestAmount === 0) {
-      event.skipJournal = true;
-      return { afterFrom: pre, afterTo: pre };
-    }
-    if (interestAccount) {
-      balances[interestAccount] = roundUpCents_((balances[interestAccount] || 0) + interestAmount);
-    }
-    return { afterFrom: cloneBalances_(balances), afterTo: cloneBalances_(balances) };
-  }
-
-  if (event.kind === 'Transfer') {
-    var transferResolution = resolveTransferAmount_(balances, event, amount);
-    amount = transferResolution.amount;
-    if (transferResolution.skip) {
-      return { afterFrom: pre, afterTo: pre };
-    }
-
-    var afterFrom = cloneBalances_(pre);
-    if (event.from) {
-      afterFrom[event.from] = roundUpCents_((afterFrom[event.from] || 0) - amount);
-    }
-    var afterTo = cloneBalances_(afterFrom);
-    if (event.to) {
-      afterTo[event.to] = roundUpCents_((afterTo[event.to] || 0) + amount);
-    }
-    Object.keys(afterTo).forEach(function (name) {
-      balances[name] = afterTo[name];
-    });
-    event.appliedAmount = amount;
-    return { afterFrom: afterFrom, afterTo: afterTo };
-  }
-
-  return { afterFrom: pre, afterTo: pre };
 }
 
 function deriveJournalTransactionType_(event) {
@@ -2274,343 +2204,6 @@ function deriveJournalTransactionType_(event) {
     return 'Interest';
   }
   return event.kind;
-}
-
-function applyAutoDeficitCoverRowsBeforeEvent_(
-  balances,
-  event,
-  accountTypes,
-  policyRules,
-  riskContext,
-  forecastAccounts,
-  scenarioId
-) {
-  var applicablePolicies = getApplicableAutoDeficitPolicies_(policyRules, event);
-  if (!applicablePolicies.length) {
-    return [];
-  }
-
-  var threshold = applicablePolicies.reduce(function (maxValue, policy) {
-    var value = toNumber_(policy.threshold);
-    if (value === null || value < 0) {
-      value = 0;
-    }
-    return value > maxValue ? value : maxValue;
-  }, 0);
-  var coverageNeed = getDeficitCoverageNeedForEvent_(balances, event, accountTypes, threshold);
-  if (!coverageNeed || !coverageNeed.account || coverageNeed.amount <= 0) {
-    return [];
-  }
-  var coveredAccount = coverageNeed.account;
-  var remainingNeed = coverageNeed.amount;
-  var rows = [];
-
-  for (var i = 0; i < applicablePolicies.length && remainingNeed > 0; i += 1) {
-    var policy = applicablePolicies[i];
-    var sourceAccount = (policy.fundingAccount || '').toString().trim();
-    if (!sourceAccount || sourceAccount === coveredAccount) {
-      continue;
-    }
-    if (balances[sourceAccount] === undefined) {
-      continue;
-    }
-    var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
-    var reservedBuffer = getReservedEmergencyBufferForSource_(riskContext, sourceAccount);
-    if (reservedBuffer > 0) {
-      available = roundUpCents_(Math.max(0, available - reservedBuffer));
-    }
-    if (available <= 0) {
-      continue;
-    }
-
-    var maxPerEvent = toNumber_(policy.maxPerEvent);
-    var cap = maxPerEvent !== null && maxPerEvent > 0 ? maxPerEvent : remainingNeed;
-    var amount = roundUpCents_(Math.min(remainingNeed, available, cap));
-    if (amount <= 0) {
-      continue;
-    }
-
-    var coverEvent = {
-      date: event.date,
-      kind: 'Transfer',
-      behavior: Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
-      transferBehavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
-      name: policy.name || ('Auto deficit cover - ' + coveredAccount),
-      from: sourceAccount,
-      to: coveredAccount,
-      amount: amount,
-      alertTag: 'AUTO_DEFICIT_COVER',
-    };
-    var snapshots = applyEventWithSnapshots_(balances, coverEvent);
-    if (coverEvent.skipJournal) {
-      continue;
-    }
-    rows = rows.concat(
-      buildJournalEventRows_(
-        coverEvent,
-        snapshots.afterFrom,
-        snapshots.afterTo,
-        forecastAccounts,
-        accountTypes,
-        scenarioId
-      )
-    );
-    remainingNeed = roundUpCents_(remainingNeed - amount);
-  }
-
-  return rows;
-}
-
-function getApplicableAutoDeficitPolicies_(policyRules, event) {
-  if (!event || !event.from || !Array.isArray(policyRules) || !policyRules.length) {
-    return [];
-  }
-  var eventFromKey = normalizeAccountLookupKey_(event.from);
-  return policyRules
-    .filter(function (policy) {
-      if (!policy || policy.type !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
-        return false;
-      }
-      if (normalizeAccountLookupKey_(policy.triggerAccount) !== eventFromKey) {
-        return false;
-      }
-      return isPolicyActiveOnDate_(policy, event.date);
-    })
-    .sort(function (a, b) {
-      var pa = toPositiveInt_(a.priority) || 100;
-      var pb = toPositiveInt_(b.priority) || 100;
-      if (pa !== pb) {
-        return pa - pb;
-      }
-      var na = a.name || '';
-      var nb = b.name || '';
-      return na < nb ? -1 : na > nb ? 1 : 0;
-    });
-}
-
-function resolveRiskContext_(riskSettings) {
-  if (!Array.isArray(riskSettings) || !riskSettings.length) {
-    return null;
-  }
-  return riskSettings[0];
-}
-
-function getReservedEmergencyBufferForSource_(riskContext, sourceAccount) {
-  if (!riskContext || !sourceAccount) {
-    return 0;
-  }
-  var bufferAccount = (riskContext.emergencyBufferAccount || '').toString().trim();
-  if (!bufferAccount) {
-    return 0;
-  }
-  if (normalizeAccountLookupKey_(bufferAccount) !== normalizeAccountLookupKey_(sourceAccount)) {
-    return 0;
-  }
-  var minValue = toNumber_(riskContext.emergencyBufferMinimum);
-  if (minValue === null || minValue <= 0) {
-    return 0;
-  }
-  return roundUpCents_(minValue);
-}
-
-function isPolicyActiveOnDate_(policy, date) {
-  var day = normalizeDate_(date || new Date());
-  var startDate = policy && policy.startDate ? normalizeDate_(policy.startDate) : null;
-  var endDate = policy && policy.endDate ? normalizeDate_(policy.endDate) : null;
-  if (startDate && day.getTime() < startDate.getTime()) {
-    return false;
-  }
-  if (endDate && day.getTime() > endDate.getTime()) {
-    return false;
-  }
-  return true;
-}
-
-function getDeficitCoverageNeedForEvent_(balances, event, accountTypes, threshold) {
-  if (!event || !event.kind) {
-    return null;
-  }
-  if (event.kind !== 'Expense' && event.kind !== 'Transfer') {
-    return null;
-  }
-  if (!event.from || accountTypes[event.from] === Config.ACCOUNT_TYPES.CREDIT) {
-    return null;
-  }
-  if ((event.transferBehavior || event.behavior) === Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
-    return null;
-  }
-
-  var outgoing = 0;
-  if (event.kind === 'Expense') {
-    outgoing = roundUpCents_(event.amount || 0);
-  } else {
-    outgoing = estimateTransferOutgoingAmount_(balances, event);
-  }
-
-  if (outgoing <= 0) {
-    return null;
-  }
-  var currentBalance = roundUpCents_(balances[event.from] || 0);
-  var safeThreshold = toNumber_(threshold);
-  if (safeThreshold === null || safeThreshold < 0) {
-    safeThreshold = 0;
-  }
-  var needed = roundUpCents_(Math.max(0, outgoing + safeThreshold - currentBalance));
-  if (needed <= 0) {
-    return null;
-  }
-  return {
-    account: event.from,
-    amount: needed,
-  };
-}
-
-function estimateTransferOutgoingAmount_(balances, event) {
-  var transferType = event.transferBehavior || event.behavior;
-  var amount = roundUpCents_(event.amount || 0);
-
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-    return 0;
-  }
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
-    return amount > 0 ? amount : 0;
-  }
-  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-    var targetAll = event.to ? balances[event.to] || 0 : 0;
-    return targetAll < 0 ? roundUpCents_(Math.abs(targetAll)) : 0;
-  }
-  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT) {
-    var targetAmount = event.to ? balances[event.to] || 0 : 0;
-    if (targetAmount >= 0 || amount <= 0) {
-      return 0;
-    }
-    return roundUpCents_(Math.min(amount, Math.abs(targetAmount)));
-  }
-  return amount > 0 ? amount : 0;
-}
-
-function resolveTransferAmount_(balances, event, amount) {
-  var transferType = event.transferBehavior || event.behavior;
-
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-    var sourceBalance = event.from ? balances[event.from] || 0 : 0;
-    var keepAmount = amount || 0;
-    var moveAmount = roundUpCents_(Math.max(0, sourceBalance - keepAmount));
-    if (moveAmount <= 0) {
-      event.appliedAmount = 0;
-      event.skipJournal = true;
-      return { amount: 0, skip: true };
-    }
-    return { amount: moveAmount, skip: false };
-  }
-
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
-    if (amount <= 0) {
-      event.appliedAmount = 0;
-      event.skipJournal = true;
-      return { amount: 0, skip: true };
-    }
-    return { amount: amount, skip: false };
-  }
-
-  if (
-    transferType !== Config.TRANSFER_TYPES.REPAYMENT_AMOUNT &&
-    transferType !== Config.TRANSFER_TYPES.REPAYMENT_ALL
-  ) {
-    return { amount: amount, skip: false };
-  }
-
-  var target = event.to ? balances[event.to] || 0 : 0;
-  if (target >= 0) {
-    event.appliedAmount = 0;
-    event.skipJournal = true;
-    if (!runState_.creditPaidOffWarned[event.name]) {
-      runState_.creditPaidOffWarned[event.name] = true;
-    }
-    return { amount: 0, skip: true };
-  }
-
-  var required = Math.abs(target);
-  var resolvedAmount = amount;
-  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-    resolvedAmount = required;
-  } else if (resolvedAmount <= 0) {
-    event.appliedAmount = 0;
-    event.skipJournal = true;
-    return { amount: 0, skip: true };
-  } else if (resolvedAmount > required) {
-    resolvedAmount = roundUpCents_(required);
-  }
-  return { amount: resolvedAmount, skip: false };
-}
-
-function computeInterestAmount_(balances, event) {
-  if (!event) {
-    return 0;
-  }
-  if (event.interestAccrual) {
-    accrueDailyInterest_(balances, event);
-    return 0;
-  }
-  var account = event.account;
-  if (!account) {
-    return 0;
-  }
-  var bucket = getInterestBucket_(account);
-  var accrued = bucket.accrued || 0;
-  var fee = computeInterestFeePerPosting_(event);
-  bucket.accrued = 0;
-  bucket.lastPostingDate = event.date ? normalizeDate_(event.date) : null;
-  return roundUpCents_(accrued - fee);
-}
-
-function accrueDailyInterest_(balances, event) {
-  var account = event.account;
-  if (!account) {
-    return;
-  }
-  var rate = event.rate;
-  if (rate === null || rate === undefined || rate === '') {
-    return;
-  }
-  var balance = balances[account] || 0;
-  if (!balance) {
-    return;
-  }
-  var annualRate = rate / 100;
-  var dailyRate = annualRate / 365;
-  if (event.method === Config.INTEREST_METHODS.APY_COMPOUND) {
-    dailyRate = Math.pow(1 + annualRate, 1 / 365) - 1;
-  }
-  var bucket = getInterestBucket_(account);
-  bucket.accrued = (bucket.accrued || 0) + balance * dailyRate;
-}
-
-function computeInterestFeePerPosting_(event) {
-  var monthlyFee = toNumber_(event.monthlyFee);
-  if (monthlyFee === null || monthlyFee <= 0) {
-    return 0;
-  }
-  var periodsPerYear = Recurrence.periodsPerYear(event.frequency, event.repeatEvery);
-  if (!periodsPerYear) {
-    return monthlyFee;
-  }
-  return monthlyFee * (12 / periodsPerYear);
-}
-
-function getInterestBucket_(accountName) {
-  runState_.interest = runState_.interest || {};
-  if (!runState_.interest[accountName]) {
-    runState_.interest[accountName] = { accrued: 0, lastPostingDate: null };
-  }
-  return runState_.interest[accountName];
-}
-
-function cloneBalances_(balances) {
-  return Object.keys(balances).reduce(function (copy, key) {
-    copy[key] = balances[key];
-    return copy;
-  }, {});
 }
 
 function roundUpCents_(value) {

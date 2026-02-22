@@ -1,0 +1,88 @@
+name: PR Sandbox Deploy (clasp)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/pr-sandbox-clasp-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clasp-sandbox-pr-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-sandbox:
+    # Secrets are not available to forked PRs; skip safely.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    env:
+      CLASP_SANDBOX_SCRIPT_ID: ${{ secrets.CLASP_SANDBOX_SCRIPT_ID }}
+      CLASP_OAUTH_CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS }}
+      CLASP_SCRIPT_ID_TEST: ${{ secrets.CLASP_SCRIPT_ID_TEST }}
+      CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve and validate secrets
+        shell: bash
+        run: |
+          SCRIPT_ID="$(printf '%s' "${CLASP_SANDBOX_SCRIPT_ID:-$CLASP_SCRIPT_ID_TEST}" | tr -d '\r\n')"
+          CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
+
+          if [ -z "$SCRIPT_ID" ]; then
+            echo "Missing secret: CLASP_SANDBOX_SCRIPT_ID (or CLASP_SCRIPT_ID_TEST)"
+            exit 1
+          fi
+          if [ -z "$CREDENTIALS" ]; then
+            echo "Missing secret: CLASP_OAUTH_CREDENTIALS (or CLASP_CREDENTIALS_JSON)"
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Configure clasp auth
+        shell: bash
+        run: |
+          CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
+          node -e "const fs=require('fs');const os=require('os');const path=require('path');const raw=process.env.CREDENTIALS||'';let parsed;try{parsed=JSON.parse(raw);}catch(e){throw new Error('Credentials secret is not valid JSON');}if(typeof parsed==='string'){parsed=JSON.parse(parsed);}if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)){throw new Error('Credentials secret must decode to a JSON object');}if(parsed.token&&!parsed.tokens){const t=parsed.token;const c=parsed.oauth2ClientSettings||{};parsed.tokens={default:{access_token:t.access_token,refresh_token:t.refresh_token,scope:t.scope,token_type:t.token_type,id_token:t.id_token,expiry_date:t.expiry_date,type:'authorized_user',client_id:c.clientId,client_secret:c.clientSecret}};}if(parsed.tokens&&typeof parsed.tokens==='object'&&!parsed.tokens.default){const keys=Object.keys(parsed.tokens);if(keys.length>0){parsed.tokens.default=parsed.tokens[keys[0]];}}fs.writeFileSync(path.join(os.homedir(),'.clasprc.json'),JSON.stringify(parsed,null,2)+'\n','utf8');"
+        env:
+          CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS || secrets.CLASP_CREDENTIALS_JSON }}
+
+      - name: Validate clasp auth file
+        shell: bash
+        run: |
+          test -s "$HOME/.clasprc.json"
+          node -e "const fs=require('fs');const p=process.env.HOME+'/.clasprc.json';const obj=JSON.parse(fs.readFileSync(p,'utf8'));if(!obj||typeof obj!=='object'){console.error('Invalid .clasprc.json object');process.exit(1);}const legacyRefresh=!!(obj.token&&obj.token.refresh_token);const tokens=obj.tokens&&typeof obj.tokens==='object'?obj.tokens:null;const defaultRefresh=!!(tokens&&tokens.default&&tokens.default.refresh_token);const anyRefresh=!!(tokens&&Object.values(tokens).some(v=>v&&typeof v==='object'&&v.refresh_token));if(!(legacyRefresh||defaultRefresh||anyRefresh)){console.error('No refresh token found in .clasprc.json');process.exit(1);}console.log('clasp auth file looks valid');"
+
+      - name: Configure sandbox script target
+        shell: bash
+        run: |
+          SCRIPT_ID="$(printf '%s' "${CLASP_SANDBOX_SCRIPT_ID:-$CLASP_SCRIPT_ID_TEST}" | tr -d '\r\n')"
+          cat > .clasp.json <<EOF
+          {
+            "scriptId": "${SCRIPT_ID}",
+            "rootDir": "src",
+            "scriptExtensions": [".js", ".gs"],
+            "htmlExtensions": [".html"],
+            "jsonExtensions": [".json"],
+            "filePushOrder": [],
+            "skipSubdirectories": false
+          }
+          EOF
+
+      - name: Push source to sandbox
+        shell: bash
+        run: |
+          npx --yes @google/clasp@latest push --force

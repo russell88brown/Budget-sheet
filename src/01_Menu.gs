@@ -1,21 +1,25 @@
 // Entrypoints and menu wiring.
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
+  var fixtureMenu = ui
+    .createMenu('Deterministic Fixture Tests (Phase 2)')
+    .addItem('Run All + Report', 'runDeterministicFixtureTestsPhase2_RunAllWithReport')
+    .addItem('Run All (Raw)', 'runDeterministicFixtureTestsPhase2_All');
+  var fixtureSpecs = typeof getDeterministicFixtureTestsPhase2Specs_ === 'function'
+    ? getDeterministicFixtureTestsPhase2Specs_()
+    : [];
+  fixtureSpecs.forEach(function (fixture) {
+    if (!fixture || !fixture.name || !fixture.handler) {
+      return;
+    }
+    fixtureMenu.addItem(fixture.name, fixture.handler);
+  });
 
   ui
     .createMenu('Budget Forecast')
     .addItem('Run Budget...', 'showRunBudgetDialog')
     .addSeparator()
-    .addSubMenu(
-      ui
-        .createMenu('Deterministic Fixture Tests (Phase 2)')
-        .addItem('Run All', 'runDeterministicFixtureTestsPhase2_All')
-        .addItem('Fixture A', 'runDeterministicFixtureTestsPhase2_FixtureA')
-        .addItem('Fixture B', 'runDeterministicFixtureTestsPhase2_FixtureB')
-        .addItem('Fixture C', 'runDeterministicFixtureTestsPhase2_FixtureC')
-        .addItem('Fixture D', 'runDeterministicFixtureTestsPhase2_FixtureD')
-        .addItem('Fixture E', 'runDeterministicFixtureTestsPhase2_FixtureE')
-    )
+    .addSubMenu(fixtureMenu)
     .addSeparator()
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
@@ -33,6 +37,54 @@ function runJournal() {
     Engine.runJournalOnly();
   } else {
     runForecast();
+  }
+}
+
+function runDeterministicFixtureTestsPhase2_RunAllWithReport() {
+  var fixtures = getDeterministicFixtureTestsPhase2Specs_();
+  var progressSteps = fixtures.length + 1;
+  startRunProgress_('Fixture Tests (Phase 2)', progressSteps);
+  var results = [];
+  try {
+    fixtures.forEach(function (fixture) {
+      toastStep_('Running ' + fixture.name + '...');
+      try {
+        fixture.run();
+        results.push({ name: fixture.name, status: 'PASS', message: '' });
+      } catch (err) {
+        results.push({
+          name: fixture.name,
+          status: 'FAIL',
+          message: err && err.message ? String(err.message) : String(err),
+        });
+      }
+    });
+
+    var failed = results.filter(function (item) {
+      return item.status === 'FAIL';
+    });
+    var summary = 'Fixture tests passed ' + (results.length - failed.length) + '/' + results.length + '.';
+    if (failed.length) {
+      var failedNames = failed.map(function (item) { return item.name; }).join(', ');
+      summary += ' Failed: ' + failedNames + '.';
+    }
+
+    if (typeof recordLastRunMetadata_ === 'function') {
+      recordLastRunMetadata_(
+        'Fixture Tests (Phase 2)',
+        Config.SCENARIOS.DEFAULT,
+        failed.length ? 'Failed' : 'Success',
+        { note: summary }
+      );
+    }
+
+    toastStep_(summary);
+    if (failed.length) {
+      throw new Error(summary);
+    }
+    return summary;
+  } finally {
+    endRunProgress_();
   }
 }
 
@@ -189,7 +241,7 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
           assertMonthlyReconcilesWithDaily_(monthly, daily);
         }
       }
-      writeDashboard_(buildDashboardData_(daily, monthly, summaryScenarioFilter));
+      writeDashboard_(buildDashboardData_(daily, summaryScenarioFilter));
     }
 
     recordLastRunMetadata_('Run Budget: ' + actionLabel, scenarioLabel, 'Success');

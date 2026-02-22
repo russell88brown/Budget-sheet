@@ -49,3 +49,14 @@ Recommended path:
 - Keep secrets and machine-specific settings only in local ignored files.
 - Commit only example/template config files.
 - If shared defaults change, update `codex/config.example.toml` and this doc together.
+
+## Backlog And Sprint Automation
+
+Codex backlog and sprint execution are documented as a distinct workflow in:
+
+- `codex/README.md`
+
+Use that file for:
+- automatic idea backlog structure,
+- sprint planning and execution segmentation,
+- CI trigger patterns (including branch-create trigger for `sprint/*`).

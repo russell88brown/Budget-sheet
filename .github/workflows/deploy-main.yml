@@ -4,7 +4,18 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/deploy-main.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-main-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -16,10 +27,26 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
+          cache: npm
 
       - name: Install clasp
         run: npm install -g @google/clasp
+
+      - name: Validate required secrets
+        shell: bash
+        env:
+          CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
+          CLASP_SCRIPT_ID_PROD: ${{ secrets.CLASP_SCRIPT_ID_PROD }}
+        run: |
+          if [ -z "$CLASP_CREDENTIALS_JSON" ]; then
+            echo "Missing secret: CLASP_CREDENTIALS_JSON"
+            exit 1
+          fi
+          if [ -z "$CLASP_SCRIPT_ID_PROD" ]; then
+            echo "Missing secret: CLASP_SCRIPT_ID_PROD"
+            exit 1
+          fi
 
       - name: Deploy to production Apps Script
         env:

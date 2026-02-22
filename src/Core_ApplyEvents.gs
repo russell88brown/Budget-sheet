@@ -68,6 +68,7 @@ function coreBuildOpeningRows_(accounts, date, forecastAccounts, balances, scena
       'Opening Balance',
       account.balance || 0,
       '',
+      '',
     ].concat(balanceSnapshot);
   });
 }
@@ -134,6 +135,7 @@ function coreBuildJournalEventRows_(
         transactionType,
         event.name,
         rowAmount,
+        event.sourceRuleId || '',
         coreBuildAlerts_(cashNegative, creditPaidOff, event.alertTag),
       ].concat(snapshot);
     });
@@ -160,6 +162,7 @@ function coreBuildJournalEventRows_(
       transactionType,
       event.name,
       signedAmount,
+      event.sourceRuleId || '',
       coreBuildAlerts_(cashNegative, creditPaidOff, event.alertTag),
     ].concat(balanceSnapshotTo),
   ];
@@ -301,6 +304,7 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
       from: sourceAccount,
       to: coveredAccount,
       amount: amount,
+      sourceRuleId: policy.ruleId || ('POL:' + (policy.name || 'AUTO_DEFICIT_COVER')),
       alertTag: 'AUTO_DEFICIT_COVER',
     };
     var snapshots = coreApplyEventWithSnapshots_(balances, coverEvent);

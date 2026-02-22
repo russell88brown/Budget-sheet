@@ -13,6 +13,7 @@ const Events = {
           date: date,
           scenarioId: rule.scenarioId,
           kind: 'Income',
+          sourceRuleId: buildSourceRuleId_('INC', rule, rule.name),
           behavior: rule.type || 'Income',
           name: rule.name,
           category: null,
@@ -46,6 +47,7 @@ const Events = {
           date: date,
           scenarioId: rule.scenarioId,
           kind: 'Expense',
+          sourceRuleId: buildSourceRuleId_('EXP', rule, expenseName),
           behavior: rule.type || Config.BEHAVIOR_LABELS.Expense,
           name: expenseName,
           category: rule.type,
@@ -70,6 +72,7 @@ const Events = {
           date: date,
           scenarioId: rule.scenarioId,
           kind: 'Transfer',
+          sourceRuleId: buildSourceRuleId_('TRN', rule, rule.name),
           behavior: rule.type || rule.behavior,
           transferBehavior: rule.type || rule.behavior,
           name: rule.name,
@@ -113,6 +116,7 @@ const Events = {
           date: date,
           scenarioId: account.scenarioId,
           kind: 'Interest',
+          sourceRuleId: buildSourceRuleId_('INT', account, account.name),
           behavior: 'Interest Accrual',
           name: 'Interest Accrual',
           account: account.name,
@@ -127,6 +131,7 @@ const Events = {
           date: date,
           scenarioId: account.scenarioId,
           kind: 'Interest',
+          sourceRuleId: buildSourceRuleId_('INT', account, account.name),
           behavior: 'Interest',
           name: 'Interest',
           account: account.name,
@@ -141,4 +146,16 @@ const Events = {
     });
   },
 };
+
+function buildSourceRuleId_(prefix, source, fallbackName) {
+  var explicit = source && source.ruleId ? String(source.ruleId).trim() : '';
+  if (explicit) {
+    return explicit;
+  }
+  var name = fallbackName ? String(fallbackName).trim() : '';
+  if (!name) {
+    return prefix + ':UNKNOWN';
+  }
+  return prefix + ':' + name.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
 

@@ -23,7 +23,7 @@ function runSummaryForScenario(scenarioId) {
     writeMonthlySummary_(monthly);
 
     toastStep_('Building dashboard...');
-    var dashboard = buildDashboardData_(daily, monthly, activeScenarioId);
+    var dashboard = buildDashboardData_(daily, activeScenarioId);
     toastStep_('Writing dashboard...');
     writeDashboard_(dashboard);
 
@@ -137,19 +137,28 @@ function buildJournalContextForScenarioSet_(scenarioId) {
   var ss = SpreadsheetApp.getActive();
   var journal = ss.getSheetByName(Config.SHEETS.JOURNAL);
   if (!journal) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [], alertsIndex: -1 };
   }
   var lastRow = journal.getLastRow();
   var lastCol = journal.getLastColumn();
   if (lastRow < 2 || lastCol < 1) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [], alertsIndex: -1 };
   }
 
   var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
   var scenarioIndex = headerRow.indexOf('Scenario');
   var alertsIndex = headerRow.indexOf('Alerts');
+  var amountIndex = headerRow.indexOf('Amount');
+  var sourceRuleIdIndex = headerRow.indexOf('Source Rule ID');
   if (alertsIndex === -1) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+    return {
+      scenarioSet: scenarioSet,
+      accountNames: [],
+      rows: [],
+      alertsIndex: -1,
+      amountIndex: amountIndex,
+      sourceRuleIdIndex: sourceRuleIdIndex,
+    };
   }
   var accountNames = headerRow.slice(alertsIndex + 1).filter(function (name) {
     return name !== '' && name !== null;
@@ -161,7 +170,14 @@ function buildJournalContextForScenarioSet_(scenarioId) {
     }
     return !!lookup[normalizeScenario_(row[scenarioIndex])];
   });
-  return { scenarioSet: scenarioSet, accountNames: accountNames, rows: rows };
+  return {
+    scenarioSet: scenarioSet,
+    accountNames: accountNames,
+    rows: rows,
+    alertsIndex: alertsIndex,
+    amountIndex: amountIndex,
+    sourceRuleIdIndex: sourceRuleIdIndex,
+  };
 }
 
 function assertJournalRowsAvailableForScenarioSet_(scenarioId) {
@@ -200,7 +216,8 @@ function assertDailyReconcilesWithJournal_(daily, scenarioId) {
       return;
     }
     var key = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM-dd');
-    dayClosings[key] = row.slice(7, 7 + context.accountNames.length);
+    var snapshotStart = context.alertsIndex + 1;
+    dayClosings[key] = row.slice(snapshotStart, snapshotStart + context.accountNames.length);
   });
 
   daily.rows.forEach(function (row) {
@@ -504,9 +521,15 @@ function writeMonthlySummary_(monthly) {
   }
 }
 
-function buildDashboardData_(daily, monthly, scenarioId) {
+function buildDashboardData_(daily, scenarioId) {
   if (!daily.rows.length) {
-    return { metrics: [], accountStats: [], accountNames: daily.accountNames || [] };
+    return {
+      metrics: [],
+      comparison: [],
+      explainability: [],
+      accountStats: [],
+      accountNames: daily.accountNames || [],
+    };
   }
 
   var rows = daily.rows;
@@ -549,11 +572,99 @@ function buildDashboardData_(daily, monthly, scenarioId) {
     };
   });
 
+  var comparison = buildScenarioComparisonData_(scenarioId, daily, {
+    cashStats: cashStats,
+    netStats: netStats,
+    daysCashNegative: countDaysBelow_(rows, 1, 0),
+    daysNetNegative: countDaysBelow_(rows, 3, 0),
+  });
+  var explainability = buildNegativeCashTopSources_(scenarioId);
+
   return {
     metrics: metrics,
+    comparison: comparison,
+    explainability: explainability,
     accountStats: accountStats,
     accountNames: daily.accountNames,
   };
+}
+
+function buildNegativeCashTopSources_(scenarioId) {
+  var context = buildJournalContextForScenarioSet_(scenarioId);
+  if (!context || !context.rows || !context.rows.length) {
+    return [];
+  }
+  if (context.alertsIndex === -1 || context.amountIndex === -1 || context.sourceRuleIdIndex === -1) {
+    return [];
+  }
+  return summarizeNegativeCashTopSourcesFromRows_(
+    context.rows,
+    context.alertsIndex,
+    context.amountIndex,
+    context.sourceRuleIdIndex
+  );
+}
+
+function summarizeNegativeCashTopSourcesFromRows_(rows, alertsIndex, amountIndex, sourceRuleIdIndex) {
+  var totals = {};
+  (rows || []).forEach(function (row) {
+    var alerts = String(row[alertsIndex] || '');
+    if (alerts.indexOf('NEGATIVE_CASH') === -1) {
+      return;
+    }
+    var rawAmount = toNumber_(row[amountIndex]);
+    if (rawAmount === null || rawAmount >= 0) {
+      return;
+    }
+    var key = String(row[sourceRuleIdIndex] || '').trim() || '(Unattributed)';
+    var amount = Math.abs(rawAmount);
+    if (!totals[key]) {
+      totals[key] = { total: 0, events: 0 };
+    }
+    totals[key].total = roundUpCents_(totals[key].total + amount);
+    totals[key].events += 1;
+  });
+
+  var keys = Object.keys(totals).sort(function (left, right) {
+    var diff = totals[right].total - totals[left].total;
+    if (diff !== 0) {
+      return diff;
+    }
+    return left < right ? -1 : left > right ? 1 : 0;
+  });
+
+  return keys.slice(0, 5).map(function (key) {
+    return [key, totals[key].total, totals[key].events];
+  });
+}
+
+function buildScenarioComparisonData_(scenarioId, daily, current) {
+  if (Array.isArray(scenarioId)) {
+    return [];
+  }
+  var activeScenario = normalizeScenario_(scenarioId);
+  if (activeScenario === Config.SCENARIOS.DEFAULT) {
+    return [];
+  }
+
+  var baseDaily = buildDailySummary_(Config.SCENARIOS.DEFAULT);
+  if (!baseDaily || !baseDaily.rows || !baseDaily.rows.length) {
+    return [];
+  }
+
+  var baseRows = baseDaily.rows;
+  var baseCashStats = computeSeriesStats_(baseRows, 1);
+  var baseNetStats = computeSeriesStats_(baseRows, 3);
+  var baseDaysCashNegative = countDaysBelow_(baseRows, 1, 0);
+  var baseDaysNetNegative = countDaysBelow_(baseRows, 3, 0);
+
+  return [
+    ['Compared To', Config.SCENARIOS.DEFAULT],
+    ['Ending Net Delta', roundUpCents_(current.netStats.end - baseNetStats.end)],
+    ['Cash Min Delta', roundUpCents_(current.cashStats.min - baseCashStats.min)],
+    ['Days Cash < 0 Delta', current.daysCashNegative - baseDaysCashNegative],
+    ['Days Net < 0 Delta', current.daysNetNegative - baseDaysNetNegative],
+  ];
 }
 
 function computeSeriesStats_(rows, index) {
@@ -667,6 +778,50 @@ function writeDashboard_(dashboard) {
     );
     metricRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
     metricRange.getCell(1, 1).setBackground('#f2f2f2');
+  }
+
+  if (dashboard.comparison && dashboard.comparison.length) {
+    var compareStartRow = 3;
+    var compareStartCol = 11;
+    sheet
+      .getRange(compareStartRow - 1, compareStartCol, 1, 2)
+      .setValues([['Scenario Delta', '']])
+      .setFontWeight('bold');
+    sheet
+      .getRange(compareStartRow, compareStartCol, dashboard.comparison.length, 2)
+      .setValues(dashboard.comparison);
+    var compareRange = sheet.getRange(
+      compareStartRow - 1,
+      compareStartCol,
+      dashboard.comparison.length + 1,
+      2
+    );
+    compareRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
+    compareRange.getCell(1, 1).setBackground('#f2f2f2');
+  }
+
+  if (dashboard.explainability && dashboard.explainability.length) {
+    var explainStartRow = 3;
+    var explainStartCol = 14;
+    sheet
+      .getRange(explainStartRow - 1, explainStartCol, 1, 3)
+      .setValues([['Negative Cash Top Sources', '', '']])
+      .setFontWeight('bold');
+    sheet
+      .getRange(explainStartRow, explainStartCol, 1, 3)
+      .setValues([['Source Rule ID', 'Abs Amount', 'Events']])
+      .setFontWeight('bold');
+    sheet
+      .getRange(explainStartRow + 1, explainStartCol, dashboard.explainability.length, 3)
+      .setValues(dashboard.explainability);
+    var explainRange = sheet.getRange(
+      explainStartRow - 1,
+      explainStartCol,
+      dashboard.explainability.length + 2,
+      3
+    );
+    explainRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
+    explainRange.getCell(1, 1).setBackground('#f2f2f2');
   }
 
   var accountStartRow = 35;

@@ -21,6 +21,9 @@ function getExportableSheetNames_() {
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.INCOME,
     Config.SHEETS.EXPENSE,
+    Config.SHEETS.DAILY,
+    Config.SHEETS.MONTHLY,
+    Config.SHEETS.DASHBOARD,
     Config.LISTS_SHEET,
     Config.SHEETS.JOURNAL,
   ];

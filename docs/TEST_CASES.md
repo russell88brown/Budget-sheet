@@ -161,6 +161,12 @@ Run this quick sequence after housekeeping or setup changes:
   - Journal export files/rows are partitioned by `Scenario + Month`.
   - JSON payload includes `scenario`.
 
+5a. Export includes summary sheets
+- Run `Export` including `Daily`, `Monthly`, and `Dashboard`.
+- Expected:
+  - Export output includes all selected sheets.
+  - Dashboard export contains the `Scenario Delta` block when dashboard was built for a non-Base scenario.
+
 6. Unknown scenario validation
 - Put `Scenario=BadScenario` on an included input row.
 - Run forecast/journal with preprocessing path (`Run forecast`).
@@ -180,15 +186,41 @@ Run this quick sequence after housekeeping or setup changes:
   - `B8 = Success`
   - New row appended in run log area `J:N` with matching mode/scenario/status.
 
+8. Scenario delta block on dashboard
+- Ensure both `Base` and `Stress` Journal data exist.
+- Run `Run Budget...` with:
+  - scenario mode: `Choose custom scenario(s)` and select `Stress`
+  - operations: `Generate daily`, `Generate monthly`, `Generate dashboard`
+- Expected:
+  - Dashboard includes a `Scenario Delta` block.
+  - `Compared To` is `Base`.
+  - Delta rows render numeric values for:
+    - `Ending Net Delta`
+    - `Cash Min Delta`
+    - `Days Cash < 0 Delta`
+    - `Days Net < 0 Delta`
+
+9. Dashboard explainability block (minimal)
+- Run `Run Budget...` with:
+  - scenario mode: `Use Base scenario` (or one custom scenario)
+  - operations: `Generate journal`, `Generate daily`, `Generate monthly`, `Generate dashboard`
+- Expected:
+  - Dashboard includes `Negative Cash Top Sources` only when there are `NEGATIVE_CASH` alerts in Journal.
+  - Rows show `Source Rule ID`, `Abs Amount`, and `Events`.
+  - Only outflow rows (`Amount < 0`) contribute; corrective inflows on negative days are excluded.
+  - Entries are sorted by `Abs Amount` descending.
+
 ## Deterministic Fixture Tests (Phase 2)
 
 Script editor runners (automated):
 - `runDeterministicFixtureTestsPhase2_All`
+- `runDeterministicFixtureTestsPhase2_RunAllWithReport` (also writes pass/fail summary to `Settings`)
 - `runDeterministicFixtureTestsPhase2_FixtureA`
 - `runDeterministicFixtureTestsPhase2_FixtureB`
 - `runDeterministicFixtureTestsPhase2_FixtureC`
 - `runDeterministicFixtureTestsPhase2_FixtureD`
 - `runDeterministicFixtureTestsPhase2_FixtureE`
+- `runDeterministicFixtureTestsPhase2_FixtureF`
 
 1. Fixture A: single-month baseline
 - Set named range `ForecastStartDate` to `2030-01-01`.
@@ -220,6 +252,14 @@ Script editor runners (automated):
   - Account summary values are identical to prior run.
   - Journal row count for `Base` remains `6`.
   - End balances remain `Operating=1300`, `Card=-300`.
+
+3. Fixture F: negative-cash source aggregation
+- Run `runDeterministicFixtureTestsPhase2_FixtureF`.
+- Expected:
+  - Aggregation returns top contributors for rows containing `NEGATIVE_CASH`.
+  - Positive `Amount` rows are excluded even when flagged `NEGATIVE_CASH`.
+  - Source IDs are ordered by absolute amount descending.
+  - Blank `Source Rule ID` rows are grouped under `(Unattributed)`.
 
 ## Setup Data Integration Tests
 
