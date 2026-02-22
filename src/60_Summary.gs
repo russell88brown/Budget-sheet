@@ -507,7 +507,7 @@ function writeMonthlySummary_(monthly) {
 
 function buildDashboardData_(daily, monthly, scenarioId) {
   if (!daily.rows.length) {
-    return { metrics: [], accountStats: [], accountNames: daily.accountNames || [] };
+    return { metrics: [], comparison: [], accountStats: [], accountNames: daily.accountNames || [] };
   }
 
   var rows = daily.rows;
@@ -550,11 +550,48 @@ function buildDashboardData_(daily, monthly, scenarioId) {
     };
   });
 
+  var comparison = buildScenarioComparisonData_(scenarioId, daily, {
+    cashStats: cashStats,
+    netStats: netStats,
+    daysCashNegative: countDaysBelow_(rows, 1, 0),
+    daysNetNegative: countDaysBelow_(rows, 3, 0),
+  });
+
   return {
     metrics: metrics,
+    comparison: comparison,
     accountStats: accountStats,
     accountNames: daily.accountNames,
   };
+}
+
+function buildScenarioComparisonData_(scenarioId, daily, current) {
+  if (Array.isArray(scenarioId)) {
+    return [];
+  }
+  var activeScenario = normalizeScenario_(scenarioId);
+  if (activeScenario === Config.SCENARIOS.DEFAULT) {
+    return [];
+  }
+
+  var baseDaily = buildDailySummary_(Config.SCENARIOS.DEFAULT);
+  if (!baseDaily || !baseDaily.rows || !baseDaily.rows.length) {
+    return [];
+  }
+
+  var baseRows = baseDaily.rows;
+  var baseCashStats = computeSeriesStats_(baseRows, 1);
+  var baseNetStats = computeSeriesStats_(baseRows, 3);
+  var baseDaysCashNegative = countDaysBelow_(baseRows, 1, 0);
+  var baseDaysNetNegative = countDaysBelow_(baseRows, 3, 0);
+
+  return [
+    ['Compared To', Config.SCENARIOS.DEFAULT],
+    ['Ending Net Delta', roundUpCents_(current.netStats.end - baseNetStats.end)],
+    ['Cash Min Delta', roundUpCents_(current.cashStats.min - baseCashStats.min)],
+    ['Days Cash < 0 Delta', current.daysCashNegative - baseDaysCashNegative],
+    ['Days Net < 0 Delta', current.daysNetNegative - baseDaysNetNegative],
+  ];
 }
 
 function computeSeriesStats_(rows, index) {
@@ -668,6 +705,26 @@ function writeDashboard_(dashboard) {
     );
     metricRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
     metricRange.getCell(1, 1).setBackground('#f2f2f2');
+  }
+
+  if (dashboard.comparison && dashboard.comparison.length) {
+    var compareStartRow = 3;
+    var compareStartCol = 11;
+    sheet
+      .getRange(compareStartRow - 1, compareStartCol, 1, 2)
+      .setValues([['Scenario Delta', '']])
+      .setFontWeight('bold');
+    sheet
+      .getRange(compareStartRow, compareStartCol, dashboard.comparison.length, 2)
+      .setValues(dashboard.comparison);
+    var compareRange = sheet.getRange(
+      compareStartRow - 1,
+      compareStartCol,
+      dashboard.comparison.length + 1,
+      2
+    );
+    compareRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
+    compareRange.getCell(1, 1).setBackground('#f2f2f2');
   }
 
   var accountStartRow = 35;

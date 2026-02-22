@@ -180,6 +180,20 @@ Run this quick sequence after housekeeping or setup changes:
   - `B8 = Success`
   - New row appended in run log area `J:N` with matching mode/scenario/status.
 
+8. Scenario delta block on dashboard
+- Ensure both `Base` and `Stress` Journal data exist.
+- Run `Run Budget...` with:
+  - scenario mode: `Choose custom scenario(s)` and select `Stress`
+  - operations: `Generate daily`, `Generate monthly`, `Generate dashboard`
+- Expected:
+  - Dashboard includes a `Scenario Delta` block.
+  - `Compared To` is `Base`.
+  - Delta rows render numeric values for:
+    - `Ending Net Delta`
+    - `Cash Min Delta`
+    - `Days Cash < 0 Delta`
+    - `Days Net < 0 Delta`
+
 ## Deterministic Fixture Tests (Phase 2)
 
 Script editor runners (automated):
