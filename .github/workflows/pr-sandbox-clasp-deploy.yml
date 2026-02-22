@@ -47,7 +47,6 @@ jobs:
           fi
 
           echo "SCRIPT_ID=$SCRIPT_ID" >> "$GITHUB_ENV"
-          echo "CREDENTIALS=$CREDENTIALS" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -58,6 +57,7 @@ jobs:
       - name: Configure clasp auth
         shell: bash
         run: |
+          CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
           printf '%s' "$CREDENTIALS" > "$HOME/.clasprc.json"
 
       - name: Configure sandbox script target
