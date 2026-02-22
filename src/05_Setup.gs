@@ -32,6 +32,7 @@ function setupStageValidationAndSettings_() {
       return column.name;
     });
     var sheet = ensureSheetWithHeaders_(ss, spec.name, headers);
+    clearSheetDataValidations_(sheet);
     applyColumnRules_(ss, sheet, spec.columns);
   });
 
@@ -41,13 +42,47 @@ function setupStageValidationAndSettings_() {
 
 function setupStageTheme_() {
   var ss = SpreadsheetApp.getActive();
-  applyStandardHeaderTheme_(ss, Schema.inputs.concat(Schema.outputs).map(function (spec) {
+  var themedSheets = Schema.inputs.concat(Schema.outputs).map(function (spec) {
     return spec.name;
-  }));
+  });
+  clearSheetFormattingForTheme_(ss, themedSheets.concat([Config.LISTS_SHEET]));
+  applyStandardHeaderTheme_(ss, themedSheets);
   applyReferenceTheme_(ss);
   applyAccountsTheme_(ss);
+  applyAccountsFormatting_(ss);
   applyMonthlyTotalHeaderTheme_(ss);
   applyInputActivityTheme_(ss);
+  themedSheets.forEach(function (sheetName) {
+    applySchemaFormatsForSheet_(sheetName);
+  });
+  formatReferenceSheet_(ss);
+}
+
+function clearSheetDataValidations_(sheet) {
+  if (!sheet) {
+    return;
+  }
+  var maxRows = sheet.getMaxRows();
+  var maxCols = sheet.getMaxColumns();
+  if (maxRows < 2 || maxCols < 1) {
+    return;
+  }
+  sheet.getRange(2, 1, maxRows - 1, maxCols).clearDataValidations();
+}
+
+function clearSheetFormattingForTheme_(spreadsheet, sheetNames) {
+  (sheetNames || []).forEach(function (sheetName) {
+    var sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      return;
+    }
+    var maxRows = sheet.getMaxRows();
+    var maxCols = sheet.getMaxColumns();
+    if (maxRows > 0 && maxCols > 0) {
+      sheet.getRange(1, 1, maxRows, maxCols).clearFormat();
+    }
+    sheet.setConditionalFormatRules([]);
+  });
 }
 
 function applySchemaFormatsForSheet_(sheetName) {
