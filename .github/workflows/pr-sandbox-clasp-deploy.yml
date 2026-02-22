@@ -56,7 +56,15 @@ jobs:
         shell: bash
         run: |
           CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
-          printf '%s' "$CREDENTIALS" > "$HOME/.clasprc.json"
+          node -e "const fs=require('fs');const os=require('os');const raw=process.env.CREDENTIALS||'';let parsed;try{parsed=JSON.parse(raw);}catch(e){throw new Error('Credentials secret is not valid JSON');}if(typeof parsed==='string'){parsed=JSON.parse(parsed);}if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)){throw new Error('Credentials secret must decode to a JSON object');}fs.writeFileSync(require('path').join(os.homedir(),'.clasprc.json'),JSON.stringify(parsed,null,2)+'\n','utf8');"
+        env:
+          CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS || secrets.CLASP_CREDENTIALS_JSON }}
+
+      - name: Validate clasp auth file
+        shell: bash
+        run: |
+          test -s "$HOME/.clasprc.json"
+          node -e "const fs=require('fs');const p=process.env.HOME+'/.clasprc.json';const obj=JSON.parse(fs.readFileSync(p,'utf8'));if(!obj||typeof obj!=='object') process.exit(1);if(!obj.token) {console.error('Missing token object in .clasprc.json');process.exit(1);}console.log('clasp auth file looks valid');"
 
       - name: Configure sandbox script target
         shell: bash
