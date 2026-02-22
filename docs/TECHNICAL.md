@@ -202,7 +202,7 @@ Accounts -> Income -> Transfers -> Expense -> Journal -> Daily -> Monthly -> Das
 
 Available user actions from **Budget Forecast** menu:
 - Run Budget dialog (scenario-aware journal/daily/monthly/dashboard)
-- Deterministic fixture tests (Phase 2)
+- Deterministic fixture tests (Phase 2), including `Run All + Report` with run-log summary
 - Export
 - Summarise Accounts
 - Setup actions
@@ -351,6 +351,7 @@ Menu/UI entrypoints (`src/01_Menu.gs`):
 - `showSetupDialog`
 - `runSetupActions`
 - `runDeterministicFixtureTestsPhase2_All`
+- `runDeterministicFixtureTestsPhase2_RunAllWithReport`
 - `runDeterministicFixtureTestsPhase2_FixtureA`
 - `runDeterministicFixtureTestsPhase2_FixtureB`
 - `runDeterministicFixtureTestsPhase2_FixtureC`

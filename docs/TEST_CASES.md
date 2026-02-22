@@ -213,6 +213,7 @@ Run this quick sequence after housekeeping or setup changes:
 
 Script editor runners (automated):
 - `runDeterministicFixtureTestsPhase2_All`
+- `runDeterministicFixtureTestsPhase2_RunAllWithReport` (also writes pass/fail summary to `Settings`)
 - `runDeterministicFixtureTestsPhase2_FixtureA`
 - `runDeterministicFixtureTestsPhase2_FixtureB`
 - `runDeterministicFixtureTestsPhase2_FixtureC`

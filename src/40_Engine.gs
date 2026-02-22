@@ -348,7 +348,8 @@ function recordLastRunMetadata_(modeLabel, scenarioId, status, details) {
   settingsSheet.getRange('B6').setValue(resolveScenarioId_(scenarioId));
   settingsSheet.getRange('B7').setValue(new Date());
   settingsSheet.getRange('B8').setValue(status || '');
-  settingsSheet.getRange('C5').setValue('');
+  var note = details && details.note ? String(details.note).trim() : '';
+  settingsSheet.getRange('C5').setValue(note);
   settingsSheet.getRange('B7').setNumberFormat('yyyy-mm-dd hh:mm');
   appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, details);
 }
@@ -358,9 +359,13 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
     return;
   }
   var scenarioValidation = details && details.scenarioValidation ? details.scenarioValidation : null;
+  var explicitNote = details && details.note ? String(details.note).trim() : '';
   var notes = '';
   if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
     notes = 'Disabled unknown scenario rows: ' + scenarioValidation.totalDisabled;
+  }
+  if (explicitNote) {
+    notes = notes ? notes + ' | ' + explicitNote : explicitNote;
   }
 
   var row = 2;

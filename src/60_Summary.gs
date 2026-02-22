@@ -23,7 +23,7 @@ function runSummaryForScenario(scenarioId) {
     writeMonthlySummary_(monthly);
 
     toastStep_('Building dashboard...');
-    var dashboard = buildDashboardData_(daily, monthly, activeScenarioId);
+    var dashboard = buildDashboardData_(daily, activeScenarioId);
     toastStep_('Writing dashboard...');
     writeDashboard_(dashboard);
 
@@ -521,7 +521,7 @@ function writeMonthlySummary_(monthly) {
   }
 }
 
-function buildDashboardData_(daily, monthly, scenarioId) {
+function buildDashboardData_(daily, scenarioId) {
   if (!daily.rows.length) {
     return {
       metrics: [],
