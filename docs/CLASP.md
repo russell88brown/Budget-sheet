@@ -61,3 +61,7 @@ Use this option for one-off setup or quick validation.
 
 - `.clasp.json` is ignored by git.
 - `.clasp.example.json` is committed as a template.
+
+## CI automation
+
+For GitHub Actions deploy/test flows and required secrets, see `docs/CI.md`.

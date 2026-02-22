@@ -1,0 +1,11 @@
+{
+  "name": "Budget-sheet",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "pr:deploy-main": "node scripts/pr-tools.mjs deploy-main",
+    "pr:test-branch": "node scripts/pr-tools.mjs test-branch"
+  }
+}
