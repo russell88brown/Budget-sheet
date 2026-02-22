@@ -714,148 +714,17 @@ function writeDashboard_(dashboard) {
     }
   }
 
-  sheet.clear();
-  sheet.getCharts().forEach(function (chart) {
-    sheet.removeChart(chart);
-  });
-
+  clearDashboardSheet_(sheet);
   sheet.getRange(1, 1).setValue('Dashboard').setFontWeight('bold').setFontSize(14);
 
-  var dailySheet = ss.getSheetByName(Config.SHEETS.DAILY);
-  if (dailySheet && dashboard.accountNames.length) {
-    var lastRow = dailySheet.getLastRow();
-    if (lastRow > 1) {
-      var dateRange = dailySheet.getRange(1, 1, lastRow, 1);
-      var cashRange = dailySheet.getRange(1, 2, lastRow, 1);
-      var debtRange = dailySheet.getRange(1, 3, lastRow, 1);
-      var netRange = dailySheet.getRange(1, 4, lastRow, 1);
-
-      var cashChart = sheet
-        .newChart()
-        .setChartType(Charts.ChartType.LINE)
-        .addRange(dateRange)
-        .addRange(cashRange)
-        .addRange(netRange)
-        .setOption('title', 'Cash vs Net Position')
-        .setOption('legend', { position: 'bottom' })
-        .setOption('width', 520)
-        .setOption('height', 260)
-        .setPosition(3, 1, 0, 0)
-        .build();
-      sheet.insertChart(cashChart);
-
-      var debtChart = sheet
-        .newChart()
-        .setChartType(Charts.ChartType.LINE)
-        .addRange(dateRange)
-        .addRange(debtRange)
-        .setOption('title', 'Total Debt')
-        .setOption('legend', { position: 'bottom' })
-        .setOption('width', 520)
-        .setOption('height', 220)
-        .setPosition(20, 1, 0, 0)
-        .build();
-      sheet.insertChart(debtChart);
+  var reports = buildDashboardReports_(ss, dashboard);
+  renderDashboardReportIndex_(sheet, reports);
+  reports.forEach(function (report) {
+    if (!report.enabled) {
+      return;
     }
-  }
-
-  var metricStartRow = 3;
-  var metricStartCol = 8;
-  sheet
-    .getRange(metricStartRow - 1, metricStartCol, 1, 2)
-    .setValues([['Financial Healthcheck', '']])
-    .setFontWeight('bold');
-
-  if (dashboard.metrics.length) {
-    sheet
-      .getRange(metricStartRow, metricStartCol, dashboard.metrics.length, 2)
-      .setValues(dashboard.metrics);
-    var metricRange = sheet.getRange(
-      metricStartRow - 1,
-      metricStartCol,
-      dashboard.metrics.length + 1,
-      2
-    );
-    metricRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
-    metricRange.getCell(1, 1).setBackground('#f2f2f2');
-  }
-
-  if (dashboard.comparison && dashboard.comparison.length) {
-    var compareStartRow = 3;
-    var compareStartCol = 11;
-    sheet
-      .getRange(compareStartRow - 1, compareStartCol, 1, 2)
-      .setValues([['Scenario Delta', '']])
-      .setFontWeight('bold');
-    sheet
-      .getRange(compareStartRow, compareStartCol, dashboard.comparison.length, 2)
-      .setValues(dashboard.comparison);
-    var compareRange = sheet.getRange(
-      compareStartRow - 1,
-      compareStartCol,
-      dashboard.comparison.length + 1,
-      2
-    );
-    compareRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
-    compareRange.getCell(1, 1).setBackground('#f2f2f2');
-  }
-
-  if (dashboard.explainability && dashboard.explainability.length) {
-    var explainStartRow = 3;
-    var explainStartCol = 14;
-    sheet
-      .getRange(explainStartRow - 1, explainStartCol, 1, 3)
-      .setValues([['Negative Cash Top Sources', '', '']])
-      .setFontWeight('bold');
-    sheet
-      .getRange(explainStartRow, explainStartCol, 1, 3)
-      .setValues([['Source Rule ID', 'Abs Amount', 'Events']])
-      .setFontWeight('bold');
-    sheet
-      .getRange(explainStartRow + 1, explainStartCol, dashboard.explainability.length, 3)
-      .setValues(dashboard.explainability);
-    var explainRange = sheet.getRange(
-      explainStartRow - 1,
-      explainStartCol,
-      dashboard.explainability.length + 2,
-      3
-    );
-    explainRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
-    explainRange.getCell(1, 1).setBackground('#f2f2f2');
-  }
-
-  var accountStartRow = 35;
-  if (dashboard.accountStats.length) {
-    sheet
-      .getRange(accountStartRow - 1, 1)
-      .setValue('Account Positions')
-      .setFontWeight('bold');
-
-    var startCol = 1;
-    var blockWidth = 2;
-    var gap = 1;
-    dashboard.accountStats.forEach(function (account) {
-      var headerRange = sheet.getRange(accountStartRow, startCol, 1, blockWidth);
-      headerRange.merge().setValue(account.name).setFontWeight('bold').setHorizontalAlignment('center');
-
-      var rows = [
-        ['Ending', account.end],
-        ['Min', account.min],
-        ['Max', account.max],
-        ['Net Change', account.netChange],
-      ];
-
-      sheet
-        .getRange(accountStartRow + 1, startCol, rows.length, blockWidth)
-        .setValues(rows);
-
-      var blockRange = sheet.getRange(accountStartRow, startCol, rows.length + 1, blockWidth);
-      blockRange.setBorder(true, true, true, true, true, true, '#cccccc', SpreadsheetApp.BorderStyle.SOLID);
-
-      startCol += blockWidth + gap;
-    });
-  }
-
+    renderDashboardReport_(sheet, report);
+  });
   sheet.autoResizeColumns(1, Math.max(10, sheet.getLastColumn()));
 }
 
