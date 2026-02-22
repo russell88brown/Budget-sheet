@@ -201,8 +201,8 @@ Accounts -> Income -> Transfers -> Expense -> Journal -> Daily -> Monthly -> Das
 ## 8) Menu-Level Functionality
 
 Available user actions from **Budget Forecast** menu:
-- Run journal
-- Run summaries
+- Run Budget dialog (scenario-aware journal/daily/monthly/dashboard)
+- Deterministic fixture tests (Phase 2)
 - Export
 - Summarise Accounts
 - Setup actions
@@ -314,6 +314,7 @@ Canonical schema source is `src/02_Schema.gs` (`Schema.inputs`, `Schema.outputs`
 - `Transaction Type`
 - `Name`
 - `Amount`
+- `Source Rule ID`
 - `Alerts`
 - Dynamic trailing columns: one per forecast account.
 
@@ -342,12 +343,18 @@ Menu/UI entrypoints (`src/01_Menu.gs`):
 - `onOpen`
 - `runForecast`
 - `runJournal`
-- `runJournalForScenarioPrompt`
-- `runSummaryForScenarioPrompt`
-- `runScenarioAction`
+- `showRunBudgetDialog`
+- `runBudgetSelections`
+- `runAccountSummariesOnly_`
 - `summariseAccounts`
 - `showSetupDialog`
 - `runSetupActions`
+- `runDeterministicFixtureTestsPhase2_All`
+- `runDeterministicFixtureTestsPhase2_FixtureA`
+- `runDeterministicFixtureTestsPhase2_FixtureB`
+- `runDeterministicFixtureTestsPhase2_FixtureC`
+- `runDeterministicFixtureTestsPhase2_FixtureD`
+- `runDeterministicFixtureTestsPhase2_FixtureE`
 
 Export entrypoints (`src/07_Export.gs`):
 - `showExportDialog`
