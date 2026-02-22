@@ -1,0 +1,72 @@
+name: PR Sandbox Deploy (clasp)
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clasp-sandbox-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-sandbox:
+    # Secrets are not available to forked PRs; skip safely.
+    if: github.event.pull_request.head.repo.fork == false && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      CLASP_SANDBOX_SCRIPT_ID: ${{ secrets.CLASP_SANDBOX_SCRIPT_ID }}
+      CLASP_OAUTH_CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [ -z "$CLASP_SANDBOX_SCRIPT_ID" ]; then
+            echo "Missing secret: CLASP_SANDBOX_SCRIPT_ID"
+            exit 1
+          fi
+          if [ -z "$CLASP_OAUTH_CREDENTIALS" ]; then
+            echo "Missing secret: CLASP_OAUTH_CREDENTIALS"
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configure clasp auth
+        shell: bash
+        run: |
+          printf '%s' "$CLASP_OAUTH_CREDENTIALS" > "$HOME/.clasprc.json"
+
+      - name: Configure sandbox script target
+        shell: bash
+        run: |
+          cat > .clasp.json <<EOF
+          {
+            "scriptId": "${CLASP_SANDBOX_SCRIPT_ID}",
+            "rootDir": "src",
+            "scriptExtensions": [".js", ".gs"],
+            "htmlExtensions": [".html"],
+            "jsonExtensions": [".json"],
+            "filePushOrder": [],
+            "skipSubdirectories": false
+          }
+          EOF
+
+      - name: Push source to sandbox
+        shell: bash
+        run: |
+          npx --yes @google/clasp@latest push --force

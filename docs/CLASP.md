@@ -61,3 +61,12 @@ Use this option for one-off setup or quick validation.
 
 - `.clasp.json` is ignored by git.
 - `.clasp.example.json` is committed as a template.
+
+## CI sandbox deploy on PR
+
+If you want pull requests to `main` to deploy `src/` to a sandbox Apps Script project, add a workflow like `.github/workflows/pr-sandbox-clasp-deploy.yml` and configure these repository secrets:
+
+- `CLASP_SANDBOX_SCRIPT_ID`: the sandbox Apps Script `scriptId`.
+- `CLASP_OAUTH_CREDENTIALS`: JSON content of your local `~/.clasprc.json` after `clasp login`.
+
+The workflow should create `.clasp.json` at runtime using the sandbox script ID, then run `clasp push --force`.
