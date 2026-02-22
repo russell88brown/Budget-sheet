@@ -48,7 +48,7 @@ Scenario-capable input sheets:
   - `Last Run Mode` (`B5`)
   - `Last Run Scenario` (`B6`)
   - `Last Run At` (`B7`)
-  - `Status` (`C5`)
+  - `Run Status` (`B8`)
 - Run history log is appended in `Settings` (no extra sheet):
   - Headers in `J1:N1`
   - Data rows appended from `J2:N` (`Run At`, `Mode`, `Scenario`, `Status`, `Notes`)

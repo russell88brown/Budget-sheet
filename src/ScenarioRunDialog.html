@@ -32,13 +32,13 @@
         border: 1px solid var(--line);
         border-radius: 14px;
         box-shadow: var(--shadow);
-        padding: 12px;
+        padding: 10px;
         animation: fade-up 180ms ease-out;
       }
       .layout {
         display: grid;
         grid-template-columns: 1.45fr 1fr;
-        gap: 10px;
+        gap: 8px;
       }
       .col {
         border: 1px solid #e3eaf2;
@@ -67,8 +67,8 @@
         font-size: 13px;
       }
       .check {
-        margin: 4px 0;
-        padding: 6px;
+        margin: 3px 0;
+        padding: 4px 6px;
         border: 1px solid #e3eaf2;
         border-radius: 8px;
         background: #fbfdff;
@@ -81,12 +81,6 @@
       .check input[type="checkbox"],
       .check input[type="radio"] {
         accent-color: var(--accent);
-      }
-      .check-desc {
-        margin: 2px 0 0 22px;
-        color: var(--muted);
-        font-size: 11px;
-        line-height: 1.25;
       }
       select {
         width: 100%;
@@ -101,7 +95,7 @@
         display: flex;
         gap: 8px;
         justify-content: flex-end;
-        padding-top: 8px;
+        padding-top: 6px;
       }
       .divider {
         border: 0;
@@ -137,37 +131,30 @@
         .panel { padding: 10px; border-radius: 10px; }
         .check { padding: 6px; }
       }
-      @media (max-width: 860px) {
+      @media (max-width: 720px) {
         .layout { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <form id="scenario-form" class="panel">
-      <h2 class="title">Run Budget</h2>
-      <p class="subtitle">Select operations and scenario mode, then run.</p>
       <div class="layout">
         <div class="col">
           <p class="section-title">Choose what to run</p>
           <div class="check">
             <label class="check-head"><input type="checkbox" name="action" value="summarise_accounts"> Summarise Accounts</label>
-            <div class="check-desc">Recalculates account-level monthly totals and net-position summary fields on the <strong>Accounts</strong> sheet.</div>
           </div>
           <div class="check">
             <label class="check-head"><input type="checkbox" name="action" value="journal"> Generate journal</label>
-            <div class="check-desc">Builds forecast events and writes transaction-level rows with running balances to <strong>Journal</strong>.</div>
           </div>
           <div class="check">
             <label class="check-head"><input type="checkbox" name="action" value="daily"> Generate daily</label>
-            <div class="check-desc">Creates day-level totals and account snapshots in <strong>Daily</strong> from the current Journal.</div>
           </div>
           <div class="check">
             <label class="check-head"><input type="checkbox" name="action" value="monthly"> Generate monthly</label>
-            <div class="check-desc">Builds monthly min/max/net-change/ending statistics in <strong>Monthly</strong> (uses Daily data).</div>
           </div>
           <div class="check">
             <label class="check-head"><input type="checkbox" name="action" value="dashboard"> Generate dashboard</label>
-            <div class="check-desc">Refreshes dashboard metrics and charts in <strong>Dashboard</strong> (uses Daily and Monthly data).</div>
           </div>
         </div>
         <div class="col col-right">
@@ -181,19 +168,19 @@
             </div>
             <div id="custom-scenario-block" style="display:none;">
               <label for="scenarios" style="margin-top: 6px;">Custom scenarios (multi-select)</label>
-              <select id="scenarios" multiple size="5">
+              <select id="scenarios" multiple size="4">
               <? for (var i = 0; i < scenarios.length; i++) { var item = scenarios[i]; ?>
                 <option value="<?= item ?>"><?= item ?></option>
               <? } ?>
               </select>
               <div style="margin-top: 6px; color: #5f6368; font-size: 12px;">
-                Hold Ctrl/Cmd to select multiple scenarios.
+                Ctrl/Cmd for multiple.
               </div>
             </div>
           </div>
           <div class="actions">
             <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
-            <button type="submit">Run</button>
+            <button type="submit">Next</button>
           </div>
         </div>
       </div>

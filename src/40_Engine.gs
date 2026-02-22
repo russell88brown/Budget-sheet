@@ -260,7 +260,8 @@ function recordLastRunMetadata_(modeLabel, scenarioId, status, details) {
   settingsSheet.getRange('B5').setValue(modeLabel || 'Run');
   settingsSheet.getRange('B6').setValue(resolveScenarioId_(scenarioId));
   settingsSheet.getRange('B7').setValue(new Date());
-  settingsSheet.getRange('C5').setValue(status || '');
+  settingsSheet.getRange('B8').setValue(status || '');
+  settingsSheet.getRange('C5').setValue('');
   settingsSheet.getRange('B7').setNumberFormat('yyyy-mm-dd hh:mm');
   appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, details);
 }
@@ -793,23 +794,16 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
 }
 
 function refreshAccountSummaries_() {
-  var incomeMonthlyTotals = updateIncomeMonthlyTotals_();
-  var expenseMonthlyTotals = updateExpenseMonthlyTotals_();
-  var transferMonthlyTotals = updateTransferMonthlyTotals_(incomeMonthlyTotals, expenseMonthlyTotals);
-  updateAccountMonthlyFlowAverages_(incomeMonthlyTotals, transferMonthlyTotals, expenseMonthlyTotals);
+  refreshAccountSummariesForScenarioModel_(buildScenarioModel_(Config.SCENARIOS.DEFAULT));
 }
 
 function refreshAccountSummariesForScenarioModel_(scenarioModel) {
-  if (!scenarioModel) {
-    refreshAccountSummaries_();
-    return;
-  }
+  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
   var accounts = Array.isArray(scenarioModel.accounts) ? scenarioModel.accounts : [];
-  var incomeTotalsByAccount = buildIncomeMonthlyTotalsForScenarioModel_(scenarioModel.incomeRules || []);
-  var expenseTotalsByAccount = buildExpenseMonthlyTotalsForScenarioModel_(scenarioModel.expenseRules || []);
-  var transferTotals = buildTransferMonthlyTotalsForScenarioModel_(
-    scenarioModel.transferRules || [],
-    accounts,
+  var incomeTotalsByAccount = updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
+  var expenseTotalsByAccount = updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
+  var transferTotals = updateTransferMonthlyTotalsForScenarioModel_(
+    scenarioModel,
     incomeTotalsByAccount,
     expenseTotalsByAccount
   );
@@ -925,6 +919,290 @@ function buildTransferMonthlyTotalsForScenarioModel_(
   });
 
   return { credits: credits, debits: debits };
+}
+
+function updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel) {
+  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  var totals = buildIncomeMonthlyTotalsForScenarioModel_(scenarioModel.incomeRules || []);
+
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.INCOME);
+  if (!sheet) {
+    return totals;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return totals;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var includeIdx = headers.indexOf('Include');
+  var scenarioIdx = headers.indexOf('Scenario');
+  var amountIdx = headers.indexOf('Amount');
+  var freqIdx = headers.indexOf('Frequency');
+  var repeatIdx = headers.indexOf('Repeat Every');
+  var startIdx = headers.indexOf('Start Date');
+  var endIdx = headers.indexOf('End Date');
+  var toIdx = headers.indexOf('To Account');
+  var totalIdx = headers.indexOf('Monthly Total');
+  if (
+    includeIdx === -1 ||
+    amountIdx === -1 ||
+    freqIdx === -1 ||
+    repeatIdx === -1 ||
+    toIdx === -1 ||
+    totalIdx === -1
+  ) {
+    return totals;
+  }
+
+  var activeScenarioId = normalizeScenario_(scenarioModel.scenarioId);
+  var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var out = rows.map(function (row) {
+    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+    if (rowScenarioId !== activeScenarioId) {
+      return [row[totalIdx]];
+    }
+    var include = toBoolean_(row[includeIdx]);
+    var amount = toNumber_(row[amountIdx]);
+    var recurrence = normalizeRecurrence_(
+      row[freqIdx],
+      row[repeatIdx],
+      startIdx === -1 ? null : row[startIdx],
+      endIdx === -1 ? null : row[endIdx]
+    );
+    var recurring = isRecurringForMonthlyAverage_({
+      startDate: recurrence.startDate,
+      endDate: recurrence.endDate,
+      isSingleOccurrence: recurrence.isSingleOccurrence,
+    });
+    if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[toIdx]) {
+      return [''];
+    }
+    var monthlyTotal = roundUpCents_(
+      (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
+    );
+    return [monthlyTotal];
+  });
+  sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
+  return totals;
+}
+
+function updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel) {
+  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  var totals = buildExpenseMonthlyTotalsForScenarioModel_(scenarioModel.expenseRules || []);
+
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
+  if (!sheet) {
+    return totals;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return totals;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var includeIdx = headers.indexOf('Include');
+  var scenarioIdx = headers.indexOf('Scenario');
+  var amountIdx = headers.indexOf('Amount');
+  var freqIdx = headers.indexOf('Frequency');
+  var repeatIdx = headers.indexOf('Repeat Every');
+  var startIdx = headers.indexOf('Start Date');
+  var endIdx = headers.indexOf('End Date');
+  var fromIdx = headers.indexOf('From Account');
+  var totalIdx = headers.indexOf('Monthly Total');
+  if (
+    includeIdx === -1 ||
+    amountIdx === -1 ||
+    freqIdx === -1 ||
+    repeatIdx === -1 ||
+    fromIdx === -1 ||
+    totalIdx === -1
+  ) {
+    return totals;
+  }
+
+  var activeScenarioId = normalizeScenario_(scenarioModel.scenarioId);
+  var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var out = rows.map(function (row) {
+    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+    if (rowScenarioId !== activeScenarioId) {
+      return [row[totalIdx]];
+    }
+    var include = toBoolean_(row[includeIdx]);
+    var amount = toNumber_(row[amountIdx]);
+    var recurrence = normalizeRecurrence_(
+      row[freqIdx],
+      row[repeatIdx],
+      startIdx === -1 ? null : row[startIdx],
+      endIdx === -1 ? null : row[endIdx]
+    );
+    var recurring = isRecurringForMonthlyAverage_({
+      startDate: recurrence.startDate,
+      endDate: recurrence.endDate,
+      isSingleOccurrence: recurrence.isSingleOccurrence,
+    });
+    if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[fromIdx]) {
+      return [''];
+    }
+    var monthlyTotal = roundUpCents_(
+      (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
+    );
+    return [monthlyTotal];
+  });
+  sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
+  return totals;
+}
+
+function updateTransferMonthlyTotalsForScenarioModel_(
+  scenarioModel,
+  incomeTotalsByAccount,
+  expenseTotalsByAccount
+) {
+  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  incomeTotalsByAccount = normalizeAccountTotalsKeys_(incomeTotalsByAccount);
+  expenseTotalsByAccount = normalizeAccountTotalsKeys_(expenseTotalsByAccount);
+  var transferTotals = buildTransferMonthlyTotalsForScenarioModel_(
+    scenarioModel.transferRules || [],
+    scenarioModel.accounts || [],
+    incomeTotalsByAccount,
+    expenseTotalsByAccount
+  );
+
+  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.TRANSFERS);
+  if (!sheet) {
+    return transferTotals;
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return transferTotals;
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var includeIdx = headers.indexOf('Include');
+  var scenarioIdx = headers.indexOf('Scenario');
+  var typeIdx = headers.indexOf('Type');
+  var amountIdx = headers.indexOf('Amount');
+  var freqIdx = headers.indexOf('Frequency');
+  var repeatIdx = headers.indexOf('Repeat Every');
+  var startIdx = headers.indexOf('Start Date');
+  var endIdx = headers.indexOf('End Date');
+  var fromIdx = headers.indexOf('From Account');
+  var toIdx = headers.indexOf('To Account');
+  var totalIdx = headers.indexOf('Monthly Total');
+  if (
+    includeIdx === -1 ||
+    typeIdx === -1 ||
+    amountIdx === -1 ||
+    freqIdx === -1 ||
+    repeatIdx === -1 ||
+    fromIdx === -1 ||
+    toIdx === -1 ||
+    totalIdx === -1
+  ) {
+    return transferTotals;
+  }
+
+  var accountBalances = {};
+  (scenarioModel.accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
+  });
+
+  var activeScenarioId = normalizeScenario_(scenarioModel.scenarioId);
+  var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var out = rows.map(function (row) {
+    return [row[totalIdx]];
+  });
+  var credits = {};
+  var debits = {};
+  var everythingExceptRows = [];
+
+  rows.forEach(function (row, rowIndex) {
+    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+    if (rowScenarioId !== activeScenarioId) {
+      return;
+    }
+
+    var include = toBoolean_(row[includeIdx]);
+    var amount = toNumber_(row[amountIdx]);
+    var recurrence = normalizeRecurrence_(
+      row[freqIdx],
+      row[repeatIdx],
+      startIdx === -1 ? null : row[startIdx],
+      endIdx === -1 ? null : row[endIdx]
+    );
+    var recurring = isRecurringForMonthlyAverage_({
+      startDate: recurrence.startDate,
+      endDate: recurrence.endDate,
+      isSingleOccurrence: recurrence.isSingleOccurrence,
+    });
+
+    var fromKey = normalizeAccountLookupKey_(row[fromIdx]);
+    var toKey = normalizeAccountLookupKey_(row[toIdx]);
+    var monthlyTotal = null;
+    if (
+      include &&
+      recurring &&
+      amount !== null &&
+      amount >= 0 &&
+      recurrence.frequency &&
+      fromKey &&
+      toKey
+    ) {
+      var behavior = normalizeTransferType_(row[typeIdx], amount);
+      var factor = monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery);
+      if (factor > 0) {
+        if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+          everythingExceptRows.push({
+            rowIndex: rowIndex,
+            fromKey: fromKey,
+            toKey: toKey,
+            keepAmount: amount || 0,
+          });
+        } else if (
+          behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
+          behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT
+        ) {
+          monthlyTotal = roundUpCents_(amount * factor);
+        } else if (behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
+          var debt = roundUpCents_(Math.max(0, -(accountBalances[toKey] || 0)));
+          monthlyTotal = roundUpCents_(debt * factor);
+        }
+      }
+    }
+
+    if (monthlyTotal !== null && monthlyTotal > 0) {
+      debits[fromKey] = roundUpCents_((debits[fromKey] || 0) + monthlyTotal);
+      credits[toKey] = roundUpCents_((credits[toKey] || 0) + monthlyTotal);
+      out[rowIndex] = [monthlyTotal];
+      return;
+    }
+    out[rowIndex] = [''];
+  });
+
+  everythingExceptRows.forEach(function (item) {
+    var sourceBalance = accountBalances[item.fromKey] || 0;
+    var sourceIncome = incomeTotalsByAccount[item.fromKey] || 0;
+    var sourceExpense = expenseTotalsByAccount[item.fromKey] || 0;
+    var baseIn = roundUpCents_(sourceIncome + (credits[item.fromKey] || 0));
+    var baseOut = roundUpCents_(sourceExpense + (debits[item.fromKey] || 0));
+    var monthlySweep = roundUpCents_(Math.max(0, sourceBalance + baseIn - baseOut - item.keepAmount));
+    if (monthlySweep > 0) {
+      debits[item.fromKey] = roundUpCents_((debits[item.fromKey] || 0) + monthlySweep);
+      credits[item.toKey] = roundUpCents_((credits[item.toKey] || 0) + monthlySweep);
+      out[item.rowIndex] = [monthlySweep];
+      return;
+    }
+    out[item.rowIndex] = [''];
+  });
+
+  sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
+  return transferTotals;
 }
 
 function updateAccountMonthlyFlowAveragesForScenarioModel_(
@@ -1534,190 +1812,19 @@ function transferBehaviorSortPriority_(behavior) {
 }
 
 function updateExpenseMonthlyTotals_() {
-  var ss = SpreadsheetApp.getActive();
-  var expenseSheet = ss.getSheetByName(Config.SHEETS.EXPENSE);
-  if (!expenseSheet) {
-    return {};
-  }
-
-  var expenseLastRow = expenseSheet.getLastRow();
-  var expenseLastCol = expenseSheet.getLastColumn();
-  if (expenseLastRow < 2 || expenseLastCol < 1) {
-    return {};
-  }
-
-  var expenseHeaders = expenseSheet.getRange(1, 1, 1, expenseLastCol).getValues()[0];
-  var includeIdx = expenseHeaders.indexOf('Include');
-  var amountIdx = expenseHeaders.indexOf('Amount');
-  var freqIdx = expenseHeaders.indexOf('Frequency');
-  var repeatIdx = expenseHeaders.indexOf('Repeat Every');
-  var startIdx = expenseHeaders.indexOf('Start Date');
-  var endIdx = expenseHeaders.indexOf('End Date');
-  var fromIdx = expenseHeaders.indexOf('From Account');
-  var avgIdx = expenseHeaders.indexOf('Monthly Total');
-  if (
-    includeIdx === -1 ||
-    amountIdx === -1 ||
-    freqIdx === -1 ||
-    repeatIdx === -1 ||
-    fromIdx === -1 ||
-    avgIdx === -1
-  ) {
-    return {};
-  }
-
-  var expenseValues = expenseSheet.getRange(2, 1, expenseLastRow - 1, expenseLastCol).getValues();
-  var out = [];
-  var accountTotals = {};
-
-  expenseValues.forEach(function (row) {
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx !== -1 ? row[startIdx] : null,
-      endIdx !== -1 ? row[endIdx] : null
-    );
-    var frequency = recurrence.frequency;
-    var repeatEvery = recurrence.repeatEvery;
-    var startDate = recurrence.startDate;
-    var endDate = recurrence.endDate;
-    var fromAccount = row[fromIdx];
-
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: startDate,
-      endDate: endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
-    });
-    var monthlyTotal = null;
-    if (include && recurring && amount !== null && amount >= 0 && frequency) {
-      monthlyTotal = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(frequency, repeatEvery));
-      if (fromAccount) {
-        accountTotals[fromAccount] = roundUpCents_((accountTotals[fromAccount] || 0) + monthlyTotal);
-      }
-    }
-    out.push([monthlyTotal === null ? '' : monthlyTotal]);
-  });
-
-  expenseSheet.getRange(2, avgIdx + 1, out.length, 1).setValues(out);
-  return accountTotals;
+  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  return updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
 }
 
 function updateAccountMonthlyFlowAverages_(incomeTotalsByAccount, transferTotals, expenseTotalsByAccount) {
-  var accountsSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
-  if (!accountsSheet) {
-    return;
-  }
-  transferTotals = transferTotals || { credits: {}, debits: {} };
-  var transferCreditsByAccount = transferTotals.credits || {};
-  var transferDebitsByAccount = transferTotals.debits || {};
-  expenseTotalsByAccount = expenseTotalsByAccount || {};
-  incomeTotalsByAccount = incomeTotalsByAccount || {};
-
-  var lastRow = accountsSheet.getLastRow();
-  var lastCol = accountsSheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return;
-  }
-  var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var nameIdx = headers.indexOf('Account Name');
-  var balanceIdx = headers.indexOf('Balance');
-  var includeIdx = headers.indexOf('Include');
-  var summaryIndexes = getAccountSummaryHeaderIndexes_(headers);
-  var interestAvgIdx = summaryIndexes.interest;
-  var expenseAvgIdx = summaryIndexes.debits;
-  var incomeAvgIdx = summaryIndexes.credits;
-  var netFlowIdx = summaryIndexes.net;
-  var rateIdx = headers.indexOf('Interest Rate (APR %)');
-  var feeIdx = headers.indexOf('Interest Fee / Month');
-  var methodIdx = headers.indexOf('Interest Method');
-  var frequencyIdx = headers.indexOf('Interest Frequency');
-  if (nameIdx === -1) {
-    return;
-  }
-
-  var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var interestAvgValues = rows.map(function (row) {
-    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
-    if (!included) {
-      return [''];
-    }
-    var rate = rateIdx === -1 ? null : toNumber_(row[rateIdx]);
-    var balance = balanceIdx === -1 ? null : toNumber_(row[balanceIdx]);
-    var frequency = frequencyIdx === -1 ? null : row[frequencyIdx];
-    var method = methodIdx === -1 ? '' : row[methodIdx];
-    if (rate === null || balance === null || !frequency) {
-      return [0];
-    }
-    return [computeEstimatedMonthlyInterest_(balance, rate, method)];
-  });
-  var expenseAvgValues = rows.map(function (row) {
-    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
-    if (!included) {
-      return [''];
-    }
-    var name = row[nameIdx];
-    var value = expenseTotalsByAccount[name];
-    var transferDebit = transferDebitsByAccount[name];
-    var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
-    var total = (value === undefined ? 0 : value) + (transferDebit === undefined ? 0 : transferDebit);
-    if (fee !== null && fee > 0) {
-      total = roundUpCents_(total + fee);
-    }
-    return [roundUpCents_(total)];
-  });
-  var incomeAvgValues = rows.map(function (row) {
-    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
-    if (!included) {
-      return [''];
-    }
-    var name = row[nameIdx];
-    var value = incomeTotalsByAccount[name];
-    var transferCredit = transferCreditsByAccount[name];
-    var total = (value === undefined ? 0 : value) + (transferCredit === undefined ? 0 : transferCredit);
-    return [roundUpCents_(total)];
-  });
-  var netFlowValues = rows.map(function (row) {
-    var included = includeIdx === -1 || toBoolean_(row[includeIdx]);
-    if (!included) {
-      return [''];
-    }
-    var name = row[nameIdx];
-    var expense = expenseTotalsByAccount[name];
-    var income = incomeTotalsByAccount[name];
-    var transferCredit = transferCreditsByAccount[name];
-    var transferDebit = transferDebitsByAccount[name];
-    var rate = rateIdx === -1 ? null : toNumber_(row[rateIdx]);
-    var balance = balanceIdx === -1 ? null : toNumber_(row[balanceIdx]);
-    var frequency = frequencyIdx === -1 ? null : row[frequencyIdx];
-    var method = methodIdx === -1 ? '' : row[methodIdx];
-    var interest = 0;
-    if (rate !== null && balance !== null && frequency) {
-      interest = computeEstimatedMonthlyInterest_(balance, rate, method);
-    }
-    var fee = feeIdx === -1 ? null : toNumber_(row[feeIdx]);
-    var hasFee = fee !== null && fee > 0;
-    var expenseValue = (expense === undefined ? 0 : expense) + (transferDebit === undefined ? 0 : transferDebit);
-    if (hasFee) {
-      expenseValue = roundUpCents_(expenseValue + fee);
-    }
-    var incomeValue = (income === undefined ? 0 : income) + (transferCredit === undefined ? 0 : transferCredit);
-    return [roundUpCents_(incomeValue + interest - expenseValue)];
-  });
-
-  if (expenseAvgIdx !== -1) {
-    accountsSheet.getRange(2, expenseAvgIdx + 1, expenseAvgValues.length, 1).setValues(expenseAvgValues);
-  }
-  if (interestAvgIdx !== -1) {
-    accountsSheet.getRange(2, interestAvgIdx + 1, interestAvgValues.length, 1).setValues(interestAvgValues);
-  }
-  if (incomeAvgIdx !== -1) {
-    accountsSheet.getRange(2, incomeAvgIdx + 1, incomeAvgValues.length, 1).setValues(incomeAvgValues);
-  }
-  if (netFlowIdx !== -1) {
-    accountsSheet.getRange(2, netFlowIdx + 1, netFlowValues.length, 1).setValues(netFlowValues);
-  }
+  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  updateAccountMonthlyFlowAveragesForScenarioModel_(
+    Config.SCENARIOS.DEFAULT,
+    scenarioModel.accounts || [],
+    normalizeAccountTotalsKeys_(incomeTotalsByAccount),
+    normalizeTransferTotalsKeys_(transferTotals),
+    normalizeAccountTotalsKeys_(expenseTotalsByAccount)
+  );
 }
 
 function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {
@@ -1730,186 +1837,53 @@ function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {
 }
 
 function updateIncomeMonthlyTotals_() {
-  var incomeSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.INCOME);
-  if (!incomeSheet) {
-    return {};
-  }
-  var lastRow = incomeSheet.getLastRow();
-  var lastCol = incomeSheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return {};
-  }
-  var headers = incomeSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var includeIdx = headers.indexOf('Include');
-  var amountIdx = headers.indexOf('Amount');
-  var freqIdx = headers.indexOf('Frequency');
-  var repeatIdx = headers.indexOf('Repeat Every');
-  var startIdx = headers.indexOf('Start Date');
-  var endIdx = headers.indexOf('End Date');
-  var toIdx = headers.indexOf('To Account');
-  var totalIdx = headers.indexOf('Monthly Total');
-  if (
-    includeIdx === -1 ||
-    amountIdx === -1 ||
-    freqIdx === -1 ||
-    repeatIdx === -1 ||
-    toIdx === -1 ||
-    totalIdx === -1
-  ) {
-    return {};
-  }
-
-  var values = incomeSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var credits = {};
-  var out = [];
-  values.forEach(function (row) {
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx !== -1 ? row[startIdx] : null,
-      endIdx !== -1 ? row[endIdx] : null
-    );
-    var toAccount = row[toIdx];
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
-    });
-    var monthlyTotal = null;
-    if (include && recurring && amount !== null && amount >= 0 && recurrence.frequency && toAccount) {
-      monthlyTotal = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery));
-      credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyTotal);
-    }
-    out.push([monthlyTotal === null ? '' : monthlyTotal]);
-  });
-  incomeSheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
-  return credits;
+  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  return updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
 }
 
 function updateTransferMonthlyTotals_(incomeTotalsByAccount, expenseTotalsByAccount) {
-  var transferSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.TRANSFERS);
-  if (!transferSheet) {
-    return { credits: {}, debits: {} };
+  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  var normalizedIncomeTotals = normalizeAccountTotalsKeys_(incomeTotalsByAccount);
+  var normalizedExpenseTotals = normalizeAccountTotalsKeys_(expenseTotalsByAccount);
+
+  if (!Object.keys(normalizedIncomeTotals).length) {
+    normalizedIncomeTotals = updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
   }
-  var lastRow = transferSheet.getLastRow();
-  var lastCol = transferSheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return { credits: {}, debits: {} };
-  }
-  var headers = transferSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var includeIdx = headers.indexOf('Include');
-  var typeIdx = headers.indexOf('Type');
-  var amountIdx = headers.indexOf('Amount');
-  var freqIdx = headers.indexOf('Frequency');
-  var repeatIdx = headers.indexOf('Repeat Every');
-  var startIdx = headers.indexOf('Start Date');
-  var endIdx = headers.indexOf('End Date');
-  var fromIdx = headers.indexOf('From Account');
-  var toIdx = headers.indexOf('To Account');
-  var totalIdx = headers.indexOf('Monthly Total');
-  if (
-    includeIdx === -1 ||
-    typeIdx === -1 ||
-    amountIdx === -1 ||
-    freqIdx === -1 ||
-    repeatIdx === -1 ||
-    fromIdx === -1 ||
-    toIdx === -1 ||
-    totalIdx === -1
-  ) {
-    return { credits: {}, debits: {} };
+  if (!Object.keys(normalizedExpenseTotals).length) {
+    normalizedExpenseTotals = updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
   }
 
-  var values = transferSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var accountBalanceLookup = buildAccountBalanceLookup_();
-  incomeTotalsByAccount = incomeTotalsByAccount || {};
-  expenseTotalsByAccount = expenseTotalsByAccount || {};
-  var credits = {};
-  var debits = {};
-  var out = values.map(function () {
-    return [''];
-  });
-  var everythingExceptRows = [];
-  values.forEach(function (row, rowIndex) {
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx !== -1 ? row[startIdx] : null,
-      endIdx !== -1 ? row[endIdx] : null
-    );
-    var toAccount = row[toIdx];
-    var fromAccount = row[fromIdx];
-    var behavior = normalizeTransferType_(row[typeIdx], amount);
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
-    });
-    var monthlyTotal = null;
-    if (
-      include &&
-      recurring &&
-      amount !== null &&
-      amount >= 0 &&
-      recurrence.frequency &&
-      toAccount &&
-      fromAccount
-    ) {
-      if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-        everythingExceptRows.push({
-          rowIndex: rowIndex,
-          fromAccount: fromAccount,
-          toAccount: toAccount,
-          keepAmount: amount || 0,
-          factor: monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery),
-        });
-      } else if (behavior !== Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-        monthlyTotal = roundUpCents_((amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery));
-        credits[toAccount] = roundUpCents_((credits[toAccount] || 0) + monthlyTotal);
-        debits[fromAccount] = roundUpCents_((debits[fromAccount] || 0) + monthlyTotal);
-      }
-    }
-    out[rowIndex] = [monthlyTotal === null ? '' : monthlyTotal];
-  });
-
-  everythingExceptRows.forEach(function (item) {
-    var sourceBalance = lookupAccountBalance_(accountBalanceLookup, item.fromAccount);
-    var openingExcess = Math.max(0, sourceBalance - item.keepAmount);
-    var baseIn = (incomeTotalsByAccount[item.fromAccount] || 0) + (credits[item.fromAccount] || 0);
-    var baseOut = (expenseTotalsByAccount[item.fromAccount] || 0) + (debits[item.fromAccount] || 0);
-    var estimatedMonthlySweep = roundUpCents_(Math.max(0, openingExcess + baseIn - baseOut));
-
-    if (estimatedMonthlySweep > 0) {
-      credits[item.toAccount] = roundUpCents_((credits[item.toAccount] || 0) + estimatedMonthlySweep);
-      debits[item.fromAccount] = roundUpCents_((debits[item.fromAccount] || 0) + estimatedMonthlySweep);
-    }
-    out[item.rowIndex] = [estimatedMonthlySweep === 0 ? '' : estimatedMonthlySweep];
-  });
-  transferSheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
-  return { credits: credits, debits: debits };
+  return updateTransferMonthlyTotalsForScenarioModel_(
+    scenarioModel,
+    normalizedIncomeTotals,
+    normalizedExpenseTotals
+  );
 }
 
-function buildAccountBalanceLookup_() {
-  var lookup = {};
-  Readers.readAccounts().forEach(function (account) {
-    if (!account || !account.name) {
+function normalizeAccountTotalsKeys_(totalsByAccount) {
+  var normalized = {};
+  if (!totalsByAccount) {
+    return normalized;
+  }
+  Object.keys(totalsByAccount).forEach(function (key) {
+    var normalizedKey = normalizeAccountLookupKey_(key);
+    if (!normalizedKey) {
       return;
     }
-    lookup[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
+    var value = toNumber_(totalsByAccount[key]);
+    if (value === null) {
+      return;
+    }
+    normalized[normalizedKey] = roundUpCents_((normalized[normalizedKey] || 0) + value);
   });
-  return lookup;
+  return normalized;
 }
 
-function lookupAccountBalance_(lookup, accountName) {
-  var key = normalizeAccountLookupKey_(accountName);
-  if (!key || !lookup || lookup[key] === undefined) {
-    return 0;
-  }
-  return lookup[key];
+function normalizeTransferTotalsKeys_(transferTotals) {
+  return {
+    credits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.credits),
+    debits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.debits),
+  };
 }
 
 function getAccountSummaryHeaderIndexes_(headers) {

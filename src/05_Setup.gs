@@ -338,7 +338,7 @@ function formatReferenceSheet_(spreadsheet) {
   setupReferenceLayout_(spreadsheet, sheet);
 
   var lastCol = Math.max(14, sheet.getLastColumn());
-  sheet.getRange('A1:C1').setFontWeight('bold').setBackground('#e9eef7');
+  sheet.getRange('A1:B1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('D1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('F1').setFontWeight('bold').setBackground('#e9eef7');
   sheet.getRange('H1').setFontWeight('bold').setBackground('#e9eef7');
@@ -348,14 +348,14 @@ function formatReferenceSheet_(spreadsheet) {
 
   sheet.getRange('B2:B3').setNumberFormat('yyyy-mm-dd');
   sheet.getRange('A2:A3').setFontWeight('bold');
-  sheet.getRange('A5:A7').setFontWeight('bold');
+  sheet.getRange('A5:A8').setFontWeight('bold');
   sheet.getRange('A2:B3').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
-  sheet.getRange('A5:C7').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange('A5:B8').setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange('D1:D').setHorizontalAlignment('left');
   // Input boxes for expected user-edited values.
   sheet.getRange('B2:B3').setBorder(true, true, true, true, false, false, '#1a73e8', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.getRange('B2:B3').setBackground('#eef5ff');
-  sheet.getRange('B5:C7').setBackground('#f8f9fa');
+  sheet.getRange('B5:B8').setBackground('#f8f9fa');
   var runLogBoxRows = Math.max(8, sheet.getLastRow());
   sheet.getRange(2, 10, runLogBoxRows - 1, 5).setBorder(
     true,
@@ -410,12 +410,13 @@ function formatReferenceSheet_(spreadsheet) {
 function setupReferenceLayout_(spreadsheet, sheet) {
   sheet.getRange('A1').setValue('Setting');
   sheet.getRange('B1').setValue('Value');
-  sheet.getRange('C1').setValue('Status');
+  sheet.getRange('C1').setValue('');
   sheet.getRange('A2').setValue('Forecast Start');
   sheet.getRange('A3').setValue('Forecast End');
   sheet.getRange('A5').setValue('Last Run Mode');
   sheet.getRange('A6').setValue('Last Run Scenario');
   sheet.getRange('A7').setValue('Last Run At');
+  sheet.getRange('A8').setValue('Run Status');
   sheet.getRange('D1').setValue('Expense Type');
   sheet.getRange('F1').setValue('Income Type');
   sheet.getRange('H1').setValue('Scenario');
@@ -458,6 +459,9 @@ function seedReferenceDefaults_(spreadsheet, sheet) {
   }
   if (!sheet.getRange('B7').getValue()) {
     sheet.getRange('B7').setValue('-');
+  }
+  if (!sheet.getRange('B8').getValue()) {
+    sheet.getRange('B8').setValue('-');
   }
 
   var lastRow = Math.max(sheet.getLastRow(), 2);

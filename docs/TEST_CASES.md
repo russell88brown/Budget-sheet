@@ -74,8 +74,41 @@ This file defines manual regression tests for the scenario-enabled planning engi
   - `B5 = Journal` or `Forecast` (depending on action)
   - `B6 = Stress`
   - `B7` timestamp updated
-  - `C5 = Success`
+  - `B8 = Success`
   - New row appended in run log area `J:N` with matching mode/scenario/status.
+
+## Deterministic Fixture Tests (Phase 2)
+
+1. Fixture A: single-month baseline
+- Set named range `ForecastStartDate` to `2026-01-01`.
+- Set named range `ForecastEndDate` to `2026-01-31`.
+- Clear data rows (keep headers) in `Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`.
+- Add exactly these `Accounts` rows:
+  - `Operating | 1000 | Cash | TRUE | Base`
+  - `Card | -500 | Credit | TRUE | Base`
+- Add exactly this `Income` row:
+  - `TRUE | Base | Salary | Paycheck | 1200 | Monthly | 1 | 2026-01-01 | 2026-12-31 | Operating`
+- Add exactly this `Expense` row:
+  - `TRUE | Base | Fixed | Rent | 700 | Monthly | 1 | 2026-01-01 | 2026-12-31 | Operating`
+- Add exactly this `Transfers` row:
+  - `TRUE | Base | Transfer - Amount | Card Payment | 200 | Monthly | 1 | 2026-01-01 | 2026-12-31 | Operating | Card`
+- Run `Run Budget...` with:
+  - scenario mode: `Use Base scenario`
+  - operations: `Summarise Accounts`, `Generate journal`
+- Expected `Accounts` values:
+  - `Operating`: `Money In / Month = 1200`, `Money Out / Month = 900`, `Net Interest / Month = 0`, `Net Change / Month = 300`
+  - `Card`: `Money In / Month = 200`, `Money Out / Month = 0`, `Net Interest / Month = 0`, `Net Change / Month = 200`
+- Expected `Journal` values:
+  - `COUNTIFS(Scenario,"Base") = 5` (2 opening + 3 transactions)
+  - last `Operating` balance = `1300`
+  - last `Card` balance = `-300`
+
+2. Fixture A repeatability
+- Without changing any input rows, run the same `Run Budget...` operation again.
+- Expected:
+  - Account summary values are identical to prior run.
+  - Journal row count for `Base` remains `5`.
+  - End balances remain `Operating=1300`, `Card=-300`.
 
 ## Setup Data Integration Tests
 

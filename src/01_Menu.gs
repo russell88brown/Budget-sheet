@@ -40,7 +40,7 @@ function showRunBudgetDialog() {
   template.scenarios = available;
   template.defaultScenario = Config.SCENARIOS.DEFAULT;
   template.title = 'Run Budget';
-  var html = template.evaluate().setWidth(860).setHeight(560);
+  var html = template.evaluate().setWidth(860).setHeight(520);
   SpreadsheetApp.getUi().showModalDialog(html, 'Run Budget');
 }
 
