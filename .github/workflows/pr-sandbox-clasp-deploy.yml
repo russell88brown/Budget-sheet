@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
-          node -e "const fs=require('fs');const os=require('os');const raw=process.env.CREDENTIALS||'';let parsed;try{parsed=JSON.parse(raw);}catch(e){throw new Error('Credentials secret is not valid JSON');}if(typeof parsed==='string'){parsed=JSON.parse(parsed);}if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)){throw new Error('Credentials secret must decode to a JSON object');}fs.writeFileSync(require('path').join(os.homedir(),'.clasprc.json'),JSON.stringify(parsed,null,2)+'\n','utf8');"
+          node -e "const fs=require('fs');const os=require('os');const path=require('path');const raw=process.env.CREDENTIALS||'';let parsed;try{parsed=JSON.parse(raw);}catch(e){throw new Error('Credentials secret is not valid JSON');}if(typeof parsed==='string'){parsed=JSON.parse(parsed);}if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)){throw new Error('Credentials secret must decode to a JSON object');}if(parsed.token&&!parsed.tokens){const t=parsed.token;const c=parsed.oauth2ClientSettings||{};parsed.tokens={default:{access_token:t.access_token,refresh_token:t.refresh_token,scope:t.scope,token_type:t.token_type,id_token:t.id_token,expiry_date:t.expiry_date,type:'authorized_user',client_id:c.clientId,client_secret:c.clientSecret}};}if(parsed.tokens&&typeof parsed.tokens==='object'&&!parsed.tokens.default){const keys=Object.keys(parsed.tokens);if(keys.length>0){parsed.tokens.default=parsed.tokens[keys[0]];}}fs.writeFileSync(path.join(os.homedir(),'.clasprc.json'),JSON.stringify(parsed,null,2)+'\n','utf8');"
         env:
           CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS || secrets.CLASP_CREDENTIALS_JSON }}
 
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           test -s "$HOME/.clasprc.json"
-          node -e "const fs=require('fs');const p=process.env.HOME+'/.clasprc.json';const obj=JSON.parse(fs.readFileSync(p,'utf8'));if(!obj||typeof obj!=='object') process.exit(1);if(!obj.token) {console.error('Missing token object in .clasprc.json');process.exit(1);}console.log('clasp auth file looks valid');"
+          node -e "const fs=require('fs');const p=process.env.HOME+'/.clasprc.json';const obj=JSON.parse(fs.readFileSync(p,'utf8'));if(!obj||typeof obj!=='object'){console.error('Invalid .clasprc.json object');process.exit(1);}const legacyRefresh=!!(obj.token&&obj.token.refresh_token);const tokens=obj.tokens&&typeof obj.tokens==='object'?obj.tokens:null;const defaultRefresh=!!(tokens&&tokens.default&&tokens.default.refresh_token);const anyRefresh=!!(tokens&&Object.values(tokens).some(v=>v&&typeof v==='object'&&v.refresh_token));if(!(legacyRefresh||defaultRefresh||anyRefresh)){console.error('No refresh token found in .clasprc.json');process.exit(1);}console.log('clasp auth file looks valid');"
 
       - name: Configure sandbox script target
         shell: bash
