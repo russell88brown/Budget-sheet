@@ -38,8 +38,6 @@ function showRunBudgetDialog() {
     available = [Config.SCENARIOS.DEFAULT];
   }
   template.scenarios = available;
-  template.defaultScenario = Config.SCENARIOS.DEFAULT;
-  template.title = 'Run Budget';
   var html = template.evaluate().setWidth(860).setHeight(520);
   SpreadsheetApp.getUi().showModalDialog(html, 'Run Budget');
 }
@@ -183,9 +181,107 @@ function validateTransfersExpenses() {
 
 function showSetupDialog() {
   var html = HtmlService.createHtmlOutputFromFile('SetupDialog')
-    .setWidth(420)
-    .setHeight(340);
+    .setWidth(560)
+    .setHeight(460);
   SpreadsheetApp.getUi().showModalDialog(html, 'Setup Options');
+}
+
+function runSetupAudit() {
+  var ss = SpreadsheetApp.getActive();
+  var defined = Object.keys(Config.SHEETS).map(function (key) {
+    return Config.SHEETS[key];
+  }).concat([Config.LISTS_SHEET]);
+  var existingNames = ss.getSheets().map(function (sheet) {
+    return sheet.getName();
+  });
+  var existingLookup = {};
+  existingNames.forEach(function (name) {
+    existingLookup[name] = true;
+  });
+
+  var missing = defined.filter(function (name) {
+    return !existingLookup[name];
+  });
+
+  var requiredRanges = [
+    Config.NAMED_RANGES.FORECAST_START,
+    Config.NAMED_RANGES.FORECAST_END,
+    Config.NAMED_RANGES.ACCOUNT_NAMES,
+    Config.NAMED_RANGES.CATEGORIES,
+    Config.NAMED_RANGES.INCOME_TYPES,
+    Config.NAMED_RANGES.SCENARIOS,
+  ];
+  var missingRanges = requiredRanges.filter(function (name) {
+    return !ss.getRangeByName(name);
+  });
+
+  var setupSheets = [
+    Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.INCOME,
+    Config.SHEETS.TRANSFERS,
+    Config.SHEETS.GOALS,
+    Config.SHEETS.RISK,
+    Config.SHEETS.POLICIES,
+    Config.SHEETS.EXPENSE,
+    Config.SHEETS.JOURNAL,
+  ];
+  var headerIssues = setupSheets.filter(function (name) {
+    var sheet = ss.getSheetByName(name);
+    return !sheet || !hasHeaderRow_(sheet);
+  });
+
+  var orderIssue = false;
+  if (typeof getPreferredSheetOrder_ === 'function') {
+    var preferred = getPreferredSheetOrder_();
+    var orderIndexes = preferred
+      .filter(function (name) { return existingLookup[name]; })
+      .map(function (name) { return existingNames.indexOf(name); });
+    for (var i = 1; i < orderIndexes.length; i += 1) {
+      if (orderIndexes[i] < orderIndexes[i - 1]) {
+        orderIssue = true;
+        break;
+      }
+    }
+  }
+
+  var items = [
+    {
+      title: 'Sheets',
+      ok: missing.length === 0,
+      action: 'Fix Structure',
+      details: missing.length ? ('Missing: ' + missing.join(', ')) : 'All required sheets exist.',
+    },
+    {
+      title: 'Headers',
+      ok: headerIssues.length === 0,
+      action: 'Fix Structure',
+      details: headerIssues.length ? ('Missing headers: ' + headerIssues.join(', ')) : 'Header rows are present.',
+    },
+    {
+      title: 'Rules',
+      ok: missingRanges.length === 0,
+      action: 'Fix Rules',
+      details: missingRanges.length ? ('Missing named ranges: ' + missingRanges.join(', ')) : 'Named ranges are present.',
+    },
+    {
+      title: 'Theme',
+      ok: true,
+      action: 'Fix Theme',
+      details: 'Re-apply visual formatting if colors/styles drifted.',
+    },
+    {
+      title: 'Tab Order',
+      ok: !orderIssue,
+      action: 'Fix Order',
+      details: orderIssue ? 'Preferred tab order is not enforced.' : 'Preferred tab order is in place.',
+    },
+  ];
+
+  return {
+    okCount: items.filter(function (item) { return item.ok; }).length,
+    total: items.length,
+    items: items,
+  };
 }
 
 
@@ -201,7 +297,7 @@ function runSetupActions(actions) {
     selected[action] = true;
   });
 
-  var orderedActions = ['structure', 'validation', 'theme', 'defaults', 'categories'];
+  var orderedActions = ['structure', 'validation', 'theme', 'reorder', 'defaults', 'categories'];
   orderedActions.forEach(function (action) {
     if (!selected[action]) {
       return;
@@ -219,6 +315,14 @@ function runSetupActions(actions) {
         setupStageTheme_();
         messages.push('Theme complete');
         break;
+      case 'reorder':
+        if (typeof enforcePreferredSheetOrder_ === 'function') {
+          enforcePreferredSheetOrder_(ss);
+          messages.push('Tab order enforced');
+        } else {
+          messages.push('Tab order helper unavailable');
+        }
+        break;
       case 'defaults':
         var result = loadDefaultData();
         messages.push(result && result.message ? result.message : 'Default data loaded.');
@@ -234,6 +338,9 @@ function runSetupActions(actions) {
         messages.push('Unknown action: ' + action);
     }
   });
+  if (typeof enforcePreferredSheetOrder_ === 'function') {
+    enforcePreferredSheetOrder_(ss);
+  }
 
   return messages.join(' | ');
 }

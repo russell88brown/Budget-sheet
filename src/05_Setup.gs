@@ -5,17 +5,103 @@ function setupSpreadsheet() {
   setupStageTheme_();
 }
 
+function getDefinedSheetSpecs_() {
+  return Schema.inputs.concat(Schema.outputs);
+}
+
+function getManagedSheetNames_() {
+  var names = Object.keys(Config.SHEETS).map(function (key) {
+    return Config.SHEETS[key];
+  });
+  names.push(Config.LISTS_SHEET);
+  return names.filter(function (name, idx, arr) {
+    return name && arr.indexOf(name) === idx;
+  });
+}
+
+function getPreferredSheetOrder_() {
+  return [
+    Config.SHEETS.DASHBOARD,
+    Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.INCOME,
+    Config.SHEETS.TRANSFERS,
+    Config.SHEETS.GOALS,
+    Config.SHEETS.RISK,
+    Config.SHEETS.POLICIES,
+    Config.SHEETS.EXPENSE,
+    Config.SHEETS.JOURNAL,
+    Config.SHEETS.DAILY,
+    Config.SHEETS.MONTHLY,
+    Config.LISTS_SHEET,
+  ];
+}
+
+function enforcePreferredSheetOrder_(spreadsheet) {
+  var preferred = getPreferredSheetOrder_();
+  var preferredLookup = {};
+  preferred.forEach(function (name) {
+    preferredLookup[name] = true;
+  });
+
+  var targetPosition = 1;
+  preferred.forEach(function (name) {
+    var sheet = spreadsheet.getSheetByName(name);
+    if (!sheet) {
+      return;
+    }
+    spreadsheet.setActiveSheet(sheet);
+    spreadsheet.moveActiveSheet(targetPosition);
+    targetPosition += 1;
+  });
+
+  var others = spreadsheet
+    .getSheets()
+    .map(function (sheet) {
+      return sheet.getName();
+    })
+    .filter(function (name) {
+      return !preferredLookup[name];
+    });
+
+  others.forEach(function (name) {
+    var sheet = spreadsheet.getSheetByName(name);
+    if (!sheet) {
+      return;
+    }
+    spreadsheet.setActiveSheet(sheet);
+    spreadsheet.moveActiveSheet(targetPosition);
+    targetPosition += 1;
+  });
+}
+
 function setupStageStructure_() {
   var ss = SpreadsheetApp.getActive();
+  var headersBySheet = {};
 
-  Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
+  getDefinedSheetSpecs_().forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
       return column.name;
     });
+    headersBySheet[spec.name] = headers;
     ensureSheetWithHeaders_(ss, spec.name, headers);
   });
 
-  reorderSheets_(ss);
+  getManagedSheetNames_().forEach(function (sheetName) {
+    if (ss.getSheetByName(sheetName)) {
+      return;
+    }
+    var headers = headersBySheet[sheetName] || [];
+    if (headers.length) {
+      ensureSheetWithHeaders_(ss, sheetName, headers);
+      return;
+    }
+    ss.insertSheet(sheetName);
+    if (sheetName === Config.LISTS_SHEET) {
+      setupReferenceLayout_(ss, ss.getSheetByName(sheetName));
+    }
+  });
+
+  enforcePreferredSheetOrder_(ss);
 }
 
 function setupStageValidationAndSettings_() {
@@ -27,7 +113,7 @@ function setupStageValidationAndSettings_() {
   ensureScenarioRange_(ss);
   setupStageSeedCategories_();
 
-  Schema.inputs.concat(Schema.outputs).forEach(function (spec) {
+  getDefinedSheetSpecs_().forEach(function (spec) {
     var headers = spec.columns.map(function (column) {
       return column.name;
     });
@@ -38,11 +124,12 @@ function setupStageValidationAndSettings_() {
 
   applyAccountsFormatting_(ss);
   formatReferenceSheet_(ss);
+  enforcePreferredSheetOrder_(ss);
 }
 
 function setupStageTheme_() {
   var ss = SpreadsheetApp.getActive();
-  var themedSheets = Schema.inputs.concat(Schema.outputs).map(function (spec) {
+  var themedSheets = getDefinedSheetSpecs_().map(function (spec) {
     return spec.name;
   });
   clearSheetFormattingForTheme_(ss, themedSheets.concat([Config.LISTS_SHEET]));
@@ -56,6 +143,7 @@ function setupStageTheme_() {
     applySchemaFormatsForSheet_(sheetName);
   });
   formatReferenceSheet_(ss);
+  enforcePreferredSheetOrder_(ss);
 }
 
 function clearSheetDataValidations_(sheet) {
@@ -130,8 +218,10 @@ function setupStageSeedCategories_() {
 
 function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
   var sheet = spreadsheet.getSheetByName(sheetName);
+  var created = false;
   if (!sheet) {
     sheet = spreadsheet.insertSheet(sheetName);
+    created = true;
   }
 
   var lastRow = sheet.getLastRow();
@@ -154,6 +244,9 @@ function ensureSheetWithHeaders_(spreadsheet, sheetName, headers) {
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
   if (shouldRemap) {
     remapSheetDataByHeaders_(sheet, existingRows, existingHeaders, headers);
+  }
+  if (created) {
+    enforcePreferredSheetOrder_(spreadsheet);
   }
 
   return sheet;
@@ -536,31 +629,7 @@ function getAccountNames_(spreadsheet) {
 }
 
 function reorderSheets_(spreadsheet) {
-  var order = [
-    Config.SHEETS.ACCOUNTS,
-    Config.SHEETS.POLICIES,
-    Config.SHEETS.GOALS,
-    Config.SHEETS.RISK,
-    Config.SHEETS.INCOME,
-    Config.SHEETS.TRANSFERS,
-    Config.SHEETS.EXPENSE,
-    Config.SHEETS.JOURNAL,
-    Config.SHEETS.DAILY,
-    Config.SHEETS.MONTHLY,
-    Config.SHEETS.DASHBOARD,
-    Config.SHEETS.EXPORT,
-    Config.LISTS_SHEET,
-  ];
-
-  var targetPosition = 1;
-  order.forEach(function (name) {
-    var sheet = spreadsheet.getSheetByName(name);
-    if (sheet) {
-      spreadsheet.setActiveSheet(sheet);
-      spreadsheet.moveActiveSheet(targetPosition);
-      targetPosition += 1;
-    }
-  });
+  enforcePreferredSheetOrder_(spreadsheet);
 }
 
 function columnToLetter_(column) {

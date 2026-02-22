@@ -51,16 +51,6 @@
         flex-direction: column;
         min-height: 100%;
       }
-      .title {
-        margin: 0 0 4px;
-        font-size: 16px;
-        font-weight: 700;
-      }
-      .subtitle {
-        margin: 0 0 8px;
-        color: var(--muted);
-        font-size: 12px;
-      }
       .section-title {
         margin: 0 0 6px;
         font-weight: 700;
@@ -97,11 +87,6 @@
         justify-content: flex-end;
         padding-top: 6px;
       }
-      .divider {
-        border: 0;
-        border-top: 2px solid var(--line);
-        margin: 14px 0 10px;
-      }
       button {
         padding: 5px 11px;
         border-radius: 8px;
@@ -116,6 +101,10 @@
       button.secondary {
         background: #ffffff;
         color: var(--accent);
+      }
+      button:disabled {
+        opacity: 0.7;
+        cursor: default;
       }
       #status {
         margin-top: 10px;
@@ -192,6 +181,8 @@
         var statusEl = document.getElementById('status');
         var customBlock = document.getElementById('custom-scenario-block');
         var modeInputs = form.querySelectorAll('input[name="scenario_mode"]');
+        var submitBtn = form.querySelector('button[type="submit"]');
+        var cancelBtn = form.querySelector('button.secondary');
 
         function selectedMode_() {
           var checked = form.querySelector('input[name="scenario_mode"]:checked');
@@ -209,6 +200,7 @@
 
         form.addEventListener('submit', function (event) {
           event.preventDefault();
+          statusEl.textContent = '';
           var actions = Array.prototype.slice
             .call(form.querySelectorAll('input[name="action"]:checked'))
             .map(function (el) { return el.value; });
@@ -227,8 +219,21 @@
               return;
             }
           }
-          google.script.run.runBudgetSelections(actions, scenarioMode, scenarios);
-          google.script.host.close();
+          submitBtn.disabled = true;
+          cancelBtn.disabled = true;
+          statusEl.textContent = 'Running...';
+          google.script.run
+            .withSuccessHandler(function (message) {
+              statusEl.textContent = message || 'Complete.';
+              google.script.host.close();
+            })
+            .withFailureHandler(function (err) {
+              var msg = err && err.message ? err.message : String(err || 'Run failed.');
+              statusEl.textContent = 'Error: ' + msg;
+              submitBtn.disabled = false;
+              cancelBtn.disabled = false;
+            })
+            .runBudgetSelections(actions, scenarioMode, scenarios);
         });
       })();
     </script>

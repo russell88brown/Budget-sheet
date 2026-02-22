@@ -24,9 +24,16 @@ function getOrMigrateJournalSheet_(spreadsheet) {
   var legacy = spreadsheet.getSheetByName('Forecast Journal');
   if (legacy) {
     legacy.setName(Config.SHEETS.JOURNAL);
+    if (typeof enforcePreferredSheetOrder_ === 'function') {
+      enforcePreferredSheetOrder_(spreadsheet);
+    }
     return legacy;
   }
-  return null;
+  sheet = spreadsheet.insertSheet(Config.SHEETS.JOURNAL);
+  if (typeof enforcePreferredSheetOrder_ === 'function') {
+    enforcePreferredSheetOrder_(spreadsheet);
+  }
+  return sheet;
 }
 
 function clearData_(sheet) {

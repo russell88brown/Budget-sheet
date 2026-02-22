@@ -112,6 +112,9 @@ function writeDailySummary_(daily) {
   var sheet = ss.getSheetByName(Config.SHEETS.DAILY);
   if (!sheet) {
     sheet = ss.insertSheet(Config.SHEETS.DAILY);
+    if (typeof enforcePreferredSheetOrder_ === 'function') {
+      enforcePreferredSheetOrder_(ss);
+    }
   }
   sheet.clear();
 
@@ -257,6 +260,9 @@ function writeMonthlySummary_(monthly) {
   var sheet = ss.getSheetByName(Config.SHEETS.MONTHLY);
   if (!sheet) {
     sheet = ss.insertSheet(Config.SHEETS.MONTHLY);
+    if (typeof enforcePreferredSheetOrder_ === 'function') {
+      enforcePreferredSheetOrder_(ss);
+    }
   }
   sheet.clear();
 
@@ -386,6 +392,9 @@ function writeDashboard_(dashboard) {
   var sheet = ss.getSheetByName(Config.SHEETS.DASHBOARD);
   if (!sheet) {
     sheet = ss.insertSheet(Config.SHEETS.DASHBOARD);
+    if (typeof enforcePreferredSheetOrder_ === 'function') {
+      enforcePreferredSheetOrder_(ss);
+    }
   }
 
   sheet.clear();

@@ -4,28 +4,92 @@
     <base target="_top">
     <style>
       body { font-family: Arial, sans-serif; font-size: 13px; padding: 12px; }
-      h3 { margin: 0 0 10px; font-size: 14px; }
-      .option { margin: 8px 0; }
-      .actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+      h3 { margin: 0 0 8px; font-size: 14px; }
+      .audit {
+        border: 1px solid #d8e1ef;
+        border-radius: 8px;
+        background: #f8fbff;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+      .audit-head { font-weight: 700; margin-bottom: 6px; }
+      .audit-line { margin: 3px 0; font-size: 12px; }
+      .group { margin-bottom: 10px; }
+      .option { margin: 6px 0; }
+      .option label { display: block; }
+      .hint { color: #666; font-size: 12px; padding-left: 22px; }
+      .actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
       button { padding: 6px 10px; cursor: pointer; }
-      .note { margin-top: 10px; color: #555; font-size: 12px; white-space: pre-line; }
-      .group { margin-bottom: 12px; }
+      button:disabled { opacity: 0.7; cursor: default; }
+      .note { margin-top: 10px; color: #555; font-size: 12px; white-space: pre-line; min-height: 16px; }
     </style>
   </head>
   <body>
-    <h3>Setup stages</h3>
+    <h3>Setup Audit + Fixes</h3>
+    <div class="audit">
+      <div class="audit-head" id="audit-summary">Running audit...</div>
+      <div id="audit-lines"></div>
+    </div>
     <div class="group">
-      <div class="option"><label><input type="checkbox" value="structure"> Structure (sheets + headers)</label></div>
-      <div class="option"><label><input type="checkbox" value="validation"> Validation + settings ranges (+ categories)</label></div>
-      <div class="option"><label><input type="checkbox" value="theme"> Theme (color + bold formatting)</label></div>
-      <div class="option"><label><input type="checkbox" value="defaults"> Load default data (if inputs empty)</label></div>
+      <div class="option">
+        <label><input type="checkbox" value="structure"> Fix Structure</label>
+        <div class="hint">Create missing app sheets and header rows.</div>
+      </div>
+      <div class="option">
+        <label><input type="checkbox" value="validation"> Fix Rules</label>
+        <div class="hint">Rebuild named ranges, validations, and settings lists.</div>
+      </div>
+      <div class="option">
+        <label><input type="checkbox" value="theme"> Fix Theme</label>
+        <div class="hint">Reapply formatting and conditional theme rules.</div>
+      </div>
+      <div class="option">
+        <label><input type="checkbox" value="reorder"> Fix Order</label>
+        <div class="hint">Enforce preferred tab order.</div>
+      </div>
+      <div class="option">
+        <label><input type="checkbox" value="defaults"> Load Defaults</label>
+        <div class="hint">Fill starter data if inputs are empty.</div>
+      </div>
     </div>
     <div class="actions">
-      <button onclick="runActions()">Run</button>
+      <button id="run-btn" onclick="runActions()">Run Selected</button>
+      <button id="audit-btn" onclick="runAudit()">Refresh Audit</button>
       <button onclick="google.script.host.close()">Cancel</button>
     </div>
     <div class="note" id="status"></div>
     <script>
+      function renderAudit(payload) {
+        var summaryEl = document.getElementById('audit-summary');
+        var linesEl = document.getElementById('audit-lines');
+        if (!payload || !payload.items) {
+          summaryEl.textContent = 'Audit unavailable.';
+          linesEl.textContent = '';
+          return;
+        }
+        summaryEl.textContent = 'Audit: ' + payload.okCount + '/' + payload.total + ' checks OK';
+        linesEl.innerHTML = payload.items.map(function (item) {
+          var state = item.ok ? 'OK' : 'Needs fix';
+          return '<div class="audit-line"><strong>' + item.title + ':</strong> ' + state +
+            ' | Click: <strong>' + item.action + '</strong> | ' + item.details + '</div>';
+        }).join('');
+      }
+
+      function runAudit() {
+        document.getElementById('audit-btn').disabled = true;
+        google.script.run
+          .withSuccessHandler(function (payload) {
+            renderAudit(payload);
+            document.getElementById('audit-btn').disabled = false;
+          })
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : String(err || 'Audit failed.');
+            document.getElementById('status').textContent = 'Audit error: ' + msg;
+            document.getElementById('audit-btn').disabled = false;
+          })
+          .runSetupAudit();
+      }
+
       function runActions() {
         var checks = Array.prototype.slice.call(document.querySelectorAll('input[type=checkbox]:checked'));
         var actions = checks.map(function (c) { return c.value; });
@@ -33,12 +97,28 @@
           document.getElementById('status').textContent = 'Select at least one stage.';
           return;
         }
+        var runBtn = document.getElementById('run-btn');
+        var auditBtn = document.getElementById('audit-btn');
+        runBtn.disabled = true;
+        auditBtn.disabled = true;
         document.getElementById('status').textContent = 'Running...';
-        google.script.run.withSuccessHandler(function (msg) {
-          document.getElementById('status').textContent = msg || 'Done.';
-          setTimeout(function () { google.script.host.close(); }, 900);
-        }).runSetupActions(actions);
+        google.script.run
+          .withSuccessHandler(function (msg) {
+            document.getElementById('status').textContent = msg || 'Done.';
+            runBtn.disabled = false;
+            auditBtn.disabled = false;
+            runAudit();
+          })
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : String(err || 'Setup failed.');
+            document.getElementById('status').textContent = 'Error: ' + msg;
+            runBtn.disabled = false;
+            auditBtn.disabled = false;
+          })
+          .runSetupActions(actions);
       }
+
+      runAudit();
     </script>
   </body>
 </html>

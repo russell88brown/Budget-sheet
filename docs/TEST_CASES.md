@@ -8,6 +8,30 @@ This file defines manual regression tests for the scenario-enabled planning engi
 - Confirm `Settings` includes scenario list in column `H` with at least `Base` and `Stress`.
 - If using defaults, run `Load default data`.
 
+## End-to-End Run Checklist
+
+Run this quick sequence after housekeeping or setup changes:
+
+1. Accounts
+- Run `Run Budget...` with `Summarise Accounts` only.
+- Expected: account summary columns update with no errors.
+
+2. Journal
+- Run `Run Budget...` with `Generate journal` only.
+- Expected: journal rows generate for the selected scenario.
+
+3. Daily
+- Run `Run Budget...` with `Generate daily` only.
+- Expected: `Daily` is rebuilt from journal rows for the selected scenario.
+
+4. Monthly
+- Run `Run Budget...` with `Generate monthly` only.
+- Expected: `Monthly` rolls up from `Daily` without errors.
+
+5. Dashboard
+- Run `Run Budget...` with `Generate dashboard` only.
+- Expected: dashboard metrics/charts refresh and show the selected scenario.
+
 ## Core Scenario Tests
 
 1. Base run parity
