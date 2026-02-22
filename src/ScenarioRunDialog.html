@@ -19,7 +19,7 @@
         font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         font-size: 13px;
         margin: 0;
-        padding: 16px;
+        padding: 12px;
         color: var(--ink);
         background: linear-gradient(155deg, var(--bg-top), var(--bg-bottom));
       }
@@ -32,19 +32,19 @@
         border: 1px solid var(--line);
         border-radius: 14px;
         box-shadow: var(--shadow);
-        padding: 14px;
+        padding: 12px;
         animation: fade-up 180ms ease-out;
       }
       .layout {
         display: grid;
-        grid-template-columns: 1.25fr 1fr;
-        gap: 14px;
+        grid-template-columns: 1.45fr 1fr;
+        gap: 10px;
       }
       .col {
         border: 1px solid #e3eaf2;
         border-radius: 10px;
         background: #fbfdff;
-        padding: 10px;
+        padding: 8px;
       }
       .col-right {
         display: flex;
@@ -57,20 +57,20 @@
         font-weight: 700;
       }
       .subtitle {
-        margin: 0 0 12px;
+        margin: 0 0 8px;
         color: var(--muted);
         font-size: 12px;
       }
       .section-title {
-        margin: 0 0 8px;
+        margin: 0 0 6px;
         font-weight: 700;
         font-size: 13px;
       }
       .check {
-        margin: 6px 0;
-        padding: 8px;
+        margin: 4px 0;
+        padding: 6px;
         border: 1px solid #e3eaf2;
-        border-radius: 10px;
+        border-radius: 8px;
         background: #fbfdff;
       }
       .check-head {
@@ -83,13 +83,14 @@
         accent-color: var(--accent);
       }
       .check-desc {
-        margin: 2px 0 0 24px;
+        margin: 2px 0 0 22px;
         color: var(--muted);
-        font-size: 12px;
+        font-size: 11px;
+        line-height: 1.25;
       }
       select {
         width: 100%;
-        padding: 6px;
+        padding: 5px;
         box-sizing: border-box;
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -100,30 +101,15 @@
         display: flex;
         gap: 8px;
         justify-content: flex-end;
-        padding-top: 12px;
+        padding-top: 8px;
       }
       .divider {
         border: 0;
         border-top: 2px solid var(--line);
         margin: 14px 0 10px;
       }
-      .ops {
-        margin-top: 12px;
-        padding: 8px 10px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: linear-gradient(180deg, #f9fcff, #f4faf8);
-      }
-      .ops-title {
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-      .ops-line {
-        margin: 2px 0;
-        color: var(--muted);
-      }
       button {
-        padding: 6px 12px;
+        padding: 5px 11px;
         border-radius: 8px;
         border: 1px solid var(--accent);
         background: var(--accent);
@@ -151,7 +137,7 @@
         .panel { padding: 10px; border-radius: 10px; }
         .check { padding: 6px; }
       }
-      @media (max-width: 760px) {
+      @media (max-width: 860px) {
         .layout { grid-template-columns: 1fr; }
       }
     </style>
@@ -195,7 +181,7 @@
             </div>
             <div id="custom-scenario-block" style="display:none;">
               <label for="scenarios" style="margin-top: 6px;">Custom scenarios (multi-select)</label>
-              <select id="scenarios" multiple size="6">
+              <select id="scenarios" multiple size="5">
               <? for (var i = 0; i < scenarios.length; i++) { var item = scenarios[i]; ?>
                 <option value="<?= item ?>"><?= item ?></option>
               <? } ?>
@@ -204,14 +190,6 @@
                 Hold Ctrl/Cmd to select multiple scenarios.
               </div>
             </div>
-          </div>
-          <div class="ops">
-            <div class="ops-title">Run Operations</div>
-            <div class="ops-line">1. Summarise Accounts</div>
-            <div class="ops-line">2. Generate journal</div>
-            <div class="ops-line">3. Generate daily</div>
-            <div class="ops-line">4. Generate monthly</div>
-            <div class="ops-line">5. Generate dashboard</div>
           </div>
           <div class="actions">
             <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
