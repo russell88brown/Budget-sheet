@@ -86,6 +86,7 @@ function buildDashboardReports_(spreadsheet, dashboard) {
   var reports = buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyPivot);
 
   assignDashboardReportAnchors_(reports);
+  attachDashboardPivotSourceRanges_(spreadsheet, reports);
   validateDashboardReportLayout_(reports);
   return reports;
 }
@@ -106,6 +107,7 @@ function buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyPivo
         build: definition.build,
         enabled: payload.enabled,
         data: payload.data,
+        pivotSpec: payload.pivotSpec,
       };
     });
 }
@@ -184,51 +186,65 @@ function doDashboardBoundsOverlap_(left, right) {
 
 function buildDashboardReportPayload_(definition, dashboard, dailyPivot) {
   if (definition.id === 'trendPivot') {
+    var trendData = dailyPivot || { headers: [], rows: [] };
     return {
-      enabled: !!(dailyPivot && dailyPivot.rows.length),
-      data: dailyPivot || { headers: [], rows: [] },
+      enabled: !!(trendData && trendData.rows.length),
+      data: trendData,
+      pivotSpec: buildDashboardPivotSpec_(definition.id, trendData.headers.length),
     };
   }
   if (definition.id === 'financialHealthcheck') {
+    var metricsData = {
+      headers: ['Metric', 'Value'],
+      rows: dashboard.metrics || [],
+    };
     return {
       enabled: !!(dashboard.metrics && dashboard.metrics.length),
-      data: {
-        headers: ['Metric', 'Value'],
-        rows: dashboard.metrics || [],
-      },
+      data: metricsData,
+      pivotSpec: buildDashboardPivotSpec_(definition.id, metricsData.headers.length),
     };
   }
   if (definition.id === 'scenarioDelta') {
+    var comparisonData = {
+      headers: ['Metric', 'Value'],
+      rows: dashboard.comparison || [],
+    };
     return {
       enabled: !!(dashboard.comparison && dashboard.comparison.length),
-      data: {
-        headers: ['Metric', 'Value'],
-        rows: dashboard.comparison || [],
-      },
+      data: comparisonData,
+      pivotSpec: buildDashboardPivotSpec_(definition.id, comparisonData.headers.length),
     };
   }
   if (definition.id === 'negativeCashSources') {
+    var explainData = {
+      headers: ['Source Rule ID', 'Abs Amount', 'Events'],
+      rows: dashboard.explainability || [],
+    };
     return {
       enabled: !!(dashboard.explainability && dashboard.explainability.length),
-      data: {
-        headers: ['Source Rule ID', 'Abs Amount', 'Events'],
-        rows: dashboard.explainability || [],
-      },
+      data: explainData,
+      pivotSpec: buildDashboardPivotSpec_(definition.id, explainData.headers.length),
     };
   }
   if (definition.id === 'accountPositionsPivot') {
     var accountRows = (dashboard.accountStats || []).map(function (account) {
       return [account.name, account.end, account.min, account.max, account.netChange];
     });
+    var accountData = {
+      headers: ['Account', 'Ending', 'Min', 'Max', 'Net Change'],
+      rows: accountRows,
+    };
     return {
       enabled: !!accountRows.length,
-      data: {
-        headers: ['Account', 'Ending', 'Min', 'Max', 'Net Change'],
-        rows: accountRows,
-      },
+      data: accountData,
+      pivotSpec: buildDashboardPivotSpec_(definition.id, accountData.headers.length),
     };
   }
-  return { enabled: false, data: { headers: [], rows: [] } };
+  return {
+    enabled: false,
+    data: { headers: [], rows: [] },
+    pivotSpec: { rowGroups: [1], values: [{ col: 1, summarize: SpreadsheetApp.PivotTableSummarizeFunction.COUNTA }] },
+  };
 }
 
 function buildDashboardTrendPivotData_(dailySheet, dashboard) {
@@ -299,10 +315,10 @@ function renderDashboardReportIndex_(sheet, reports) {
 }
 
 function renderDashboardReport_(sheet, report) {
-  renderDashboardPivotBlock_(sheet, report);
+  renderDashboardPivotTableBlock_(sheet, report);
 }
 
-function renderDashboardPivotBlock_(sheet, report) {
+function renderDashboardPivotTableBlock_(sheet, report) {
   var bounds = sheet.getRange(report.anchorRow, report.anchorCol, report.size.rows, report.size.cols);
   bounds.clearContent();
   bounds.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
@@ -319,41 +335,14 @@ function renderDashboardPivotBlock_(sheet, report) {
     sheet.getRange(report.anchorRow + 1, report.anchorCol).setValue('No data for this report.');
     return;
   }
-
-  var headers = (report.data && report.data.headers ? report.data.headers : []).slice(0, report.size.cols);
-  var headerRow = fitRowToWidth_(headers, report.size.cols);
-  sheet
-    .getRange(report.anchorRow + 1, report.anchorCol, 1, report.size.cols)
-    .setValues([headerRow])
-    .setFontWeight('bold')
-    .setBackground('#f7f7f7');
-
-  var dataRows = (report.data && report.data.rows ? report.data.rows : []).slice(0, report.size.rows - 2);
-  if (!dataRows.length) {
-    sheet.getRange(report.anchorRow + 2, report.anchorCol).setValue('No rows');
+  if (!report.pivotSourceRange) {
+    sheet.getRange(report.anchorRow + 1, report.anchorCol).setValue('No pivot source range.');
     return;
   }
-
-  var fittedRows = dataRows.map(function (row) {
-    return fitRowToWidth_(row, report.size.cols);
-  });
-  sheet
-    .getRange(report.anchorRow + 2, report.anchorCol, fittedRows.length, report.size.cols)
-    .setValues(fittedRows);
-
-  if (report.size.cols > 1 && fittedRows.length > 0) {
-    sheet
-      .getRange(report.anchorRow + 2, report.anchorCol + 1, fittedRows.length, report.size.cols - 1)
-      .setNumberFormat('0.00');
-  }
-}
-
-function fitRowToWidth_(row, width) {
-  var source = Array.isArray(row) ? row.slice(0, width) : [row];
-  while (source.length < width) {
-    source.push('');
-  }
-  return source;
+  var pivot = sheet
+    .getRange(report.anchorRow + 1, report.anchorCol)
+    .createPivotTable(report.pivotSourceRange);
+  applyDashboardPivotSpec_(pivot, report.pivotSpec);
 }
 
 function dashboardColumnToA1Letter_(column) {
@@ -370,6 +359,102 @@ function dashboardColumnToA1Letter_(column) {
 function toNumberOrZero_(value) {
   var num = Number(value);
   return isNaN(num) ? 0 : num;
+}
+
+function buildDashboardPivotSpec_(reportId, colCount) {
+  if (reportId === 'financialHealthcheck' || reportId === 'scenarioDelta') {
+    return {
+      rowGroups: [1, 2],
+      values: [{ col: 1, summarize: SpreadsheetApp.PivotTableSummarizeFunction.COUNTA }],
+    };
+  }
+  if (reportId === 'negativeCashSources') {
+    return {
+      rowGroups: [1],
+      values: [
+        { col: Math.min(2, colCount), summarize: SpreadsheetApp.PivotTableSummarizeFunction.SUM },
+        { col: Math.min(3, colCount), summarize: SpreadsheetApp.PivotTableSummarizeFunction.SUM },
+      ],
+    };
+  }
+  if (reportId === 'trendPivot' || reportId === 'accountPositionsPivot') {
+    var values = [];
+    for (var c = 2; c <= colCount; c += 1) {
+      values.push({ col: c, summarize: SpreadsheetApp.PivotTableSummarizeFunction.SUM });
+    }
+    return {
+      rowGroups: [1],
+      values: values.length ? values : [{ col: 1, summarize: SpreadsheetApp.PivotTableSummarizeFunction.COUNTA }],
+    };
+  }
+  return {
+    rowGroups: [1],
+    values: [{ col: 1, summarize: SpreadsheetApp.PivotTableSummarizeFunction.COUNTA }],
+  };
+}
+
+function attachDashboardPivotSourceRanges_(spreadsheet, reports) {
+  var dataSheet = getOrCreateDashboardPivotDataSheet_(spreadsheet);
+  dataSheet.clearContents();
+  var nextRow = 1;
+  (reports || []).forEach(function (report) {
+    if (!report.enabled) {
+      report.pivotSourceRange = null;
+      return;
+    }
+    var prepared = buildDashboardPivotSourceValues_(report);
+    if (!prepared.values.length) {
+      report.pivotSourceRange = null;
+      report.enabled = false;
+      return;
+    }
+    var rowCount = prepared.values.length;
+    var colCount = prepared.values[0].length;
+    dataSheet.getRange(nextRow, 1, rowCount, colCount).setValues(prepared.values);
+    report.pivotSourceRange = dataSheet.getRange(nextRow, 1, rowCount, colCount);
+    nextRow += rowCount + 1;
+  });
+  dataSheet.hideSheet();
+}
+
+function buildDashboardPivotSourceValues_(report) {
+  var width = report.size.cols;
+  var headers = fitDashboardRowWidth_((report.data && report.data.headers) || [], width);
+  var dataRows = ((report.data && report.data.rows) || [])
+    .slice(0, Math.max(1, report.size.rows - 3))
+    .map(function (row) {
+      return fitDashboardRowWidth_(row, width);
+    });
+  var values = [headers].concat(dataRows);
+  return {
+    values: values,
+  };
+}
+
+function fitDashboardRowWidth_(row, width) {
+  var source = Array.isArray(row) ? row.slice(0, width) : [row];
+  while (source.length < width) {
+    source.push('');
+  }
+  return source;
+}
+
+function applyDashboardPivotSpec_(pivotTable, pivotSpec) {
+  (pivotSpec.rowGroups || []).forEach(function (column) {
+    pivotTable.addRowGroup(column);
+  });
+  (pivotSpec.values || []).forEach(function (valueSpec) {
+    pivotTable.addPivotValue(valueSpec.col, valueSpec.summarize);
+  });
+}
+
+function getOrCreateDashboardPivotDataSheet_(spreadsheet) {
+  var name = '_DashboardPivotData';
+  var sheet = spreadsheet.getSheetByName(name);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(name);
+  }
+  return sheet;
 }
 
 function runDashboardReportHarness_() {
