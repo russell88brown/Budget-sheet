@@ -246,34 +246,24 @@ function runSetupAudit() {
 
   var items = [
     {
-      title: 'Sheets',
+      title: 'Spreadsheets',
       ok: missing.length === 0,
-      action: 'Fix Structure',
-      details: missing.length ? ('Missing: ' + missing.join(', ')) : 'All required sheets exist.',
+      details: missing.length ? ('bad [' + missing.join(', ') + ']') : 'good [all]',
     },
     {
       title: 'Headers',
       ok: headerIssues.length === 0,
-      action: 'Fix Structure',
-      details: headerIssues.length ? ('Missing headers: ' + headerIssues.join(', ')) : 'Header rows are present.',
+      details: headerIssues.length ? ('bad [' + headerIssues.join(', ') + ']') : 'good [all]',
     },
     {
-      title: 'Rules',
+      title: 'Named Ranges',
       ok: missingRanges.length === 0,
-      action: 'Fix Rules',
-      details: missingRanges.length ? ('Missing named ranges: ' + missingRanges.join(', ')) : 'Named ranges are present.',
-    },
-    {
-      title: 'Theme',
-      ok: true,
-      action: 'Fix Theme',
-      details: 'Re-apply visual formatting if colors/styles drifted.',
+      details: missingRanges.length ? ('bad [' + missingRanges.join(', ') + ']') : 'good [all]',
     },
     {
       title: 'Tab Order',
       ok: !orderIssue,
-      action: 'Fix Order',
-      details: orderIssue ? 'Preferred tab order is not enforced.' : 'Preferred tab order is in place.',
+      details: orderIssue ? 'bad [out of order]' : 'good [all]',
     },
   ];
 

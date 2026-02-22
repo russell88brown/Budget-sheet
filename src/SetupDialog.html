@@ -69,9 +69,7 @@
         }
         summaryEl.textContent = 'Audit: ' + payload.okCount + '/' + payload.total + ' checks OK';
         linesEl.innerHTML = payload.items.map(function (item) {
-          var state = item.ok ? 'OK' : 'Needs fix';
-          return '<div class="audit-line"><strong>' + item.title + ':</strong> ' + state +
-            ' | Click: <strong>' + item.action + '</strong> | ' + item.details + '</div>';
+          return '<div class="audit-line"><strong>' + item.title + ':</strong> ' + item.details + '</div>';
         }).join('');
       }
 
