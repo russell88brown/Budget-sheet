@@ -13,8 +13,8 @@ You define how money moves (income, expenses, transfers, policies), then run the
 1. Open menu `Budget Forecast -> Setup actions...`
 2. Select `Structure`, `Validation + settings`, and `Theme`, then click `Run`
 3. (Optional) In the same setup dialog, run `Load default data` for a working sample
-4. Click `Budget Forecast -> Run Main Scenario...`
-5. In popup, tick `Journal` and `Summaries`, then click `Run`
+4. Click `Budget Forecast -> Run Budget...`
+5. In popup, tick desired operations and keep scenario mode on `Base`, then click `Run`
 
 You now have a complete base forecast.
 
@@ -23,24 +23,42 @@ You now have a complete base forecast.
 1. Go to `Settings` sheet
 2. Add or edit scenario names in column `H` (`Base`, `Stress`, etc.)
 3. In input sheets (`Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`), set each row's `Scenario`
-4. Open `Run Custom Scenario(s)...`
-5. Tick actions (`Journal`, `Summaries`) and multi-select one or more scenarios
-5. Check run history in `Settings!J:N`
+4. Open `Run Budget...`
+5. Choose scenario mode `Choose custom scenario(s)` and multi-select one or more scenarios
+6. Tick desired operations, then click `Run`
+7. Check run history in `Settings!J:N`
 
 ## Menu Buttons (Plain English)
 
-- `Run Main Scenario...`:
+- `Run Budget...`:
   - opens popup
-  - choose one or both actions with checkboxes (`Journal`, `Summaries`)
-  - runs against `Base`
-- `Run Custom Scenario(s)...`:
-  - opens popup
-  - choose one or both actions with checkboxes
-  - multi-select scenarios
-  - runs selected actions for each selected scenario
-- `Summarise Accounts`: recalculates account monthly summary fields.
+  - choose one or more operation checkboxes:
+    - `Validate inputs and generate account summaries`
+    - `Generate journal`
+    - `Generate daily`
+    - `Generate monthly`
+    - `Generate dashboard`
+  - choose scenario mode:
+    - `Use Base scenario` (default)
+    - `Choose custom scenario(s)` with multi-select list
+  - runs selected operations for selected scenario(s)
 - `Export`: downloads selected sheets as JSON zip.
 - `Setup actions...`: structure, validation/settings, theme, default sample data.
+
+## Run Operations (What Actually Happens)
+
+When you click a run button and choose operations, the engine can execute:
+
+1. Validate inputs and generate account summaries
+2. Generate journal
+3. Generate daily
+4. Generate monthly
+5. Generate dashboard
+
+Practical combinations:
+- `Validate + Journal + Daily + Monthly + Dashboard`: full end-to-end refresh.
+- `Journal` only: refreshes core forecast ledger.
+- `Daily + Monthly + Dashboard` only: rebuilds reporting from current journal.
 
 ## Scenario Case Studies
 

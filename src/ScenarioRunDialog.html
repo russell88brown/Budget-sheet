@@ -3,26 +3,81 @@
   <head>
     <base target="_top">
     <style>
+      :root {
+        --ink: #10243f;
+        --muted: #5a6b7f;
+        --bg-top: #f4f8ff;
+        --bg-bottom: #eef5ec;
+        --card: #ffffff;
+        --line: #cfd9e6;
+        --accent: #0f6d5f;
+        --accent-strong: #0b4f46;
+        --accent-soft: #e4f3ee;
+        --shadow: 0 10px 26px rgba(16, 36, 63, 0.1);
+      }
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         font-size: 13px;
-        margin: 16px;
-        color: #1f1f1f;
+        margin: 0;
+        padding: 16px;
+        color: var(--ink);
+        background: linear-gradient(155deg, var(--bg-top), var(--bg-bottom));
       }
       label {
         display: block;
         margin-bottom: 8px;
       }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+        animation: fade-up 180ms ease-out;
+      }
+      .title {
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .subtitle {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .section-title {
+        margin: 0 0 8px;
+        font-weight: 700;
+        font-size: 13px;
+      }
       .check {
+        margin: 8px 0;
+        padding: 8px;
+        border: 1px solid #e3eaf2;
+        border-radius: 10px;
+        background: #fbfdff;
+      }
+      .check-head {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin: 6px 0;
+      }
+      .check input[type="checkbox"],
+      .check input[type="radio"] {
+        accent-color: var(--accent);
+      }
+      .check-desc {
+        margin: 2px 0 0 24px;
+        color: var(--muted);
+        font-size: 12px;
       }
       select {
         width: 100%;
         padding: 6px;
         box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
       }
       .actions {
         margin-top: 14px;
@@ -30,45 +85,109 @@
         gap: 8px;
         justify-content: flex-end;
       }
+      .divider {
+        border: 0;
+        border-top: 2px solid var(--line);
+        margin: 14px 0 10px;
+      }
+      .ops {
+        margin-top: 12px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: linear-gradient(180deg, #f9fcff, #f4faf8);
+      }
+      .ops-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .ops-line {
+        margin: 2px 0;
+        color: var(--muted);
+      }
       button {
         padding: 6px 12px;
-        border-radius: 4px;
-        border: 1px solid #1a73e8;
-        background: #1a73e8;
+        border-radius: 8px;
+        border: 1px solid var(--accent);
+        background: var(--accent);
         color: #ffffff;
         cursor: pointer;
+        transition: transform 90ms ease-out, background 120ms ease-out;
       }
+      button:hover { background: var(--accent-strong); }
+      button:active { transform: translateY(1px); }
       button.secondary {
         background: #ffffff;
-        color: #1a73e8;
+        color: var(--accent);
       }
       #status {
         margin-top: 10px;
-        color: #5f6368;
+        color: var(--muted);
         min-height: 16px;
+      }
+      @keyframes fade-up {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @media (max-width: 520px) {
+        body { padding: 10px; }
+        .panel { padding: 10px; border-radius: 10px; }
+        .check { padding: 6px; }
       }
     </style>
   </head>
   <body>
-    <form id="scenario-form">
-      <label>Choose what to run</label>
-      <label class="check"><input type="checkbox" name="action" value="journal"> Journal</label>
-      <label class="check"><input type="checkbox" name="action" value="summary"> Summaries</label>
-      <? if (mode === 'custom') { ?>
-      <label for="scenarios" style="margin-top: 10px;">Scenarios (multi-select)</label>
-      <select id="scenarios" multiple size="6" required>
+    <form id="scenario-form" class="panel">
+      <h2 class="title">Run Budget</h2>
+      <p class="subtitle">Select operations and scenario mode, then run.</p>
+      <p class="section-title">Choose what to run</p>
+      <div class="check">
+        <label class="check-head"><input type="checkbox" name="action" value="validate_accounts"> Validate inputs and generate account summaries</label>
+        <div class="check-desc">Normalizes rows, validates sheets, flags invalid/expired rules, then refreshes account monthly flow metrics.</div>
+      </div>
+      <div class="check">
+        <label class="check-head"><input type="checkbox" name="action" value="journal"> Generate journal</label>
+        <div class="check-desc">Builds forecast events and writes transaction-level rows with running balances to <strong>Journal</strong>.</div>
+      </div>
+      <div class="check">
+        <label class="check-head"><input type="checkbox" name="action" value="daily"> Generate daily</label>
+        <div class="check-desc">Creates day-level totals and account snapshots in <strong>Daily</strong> from the current Journal.</div>
+      </div>
+      <div class="check">
+        <label class="check-head"><input type="checkbox" name="action" value="monthly"> Generate monthly</label>
+        <div class="check-desc">Builds monthly min/max/net-change/ending statistics in <strong>Monthly</strong> (uses Daily data).</div>
+      </div>
+      <div class="check">
+        <label class="check-head"><input type="checkbox" name="action" value="dashboard"> Generate dashboard</label>
+        <div class="check-desc">Refreshes dashboard metrics and charts in <strong>Dashboard</strong> (uses Daily and Monthly data).</div>
+      </div>
+      <hr class="divider">
+      <p class="section-title">Scenario selection</p>
+      <div class="check">
+        <label class="check-head"><input type="radio" name="scenario_mode" value="base" checked> Use Base scenario</label>
+      </div>
+      <div class="check">
+        <label class="check-head"><input type="radio" name="scenario_mode" value="custom"> Choose custom scenario(s)</label>
+      </div>
+      <div id="custom-scenario-block" style="display:none;">
+        <label for="scenarios" style="margin-top: 6px;">Custom scenarios (multi-select)</label>
+        <select id="scenarios" multiple size="6">
         <? for (var i = 0; i < scenarios.length; i++) { var item = scenarios[i]; ?>
           <option value="<?= item ?>"><?= item ?></option>
         <? } ?>
-      </select>
-      <div style="margin-top: 6px; color: #5f6368; font-size: 12px;">
-        Hold Ctrl/Cmd to select multiple scenarios.
+        </select>
+        <div style="margin-top: 6px; color: #5f6368; font-size: 12px;">
+          Hold Ctrl/Cmd to select multiple scenarios.
+        </div>
       </div>
-      <? } else { ?>
-      <div style="margin-top: 8px; color: #5f6368; font-size: 12px;">
-        Main scenario is fixed to <strong><?= defaultScenario ?></strong>.
+      <div class="ops">
+        <div class="ops-title">Run Operations</div>
+        <div class="ops-line">1. Validate inputs and generate account summaries</div>
+        <div class="ops-line">2. Generate journal</div>
+        <div class="ops-line">3. Generate daily</div>
+        <div class="ops-line">4. Generate monthly</div>
+        <div class="ops-line">5. Generate dashboard</div>
       </div>
-      <? } ?>
       <div class="actions">
         <button type="submit">Run</button>
         <button type="button" class="secondary" onclick="google.script.host.close()">Cancel</button>
@@ -79,7 +198,22 @@
       (function () {
         var form = document.getElementById('scenario-form');
         var statusEl = document.getElementById('status');
-        var mode = '<?= mode ?>';
+        var customBlock = document.getElementById('custom-scenario-block');
+        var modeInputs = form.querySelectorAll('input[name="scenario_mode"]');
+
+        function selectedMode_() {
+          var checked = form.querySelector('input[name="scenario_mode"]:checked');
+          return checked ? checked.value : 'base';
+        }
+
+        function toggleScenarioBlock_() {
+          customBlock.style.display = selectedMode_() === 'custom' ? '' : 'none';
+        }
+
+        Array.prototype.forEach.call(modeInputs, function (input) {
+          input.addEventListener('change', toggleScenarioBlock_);
+        });
+        toggleScenarioBlock_();
 
         form.addEventListener('submit', function (event) {
           event.preventDefault();
@@ -91,7 +225,8 @@
             return;
           }
           var scenarios = [];
-          if (mode === 'custom') {
+          var scenarioMode = selectedMode_();
+          if (scenarioMode === 'custom') {
             scenarios = Array.prototype.slice
               .call(document.getElementById('scenarios').selectedOptions)
               .map(function (option) { return option.value; });
@@ -100,7 +235,7 @@
               return;
             }
           }
-          google.script.run.runScenarioSelections(mode, actions, scenarios);
+          google.script.run.runBudgetSelections(actions, scenarioMode, scenarios);
           google.script.host.close();
         });
       })();

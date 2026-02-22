@@ -4,10 +4,8 @@ function onOpen() {
 
   ui
     .createMenu('Budget Forecast')
-    .addItem('Run Main Scenario...', 'showMainScenarioRunDialog')
-    .addItem('Run Custom Scenario(s)...', 'showCustomScenarioRunDialog')
+    .addItem('Run Budget...', 'showRunBudgetDialog')
     .addSeparator()
-    .addItem('Summarise Accounts', 'summariseAccounts')
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
     .addToUi();
@@ -27,16 +25,7 @@ function runJournal() {
   }
 }
 
-function showMainScenarioRunDialog() {
-  showScenarioRunDialog_('main');
-}
-
-function showCustomScenarioRunDialog() {
-  showScenarioRunDialog_('custom');
-}
-
-function showScenarioRunDialog_(mode) {
-  var dialogMode = mode === 'custom' ? 'custom' : 'main';
+function showRunBudgetDialog() {
   var template = HtmlService.createTemplateFromFile('ScenarioRunDialog');
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
@@ -50,14 +39,13 @@ function showScenarioRunDialog_(mode) {
   }
   template.scenarios = available;
   template.defaultScenario = Config.SCENARIOS.DEFAULT;
-  template.mode = dialogMode;
-  template.title = dialogMode === 'custom' ? 'Run Custom Scenario(s)' : 'Run Main Scenario';
-  var html = template.evaluate().setWidth(420).setHeight(340);
-  SpreadsheetApp.getUi().showModalDialog(html, template.title);
+  template.title = 'Run Budget';
+  var html = template.evaluate().setWidth(480).setHeight(560);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Run Budget');
 }
 
-function runScenarioSelections(mode, actions, scenarioIds) {
-  var dialogMode = mode === 'custom' ? 'custom' : 'main';
+function runBudgetSelections(actions, scenarioMode, scenarioIds) {
+  var mode = scenarioMode === 'custom' ? 'custom' : 'base';
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
       return normalizeScenario_(value);
@@ -75,12 +63,18 @@ function runScenarioSelections(mode, actions, scenarioIds) {
     throw new Error('Select at least one action.');
   }
   selectedActions.forEach(function (actionType) {
-    if (actionType !== 'journal' && actionType !== 'summary') {
+    if (
+      actionType !== 'validate_accounts' &&
+      actionType !== 'journal' &&
+      actionType !== 'daily' &&
+      actionType !== 'monthly' &&
+      actionType !== 'dashboard'
+    ) {
       throw new Error('Unknown action type.');
     }
   });
 
-  var selectedScenarios = dialogMode === 'main'
+  var selectedScenarios = mode === 'base'
     ? [Config.SCENARIOS.DEFAULT]
     : Array.isArray(scenarioIds)
       ? scenarioIds.map(function (value) { return normalizeScenario_(value); })
@@ -99,6 +93,12 @@ function runScenarioSelections(mode, actions, scenarioIds) {
 
   var executed = [];
   selectedScenarios.forEach(function (scenarioId) {
+    var daily = null;
+    var monthly = null;
+
+    if (selectedActions.indexOf('validate_accounts') !== -1) {
+      runValidationAndAccountSummaries_(scenarioId);
+    }
     if (selectedActions.indexOf('journal') !== -1) {
       if (Engine && Engine.runJournalForScenario) {
         Engine.runJournalForScenario(scenarioId);
@@ -106,16 +106,71 @@ function runScenarioSelections(mode, actions, scenarioIds) {
         runJournal();
       }
     }
-    if (selectedActions.indexOf('summary') !== -1) {
-      runSummaryForScenario(scenarioId);
+    if (selectedActions.indexOf('daily') !== -1) {
+      daily = buildDailySummary_(scenarioId);
+      writeDailySummary_(daily);
+    }
+    if (selectedActions.indexOf('monthly') !== -1) {
+      if (!daily) {
+        daily = buildDailySummary_(scenarioId);
+      }
+      monthly = buildMonthlySummary_(daily);
+      writeMonthlySummary_(monthly);
+    }
+    if (selectedActions.indexOf('dashboard') !== -1) {
+      if (!daily) {
+        daily = buildDailySummary_(scenarioId);
+      }
+      if (!monthly) {
+        monthly = buildMonthlySummary_(daily);
+      }
+      writeDashboard_(buildDashboardData_(daily, monthly, scenarioId));
     }
     executed.push(scenarioId);
   });
 
   var actionLabel = selectedActions
-    .map(function (value) { return value === 'summary' ? 'Summaries' : 'Journal'; })
+    .map(function (value) {
+      if (value === 'validate_accounts') {
+        return 'Validate + Account Summaries';
+      }
+      if (value === 'journal') {
+        return 'Journal';
+      }
+      if (value === 'daily') {
+        return 'Daily';
+      }
+      if (value === 'monthly') {
+        return 'Monthly';
+      }
+      if (value === 'dashboard') {
+        return 'Dashboard';
+      }
+      return value;
+    })
     .join(' + ');
   return actionLabel + ' complete for: ' + executed.join(', ') + '.';
+}
+
+function runScenarioSelections(mode, actions, scenarioIds) {
+  return runBudgetSelections(actions, mode === 'custom' ? 'custom' : 'base', scenarioIds);
+}
+
+function runValidationAndAccountSummaries_(scenarioId) {
+  startRunProgress_('Validate + Accounts (' + normalizeScenario_(scenarioId) + ')', 6);
+  try {
+    toastStep_('Normalizing and validating input rows...');
+    resetRunState_();
+    preprocessInputSheets_();
+    toastStep_('Refreshing account summary values...');
+    refreshAccountSummaries_();
+    recordLastRunMetadata_('Validate + Account Summaries', scenarioId, 'Success');
+  } catch (err) {
+    recordLastRunMetadata_('Validate + Account Summaries', scenarioId, 'Failed');
+    throw err;
+  } finally {
+    endRunProgress_();
+  }
 }
 
 function summariseAccounts() {

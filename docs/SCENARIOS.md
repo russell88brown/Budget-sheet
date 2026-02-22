@@ -34,12 +34,16 @@ Scenario-capable input sheets:
 - Scenario runs filter inputs before event generation.
 - Journal output includes `Scenario` to preserve traceability in exports and summaries.
 - Scenario buttons in menu:
-  - `Run Main Scenario...`:
-    - popup with action checkboxes (`Journal`, `Summaries`)
-    - runs selected actions against `Base`
-  - `Run Custom Scenario(s)...`:
-    - popup with action checkboxes (`Journal`, `Summaries`)
-    - multi-select scenario list from `ScenarioList`
+  - `Run Budget...`:
+    - popup with operation checkboxes:
+      - `Validate inputs and generate account summaries`
+      - `Generate journal`
+      - `Generate daily`
+      - `Generate monthly`
+      - `Generate dashboard`
+    - scenario mode radios:
+      - `Use Base scenario` (default)
+      - `Choose custom scenario(s)` with multi-select list from `ScenarioList`
 - Setup now exposes run metadata fields in `Settings`:
   - `Last Run Mode` (`B5`)
   - `Last Run Scenario` (`B6`)
