@@ -6,6 +6,7 @@ function runDeterministicFixtureTestsPhase2_All() {
   results.push(runDeterministicFixtureTestsPhase2_FixtureC());
   results.push(runDeterministicFixtureTestsPhase2_FixtureD());
   results.push(runDeterministicFixtureTestsPhase2_FixtureE());
+  results.push(runDeterministicFixtureTestsPhase2_FixtureF());
   return results;
 }
 
@@ -231,6 +232,31 @@ function runDeterministicFixtureTestsPhase2_FixtureE() {
   });
   assertFixtureEqual_('Fixture E auto cover alert', true, hasAutoCover);
   return 'Fixture E passed';
+}
+
+function runDeterministicFixtureTestsPhase2_FixtureF() {
+  var rows = [
+    [null, null, null, null, null, -120, 'EXP:RENT', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, -25, 'EXP:RENT', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, -60, 'EXP:GROCERIES', 'NEGATIVE_CASH | AUTO_DEFICIT_COVER'],
+    [null, null, null, null, null, -40, '', 'NEGATIVE_CASH'],
+    [null, null, null, null, null, 150, 'INC:SALARY', ''],
+  ];
+  var top = summarizeNegativeCashTopSourcesFromRows_(
+    rows,
+    7, // Alerts
+    5, // Amount
+    6 // Source Rule ID
+  );
+  assertFixtureEqual_('Fixture F top count', 3, top.length);
+  assertFixtureEqual_('Fixture F top #1 id', 'EXP:RENT', top[0][0]);
+  assertFixtureEqual_('Fixture F top #1 amount', 145, top[0][1]);
+  assertFixtureEqual_('Fixture F top #1 events', 2, top[0][2]);
+  assertFixtureEqual_('Fixture F top #2 id', 'EXP:GROCERIES', top[1][0]);
+  assertFixtureEqual_('Fixture F top #2 amount', 60, top[1][1]);
+  assertFixtureEqual_('Fixture F top #3 id', '(Unattributed)', top[2][0]);
+  assertFixtureEqual_('Fixture F top #3 amount', 40, top[2][1]);
+  return 'Fixture F passed';
 }
 
 function fixtureAnchorDate_() {

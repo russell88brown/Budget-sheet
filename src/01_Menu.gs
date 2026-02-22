@@ -15,6 +15,7 @@ function onOpen() {
         .addItem('Fixture C', 'runDeterministicFixtureTestsPhase2_FixtureC')
         .addItem('Fixture D', 'runDeterministicFixtureTestsPhase2_FixtureD')
         .addItem('Fixture E', 'runDeterministicFixtureTestsPhase2_FixtureE')
+        .addItem('Fixture F', 'runDeterministicFixtureTestsPhase2_FixtureF')
     )
     .addSeparator()
     .addItem('Export', 'showExportDialog')

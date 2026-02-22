@@ -218,6 +218,7 @@ Script editor runners (automated):
 - `runDeterministicFixtureTestsPhase2_FixtureC`
 - `runDeterministicFixtureTestsPhase2_FixtureD`
 - `runDeterministicFixtureTestsPhase2_FixtureE`
+- `runDeterministicFixtureTestsPhase2_FixtureF`
 
 1. Fixture A: single-month baseline
 - Set named range `ForecastStartDate` to `2030-01-01`.
@@ -249,6 +250,13 @@ Script editor runners (automated):
   - Account summary values are identical to prior run.
   - Journal row count for `Base` remains `6`.
   - End balances remain `Operating=1300`, `Card=-300`.
+
+3. Fixture F: negative-cash source aggregation
+- Run `runDeterministicFixtureTestsPhase2_FixtureF`.
+- Expected:
+  - Aggregation returns top contributors for rows containing `NEGATIVE_CASH`.
+  - Source IDs are ordered by absolute amount descending.
+  - Blank `Source Rule ID` rows are grouped under `(Unattributed)`.
 
 ## Setup Data Integration Tests
 

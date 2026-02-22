@@ -356,6 +356,7 @@ Menu/UI entrypoints (`src/01_Menu.gs`):
 - `runDeterministicFixtureTestsPhase2_FixtureC`
 - `runDeterministicFixtureTestsPhase2_FixtureD`
 - `runDeterministicFixtureTestsPhase2_FixtureE`
+- `runDeterministicFixtureTestsPhase2_FixtureF`
 
 Export entrypoints (`src/07_Export.gs`):
 - `showExportDialog`

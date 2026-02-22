@@ -597,15 +597,23 @@ function buildNegativeCashTopSources_(scenarioId) {
   if (context.alertsIndex === -1 || context.amountIndex === -1 || context.sourceRuleIdIndex === -1) {
     return [];
   }
+  return summarizeNegativeCashTopSourcesFromRows_(
+    context.rows,
+    context.alertsIndex,
+    context.amountIndex,
+    context.sourceRuleIdIndex
+  );
+}
 
+function summarizeNegativeCashTopSourcesFromRows_(rows, alertsIndex, amountIndex, sourceRuleIdIndex) {
   var totals = {};
-  context.rows.forEach(function (row) {
-    var alerts = String(row[context.alertsIndex] || '');
+  (rows || []).forEach(function (row) {
+    var alerts = String(row[alertsIndex] || '');
     if (alerts.indexOf('NEGATIVE_CASH') === -1) {
       return;
     }
-    var key = String(row[context.sourceRuleIdIndex] || '').trim() || '(Unattributed)';
-    var amount = Math.abs(toNumber_(row[context.amountIndex]) || 0);
+    var key = String(row[sourceRuleIdIndex] || '').trim() || '(Unattributed)';
+    var amount = Math.abs(toNumber_(row[amountIndex]) || 0);
     if (!totals[key]) {
       totals[key] = { total: 0, events: 0 };
     }
