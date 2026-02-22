@@ -78,8 +78,14 @@ Practical combinations:
 - `H`: scenario catalog (`ScenarioList`)
 - `J:N`: append-only run log (`Run At`, `Mode`, `Scenario`, `Status`, `Notes`)
 
+## Users vs Administrators
+
+- End users: focus on menu flows in the sheet (`Run Budget...`, `Setup actions...`, `Export`) and scenario setup in `docs/SCENARIOS.md`.
+- Administrators/maintainers: start with `docs/SOURCE_STRUCTURE.md` for code layout, then use `docs/TECHNICAL.md` for runtime behavior details.
+
 ## Documentation Map (Deeper Detail)
 
+- `docs/SOURCE_STRUCTURE.md`: source layout and ownership map
 - `docs/SCENARIOS.md`: scenario setup/runtime behavior
 - `docs/TEST_CASES.md`: manual regression test cases
 - `docs/TECHNICAL.md`: full technical reference
