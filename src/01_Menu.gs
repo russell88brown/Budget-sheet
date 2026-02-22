@@ -6,6 +6,17 @@ function onOpen() {
     .createMenu('Budget Forecast')
     .addItem('Run Budget...', 'showRunBudgetDialog')
     .addSeparator()
+    .addSubMenu(
+      ui
+        .createMenu('Deterministic Fixture Tests (Phase 2)')
+        .addItem('Run All', 'runDeterministicFixtureTestsPhase2_All')
+        .addItem('Fixture A', 'runDeterministicFixtureTestsPhase2_FixtureA')
+        .addItem('Fixture B', 'runDeterministicFixtureTestsPhase2_FixtureB')
+        .addItem('Fixture C', 'runDeterministicFixtureTestsPhase2_FixtureC')
+        .addItem('Fixture D', 'runDeterministicFixtureTestsPhase2_FixtureD')
+        .addItem('Fixture E', 'runDeterministicFixtureTestsPhase2_FixtureE')
+    )
+    .addSeparator()
     .addItem('Export', 'showExportDialog')
     .addItem('Setup actions...', 'showSetupDialog')
     .addToUi();

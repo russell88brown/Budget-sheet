@@ -52,7 +52,7 @@ function runJournalPipeline_(options) {
   var scenarioModel = options.scenarioModel || null;
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
-  var totalSteps = preprocessInputs ? 10 : 7;
+  var totalSteps = preprocessInputs ? 9 : 6;
   var preprocessReport = null;
   resetForecastWindowCache_();
   getForecastWindow_();
@@ -73,11 +73,7 @@ function runJournalPipeline_(options) {
     var accounts = scenarioModel.accounts || [];
     assertUniqueScenarioAccountNames_(scenarioModel.scenarioId, accounts);
     var accountTypes = buildAccountTypeMap_(accounts);
-    var incomeRules = scenarioModel.incomeRules || [];
-    var transferRules = scenarioModel.transferRules || [];
-    var expenseRules = scenarioModel.expenseRules || [];
     var policies = scenarioModel.policies || [];
-    var goals = scenarioModel.goals || [];
     var riskSettings = scenarioModel.riskSettings || [];
 
     if (refreshSummaries) {
@@ -85,34 +81,16 @@ function runJournalPipeline_(options) {
     }
 
     toastStep_('Building events...');
-    var events = Events.buildIncomeEvents(incomeRules)
-      .concat(Events.buildTransferEvents(transferRules))
-      .concat(Events.buildExpenseEvents(expenseRules))
-      .concat(Events.buildInterestEvents(accounts));
-
-    toastStep_('Sorting events by date...');
-    events.sort(function (a, b) {
-      var dateDiff = normalizeDate_(a.date).getTime() - normalizeDate_(b.date).getTime();
-      if (dateDiff !== 0) {
-        return dateDiff;
-      }
-      var priorityDiff = eventSortPriority_(a) - eventSortPriority_(b);
-      if (priorityDiff !== 0) {
-        return priorityDiff;
-      }
-      var nameA = a.name || '';
-      var nameB = b.name || '';
-      if (nameA < nameB) {
-        return -1;
-      }
-      if (nameA > nameB) {
-        return 1;
-      }
-      return 0;
-    });
+    var events = CoreCompileRules.buildSortedEventsForScenarioModel(scenarioModel);
 
     toastStep_('Building journal...');
-    var journalData = buildJournalRows_(accounts, events, policies, riskSettings, scenarioId);
+    var journalData = CoreApplyEvents.buildJournalRows({
+      accounts: accounts,
+      events: events,
+      policies: policies,
+      riskSettings: riskSettings,
+      scenarioId: scenarioId,
+    });
     toastStep_('Writing journal...');
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
     recordLastRunMetadata_(modeLabel, scenarioId, 'Success', preprocessReport);
@@ -1985,38 +1963,16 @@ function buildJournalArtifactsForScenarioModel_(scenarioModel) {
   var accounts = model.accounts || [];
   assertUniqueScenarioAccountNames_(activeScenarioId, accounts);
   var accountTypes = buildAccountTypeMap_(accounts);
-  var incomeRules = model.incomeRules || [];
-  var transferRules = model.transferRules || [];
-  var expenseRules = model.expenseRules || [];
   var policies = model.policies || [];
   var riskSettings = model.riskSettings || [];
-
-  var events = Events.buildIncomeEvents(incomeRules)
-    .concat(Events.buildTransferEvents(transferRules))
-    .concat(Events.buildExpenseEvents(expenseRules))
-    .concat(Events.buildInterestEvents(accounts));
-
-  events.sort(function (a, b) {
-    var dateDiff = normalizeDate_(a.date).getTime() - normalizeDate_(b.date).getTime();
-    if (dateDiff !== 0) {
-      return dateDiff;
-    }
-    var priorityDiff = eventSortPriority_(a) - eventSortPriority_(b);
-    if (priorityDiff !== 0) {
-      return priorityDiff;
-    }
-    var nameA = a.name || '';
-    var nameB = b.name || '';
-    if (nameA < nameB) {
-      return -1;
-    }
-    if (nameA > nameB) {
-      return 1;
-    }
-    return 0;
+  var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
+  var journalData = CoreApplyEvents.buildJournalRows({
+    accounts: accounts,
+    events: events,
+    policies: policies,
+    riskSettings: riskSettings,
+    scenarioId: activeScenarioId,
   });
-
-  var journalData = buildJournalRows_(accounts, events, policies, riskSettings, activeScenarioId);
   return {
     rows: journalData.rows || [],
     forecastAccounts: journalData.forecastAccounts || [],
@@ -2099,52 +2055,13 @@ function runJournalForScenarioIds_(scenarioIds) {
 }
 
 function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId) {
-  var balances = buildBalanceMap_(accounts);
-  var forecastable = buildForecastableMap_(accounts);
-  var accountTypes = buildAccountTypeMap_(accounts);
-  var policyRules = policies || [];
-  var riskContext = resolveRiskContext_(riskSettings || []);
-  var forecastAccounts = accounts
-    .filter(function (account) {
-      return forecastable[account.name];
-    })
-    .map(function (account) {
-      return account.name;
-    });
-  var rows = [];
-  var openingDate = events.length ? normalizeDate_(events[0].date) : normalizeDate_(new Date());
-
-  rows = rows.concat(buildOpeningRows_(accounts, openingDate, forecastAccounts, balances, scenarioId));
-
-  events.forEach(function (event) {
-    rows = rows.concat(
-      applyAutoDeficitCoverRowsBeforeEvent_(
-        balances,
-        event,
-        accountTypes,
-        policyRules,
-        riskContext,
-        forecastAccounts,
-        scenarioId
-      )
-    );
-    var snapshots = applyEventWithSnapshots_(balances, event);
-    if (event.skipJournal) {
-      return;
-    }
-    rows = rows.concat(
-      buildJournalEventRows_(
-        event,
-        snapshots.afterFrom,
-        snapshots.afterTo,
-        forecastAccounts,
-        accountTypes,
-        scenarioId
-      )
-    );
+  return CoreApplyEvents.buildJournalRows({
+    accounts: accounts || [],
+    events: events || [],
+    policies: policies || [],
+    riskSettings: riskSettings || [],
+    scenarioId: scenarioId || Config.SCENARIOS.DEFAULT,
   });
-
-  return { rows: rows, forecastAccounts: forecastAccounts };
 }
 
 function buildOpeningRows_(accounts, date, forecastAccounts, balances, scenarioId) {

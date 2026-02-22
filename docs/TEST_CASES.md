@@ -182,9 +182,17 @@ Run this quick sequence after housekeeping or setup changes:
 
 ## Deterministic Fixture Tests (Phase 2)
 
+Script editor runners (automated):
+- `runDeterministicFixtureTestsPhase2_All`
+- `runDeterministicFixtureTestsPhase2_FixtureA`
+- `runDeterministicFixtureTestsPhase2_FixtureB`
+- `runDeterministicFixtureTestsPhase2_FixtureC`
+- `runDeterministicFixtureTestsPhase2_FixtureD`
+- `runDeterministicFixtureTestsPhase2_FixtureE`
+
 1. Fixture A: single-month baseline
-- Set named range `ForecastStartDate` to `2026-01-01`.
-- Set named range `ForecastEndDate` to `2026-01-31`.
+- Set named range `ForecastStartDate` to `2030-01-01`.
+- Set named range `ForecastEndDate` to `2030-01-31`.
 - Clear data rows (keep headers) in `Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`.
 - Add exactly these `Accounts` rows:
   - `Operating | 1000 | Cash | TRUE | Base`
@@ -202,7 +210,7 @@ Run this quick sequence after housekeeping or setup changes:
   - `Operating`: `Money In / Month = 1200`, `Money Out / Month = 900`, `Net Interest / Month = 0`, `Net Change / Month = 300`
   - `Card`: `Money In / Month = 200`, `Money Out / Month = 0`, `Net Interest / Month = 0`, `Net Change / Month = 200`
 - Expected `Journal` values:
-  - `COUNTIFS(Scenario,"Base") = 5` (2 opening + 3 transactions)
+  - `COUNTIFS(Scenario,"Base") = 6` (2 opening + income + expense + 2 transfer rows)
   - last `Operating` balance = `1300`
   - last `Card` balance = `-300`
 
@@ -210,7 +218,7 @@ Run this quick sequence after housekeeping or setup changes:
 - Without changing any input rows, run the same `Run Budget...` operation again.
 - Expected:
   - Account summary values are identical to prior run.
-  - Journal row count for `Base` remains `5`.
+  - Journal row count for `Base` remains `6`.
   - End balances remain `Operating=1300`, `Card=-300`.
 
 ## Setup Data Integration Tests
