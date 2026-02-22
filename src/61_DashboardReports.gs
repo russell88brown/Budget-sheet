@@ -9,60 +9,53 @@ function clearDashboardSheet_(sheet) {
 function getDashboardReportDefinitions_() {
   return [
     {
-      id: 'trendCharts',
-      title: 'Trend Charts',
+      id: 'trendPivot',
+      title: 'Trend Pivot (Monthly Averages)',
       dashboardIndex: 10,
-      anchorRow: 3,
-      anchorCol: 1,
+      size: { rows: 14, cols: 4 },
       build: {
         sourceSheet: Config.SHEETS.DAILY,
-        reportType: 'chart-group',
-        chartTitles: ['Cash vs Net Position', 'Total Debt'],
+        reportType: 'pivot-table',
       },
     },
     {
       id: 'financialHealthcheck',
       title: 'Financial Healthcheck',
       dashboardIndex: 20,
-      anchorRow: 3,
-      anchorCol: 8,
+      size: { rows: 16, cols: 2 },
       build: {
         sourceData: 'dashboard.metrics',
-        reportType: '2-column table',
+        reportType: 'pivot-table',
       },
     },
     {
       id: 'scenarioDelta',
       title: 'Scenario Delta',
       dashboardIndex: 30,
-      anchorRow: 3,
-      anchorCol: 11,
+      size: { rows: 8, cols: 2 },
       build: {
         sourceData: 'dashboard.comparison',
-        reportType: '2-column table',
+        reportType: 'pivot-table',
       },
     },
     {
       id: 'negativeCashSources',
       title: 'Negative Cash Top Sources',
       dashboardIndex: 40,
-      anchorRow: 3,
-      anchorCol: 14,
+      size: { rows: 8, cols: 3 },
       build: {
         sourceData: 'dashboard.explainability',
-        reportType: '3-column table',
-        columns: ['Source Rule ID', 'Abs Amount', 'Events'],
+        reportType: 'pivot-table',
       },
     },
     {
-      id: 'accountPositions',
-      title: 'Account Positions',
+      id: 'accountPositionsPivot',
+      title: 'Account Positions Pivot',
       dashboardIndex: 50,
-      anchorRow: 35,
-      anchorCol: 1,
+      size: { rows: 14, cols: 5 },
       build: {
         sourceData: 'dashboard.accountStats',
-        reportType: 'account stat blocks',
+        reportType: 'pivot-table',
       },
     },
   ];
@@ -71,8 +64,16 @@ function getDashboardReportDefinitions_() {
 function getDashboardIndexLayout_() {
   return {
     startRow: 1,
-    startCol: 20,
-    headers: ['Index', 'Report', 'Anchor', 'Status'],
+    startCol: 1,
+    headers: ['Index', 'Report', 'Size', 'Anchor', 'Status'],
+  };
+}
+
+function getDashboardContentLayout_() {
+  return {
+    startRow: 5,
+    startCol: 1,
+    gapRows: 2,
   };
 }
 
@@ -81,27 +82,27 @@ function buildDashboardReports_(spreadsheet, dashboard) {
   validateDashboardReportDefinitions_(definitions);
 
   var dailySheet = spreadsheet.getSheetByName(Config.SHEETS.DAILY);
-  var dailyContext = buildDashboardTrendChartData_(dailySheet, dashboard);
-  var reports = buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyContext);
+  var dailyPivot = buildDashboardTrendPivotData_(dailySheet, dashboard);
+  var reports = buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyPivot);
 
+  assignDashboardReportAnchors_(reports);
   validateDashboardReportLayout_(reports);
   return reports;
 }
 
-function buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyContext) {
+function buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyPivot) {
   return (definitions || [])
     .slice()
     .sort(function (left, right) {
       return left.dashboardIndex - right.dashboardIndex;
     })
     .map(function (definition) {
-      var payload = buildDashboardReportPayload_(definition, dashboard, dailyContext);
+      var payload = buildDashboardReportPayload_(definition, dashboard, dailyPivot);
       return {
         id: definition.id,
         title: definition.title,
         dashboardIndex: definition.dashboardIndex,
-        anchorRow: definition.anchorRow,
-        anchorCol: definition.anchorCol,
+        size: definition.size,
         build: definition.build,
         enabled: payload.enabled,
         data: payload.data,
@@ -110,116 +111,66 @@ function buildDashboardReportsFromDefinitions_(definitions, dashboard, dailyCont
 }
 
 function validateDashboardReportDefinitions_(definitions) {
-  var seen = {};
+  var seenIndexes = {};
   (definitions || []).forEach(function (definition) {
     var index = definition.dashboardIndex;
-    if (seen[index]) {
+    if (seenIndexes[index]) {
       throw new Error(
         'Dashboard report definitions are invalid: duplicate dashboardIndex ' +
           index +
           ' (' +
-          seen[index] +
+          seenIndexes[index] +
           ', ' +
           definition.id +
           ').'
       );
     }
-    seen[index] = definition.id;
-  });
-}
-
-function validateDashboardReportLayout_(reports) {
-  var enabledReports = (reports || []).filter(function (report) {
-    return report.enabled;
-  });
-  for (var i = 0; i < enabledReports.length; i += 1) {
-    var left = enabledReports[i];
-    var leftBounds = getDashboardReportBounds_(left);
-    for (var j = i + 1; j < enabledReports.length; j += 1) {
-      var right = enabledReports[j];
-      var rightBounds = getDashboardReportBounds_(right);
-      if (doDashboardBoundsOverlap_(leftBounds, rightBounds)) {
-        throw new Error(
-          'Dashboard report layout overlap detected between "' +
-            left.id +
-            '" and "' +
-            right.id +
-            '".'
-        );
-      }
-    }
-  }
-
-  var indexBounds = getDashboardReportIndexBounds_(reports);
-  enabledReports.forEach(function (report) {
-    var reportBounds = getDashboardReportBounds_(report);
-    if (doDashboardBoundsOverlap_(indexBounds, reportBounds)) {
+    seenIndexes[index] = definition.id;
+    var size = definition.size || {};
+    if (!(size.rows > 0) || !(size.cols > 0)) {
       throw new Error(
-        'Dashboard report index overlaps report "' +
-          report.id +
-          '". Move the index or report anchors.'
+        'Dashboard report definitions are invalid: report "' +
+          definition.id +
+          '" requires positive size.rows and size.cols.'
       );
     }
   });
 }
 
-function getDashboardReportBounds_(report) {
-  if (report.id === 'trendCharts') {
-    // Two charts are anchored at row N and N+17 with fixed pixel heights.
-    // Keep a conservative but realistic row span to avoid false overlap errors.
-    return {
-      top: report.anchorRow,
-      left: report.anchorCol,
-      bottom: report.anchorRow + 30,
-      right: report.anchorCol + 6,
-    };
-  }
-  if (report.id === 'financialHealthcheck' || report.id === 'scenarioDelta') {
-    var tableRows = (report.data || []).length;
-    return {
-      top: report.anchorRow - 1,
-      left: report.anchorCol,
-      bottom: report.anchorRow + tableRows - 1,
-      right: report.anchorCol + 1,
-    };
-  }
-  if (report.id === 'negativeCashSources') {
-    var explainRows = (report.data || []).length;
-    return {
-      top: report.anchorRow - 1,
-      left: report.anchorCol,
-      bottom: report.anchorRow + explainRows,
-      right: report.anchorCol + 2,
-    };
-  }
-  if (report.id === 'accountPositions') {
-    var accountCount = (report.data || []).length;
-    var totalWidth = accountCount * 2 + Math.max(0, accountCount - 1);
-    return {
-      top: report.anchorRow - 1,
-      left: report.anchorCol,
-      bottom: report.anchorRow + 4,
-      right: report.anchorCol + Math.max(1, totalWidth) - 1,
-    };
-  }
-  return {
-    top: report.anchorRow,
-    left: report.anchorCol,
-    bottom: report.anchorRow,
-    right: report.anchorCol,
-  };
+function assignDashboardReportAnchors_(reports) {
+  var layout = getDashboardContentLayout_();
+  var nextRow = layout.startRow;
+  (reports || []).forEach(function (report) {
+    report.anchorRow = nextRow;
+    report.anchorCol = layout.startCol;
+    nextRow += report.size.rows + layout.gapRows;
+  });
 }
 
-function getDashboardReportIndexBounds_(reports) {
-  var layout = getDashboardIndexLayout_();
-  var rowCount = (reports || []).length + 1;
-  var colCount = layout.headers.length;
-  return {
-    top: layout.startRow,
-    left: layout.startCol,
-    bottom: layout.startRow + rowCount - 1,
-    right: layout.startCol + colCount - 1,
-  };
+function validateDashboardReportLayout_(reports) {
+  var bounds = (reports || []).map(function (report) {
+    return {
+      id: report.id,
+      top: report.anchorRow,
+      left: report.anchorCol,
+      bottom: report.anchorRow + report.size.rows - 1,
+      right: report.anchorCol + report.size.cols - 1,
+    };
+  });
+
+  for (var i = 0; i < bounds.length; i += 1) {
+    for (var j = i + 1; j < bounds.length; j += 1) {
+      if (doDashboardBoundsOverlap_(bounds[i], bounds[j])) {
+        throw new Error(
+          'Dashboard report layout overlap detected between "' +
+            bounds[i].id +
+            '" and "' +
+            bounds[j].id +
+            '".'
+        );
+      }
+    }
+  }
 }
 
 function doDashboardBoundsOverlap_(left, right) {
@@ -231,192 +182,178 @@ function doDashboardBoundsOverlap_(left, right) {
   );
 }
 
-function buildDashboardReportPayload_(definition, dashboard, dailyContext) {
-  if (definition.id === 'trendCharts') {
+function buildDashboardReportPayload_(definition, dashboard, dailyPivot) {
+  if (definition.id === 'trendPivot') {
     return {
-      enabled: dailyContext !== null,
-      data: dailyContext,
+      enabled: !!(dailyPivot && dailyPivot.rows.length),
+      data: dailyPivot || { headers: [], rows: [] },
     };
   }
   if (definition.id === 'financialHealthcheck') {
     return {
       enabled: !!(dashboard.metrics && dashboard.metrics.length),
-      data: dashboard.metrics || [],
+      data: {
+        headers: ['Metric', 'Value'],
+        rows: dashboard.metrics || [],
+      },
     };
   }
   if (definition.id === 'scenarioDelta') {
     return {
       enabled: !!(dashboard.comparison && dashboard.comparison.length),
-      data: dashboard.comparison || [],
+      data: {
+        headers: ['Metric', 'Value'],
+        rows: dashboard.comparison || [],
+      },
     };
   }
   if (definition.id === 'negativeCashSources') {
     return {
       enabled: !!(dashboard.explainability && dashboard.explainability.length),
-      data: dashboard.explainability || [],
+      data: {
+        headers: ['Source Rule ID', 'Abs Amount', 'Events'],
+        rows: dashboard.explainability || [],
+      },
     };
   }
-  if (definition.id === 'accountPositions') {
+  if (definition.id === 'accountPositionsPivot') {
+    var accountRows = (dashboard.accountStats || []).map(function (account) {
+      return [account.name, account.end, account.min, account.max, account.netChange];
+    });
     return {
-      enabled: !!(dashboard.accountStats && dashboard.accountStats.length),
-      data: dashboard.accountStats || [],
+      enabled: !!accountRows.length,
+      data: {
+        headers: ['Account', 'Ending', 'Min', 'Max', 'Net Change'],
+        rows: accountRows,
+      },
     };
   }
-  return { enabled: false, data: null };
+  return { enabled: false, data: { headers: [], rows: [] } };
 }
 
-function buildDashboardTrendChartData_(dailySheet, dashboard) {
+function buildDashboardTrendPivotData_(dailySheet, dashboard) {
   if (!dailySheet || !dashboard.accountNames || !dashboard.accountNames.length) {
-    return null;
+    return { headers: [], rows: [] };
   }
   var lastRow = dailySheet.getLastRow();
   if (lastRow <= 1) {
-    return null;
+    return { headers: [], rows: [] };
   }
+
+  var values = dailySheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var buckets = {};
+  values.forEach(function (row) {
+    var date = row[0];
+    if (!date) {
+      return;
+    }
+    var monthKey = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM');
+    if (!buckets[monthKey]) {
+      buckets[monthKey] = { cash: 0, debt: 0, net: 0, count: 0 };
+    }
+    buckets[monthKey].cash += toNumberOrZero_(row[1]);
+    buckets[monthKey].debt += toNumberOrZero_(row[2]);
+    buckets[monthKey].net += toNumberOrZero_(row[3]);
+    buckets[monthKey].count += 1;
+  });
+
+  var rows = Object.keys(buckets)
+    .sort()
+    .map(function (monthKey) {
+      var bucket = buckets[monthKey];
+      return [
+        monthKey,
+        roundUpCents_(bucket.cash / bucket.count),
+        roundUpCents_(bucket.debt / bucket.count),
+        roundUpCents_(bucket.net / bucket.count),
+      ];
+    });
+
   return {
-    dateRange: dailySheet.getRange(1, 1, lastRow, 1),
-    cashRange: dailySheet.getRange(1, 2, lastRow, 1),
-    debtRange: dailySheet.getRange(1, 3, lastRow, 1),
-    netRange: dailySheet.getRange(1, 4, lastRow, 1),
+    headers: ['Month', 'Avg Cash', 'Avg Debt', 'Avg Net'],
+    rows: rows,
   };
 }
 
 function renderDashboardReportIndex_(sheet, reports) {
   var layout = getDashboardIndexLayout_();
-  var headers = layout.headers;
-  var rows = reports.map(function (report) {
-    return [
-      report.dashboardIndex,
-      report.title,
-      dashboardColumnToA1Letter_(report.anchorCol) + report.anchorRow,
-      report.enabled ? 'Built' : 'Skipped',
-    ];
-  });
-  var values = [headers].concat(rows);
-  var range = sheet.getRange(layout.startRow, layout.startCol, values.length, headers.length);
+  var values = [layout.headers].concat(
+    (reports || []).map(function (report) {
+      return [
+        report.dashboardIndex,
+        report.title,
+        report.size.rows + 'x' + report.size.cols,
+        dashboardColumnToA1Letter_(report.anchorCol) + report.anchorRow,
+        report.enabled ? 'Built' : 'Skipped',
+      ];
+    })
+  );
+  var range = sheet.getRange(layout.startRow, layout.startCol, values.length, layout.headers.length);
   range.setValues(values);
   range.setBorder(true, true, true, true, true, true, '#cccccc', SpreadsheetApp.BorderStyle.SOLID);
   sheet
-    .getRange(layout.startRow, layout.startCol, 1, headers.length)
+    .getRange(layout.startRow, layout.startCol, 1, layout.headers.length)
     .setFontWeight('bold')
     .setBackground('#f2f2f2');
-  sheet.getRange(layout.startRow, layout.startCol + 1, values.length, 1).setWrap(true);
 }
 
 function renderDashboardReport_(sheet, report) {
-  if (report.id === 'trendCharts') {
-    renderDashboardTrendCharts_(sheet, report);
-    return;
-  }
-  if (report.id === 'financialHealthcheck' || report.id === 'scenarioDelta') {
-    renderDashboardTwoColumnTable_(sheet, report, report.title);
-    return;
-  }
-  if (report.id === 'negativeCashSources') {
-    renderDashboardExplainabilityTable_(sheet, report);
-    return;
-  }
-  if (report.id === 'accountPositions') {
-    renderDashboardAccountPositions_(sheet, report);
-  }
+  renderDashboardPivotBlock_(sheet, report);
 }
 
-function renderDashboardTrendCharts_(sheet, report) {
-  var chartData = report.data;
-  if (!chartData) {
-    return;
-  }
-  var cashChart = sheet
-    .newChart()
-    .setChartType(Charts.ChartType.LINE)
-    .addRange(chartData.dateRange)
-    .addRange(chartData.cashRange)
-    .addRange(chartData.netRange)
-    .setOption('title', 'Cash vs Net Position')
-    .setOption('legend', { position: 'bottom' })
-    .setOption('width', 520)
-    .setOption('height', 260)
-    .setPosition(report.anchorRow, report.anchorCol, 0, 0)
-    .build();
-  sheet.insertChart(cashChart);
+function renderDashboardPivotBlock_(sheet, report) {
+  var bounds = sheet.getRange(report.anchorRow, report.anchorCol, report.size.rows, report.size.cols);
+  bounds.clearContent();
+  bounds.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
 
-  var debtChart = sheet
-    .newChart()
-    .setChartType(Charts.ChartType.LINE)
-    .addRange(chartData.dateRange)
-    .addRange(chartData.debtRange)
-    .setOption('title', 'Total Debt')
-    .setOption('legend', { position: 'bottom' })
-    .setOption('width', 520)
-    .setOption('height', 220)
-    .setPosition(report.anchorRow + 17, report.anchorCol, 0, 0)
-    .build();
-  sheet.insertChart(debtChart);
-}
-
-function renderDashboardTwoColumnTable_(sheet, report, title) {
-  var rows = report.data || [];
-  if (!rows.length) {
-    return;
-  }
-  var startRow = report.anchorRow;
-  var startCol = report.anchorCol;
   sheet
-    .getRange(startRow - 1, startCol, 1, 2)
-    .setValues([[title, '']])
-    .setFontWeight('bold');
-  sheet.getRange(startRow, startCol, rows.length, 2).setValues(rows);
-  var blockRange = sheet.getRange(startRow - 1, startCol, rows.length + 1, 2);
-  blockRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
-  blockRange.getCell(1, 1).setBackground('#f2f2f2');
-}
+    .getRange(report.anchorRow, report.anchorCol, 1, report.size.cols)
+    .merge()
+    .setValue(report.title)
+    .setFontWeight('bold')
+    .setBackground('#f2f2f2')
+    .setHorizontalAlignment('left');
 
-function renderDashboardExplainabilityTable_(sheet, report) {
-  var rows = report.data || [];
-  if (!rows.length) {
+  if (!report.enabled) {
+    sheet.getRange(report.anchorRow + 1, report.anchorCol).setValue('No data for this report.');
     return;
   }
-  var startRow = report.anchorRow;
-  var startCol = report.anchorCol;
-  sheet
-    .getRange(startRow - 1, startCol, 1, 3)
-    .setValues([[report.title, '', '']])
-    .setFontWeight('bold');
-  sheet
-    .getRange(startRow, startCol, 1, 3)
-    .setValues([['Source Rule ID', 'Abs Amount', 'Events']])
-    .setFontWeight('bold');
-  sheet.getRange(startRow + 1, startCol, rows.length, 3).setValues(rows);
-  var blockRange = sheet.getRange(startRow - 1, startCol, rows.length + 2, 3);
-  blockRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
-  blockRange.getCell(1, 1).setBackground('#f2f2f2');
-}
 
-function renderDashboardAccountPositions_(sheet, report) {
-  var accounts = report.data || [];
-  if (!accounts.length) {
+  var headers = (report.data && report.data.headers ? report.data.headers : []).slice(0, report.size.cols);
+  var headerRow = fitRowToWidth_(headers, report.size.cols);
+  sheet
+    .getRange(report.anchorRow + 1, report.anchorCol, 1, report.size.cols)
+    .setValues([headerRow])
+    .setFontWeight('bold')
+    .setBackground('#f7f7f7');
+
+  var dataRows = (report.data && report.data.rows ? report.data.rows : []).slice(0, report.size.rows - 2);
+  if (!dataRows.length) {
+    sheet.getRange(report.anchorRow + 2, report.anchorCol).setValue('No rows');
     return;
   }
-  var accountStartRow = report.anchorRow;
-  var startCol = report.anchorCol;
-  var blockWidth = 2;
-  var gap = 1;
 
-  sheet.getRange(accountStartRow - 1, startCol).setValue(report.title).setFontWeight('bold');
-  accounts.forEach(function (account) {
-    var headerRange = sheet.getRange(accountStartRow, startCol, 1, blockWidth);
-    headerRange.merge().setValue(account.name).setFontWeight('bold').setHorizontalAlignment('center');
-    var rows = [
-      ['Ending', account.end],
-      ['Min', account.min],
-      ['Max', account.max],
-      ['Net Change', account.netChange],
-    ];
-    sheet.getRange(accountStartRow + 1, startCol, rows.length, blockWidth).setValues(rows);
-    var blockRange = sheet.getRange(accountStartRow, startCol, rows.length + 1, blockWidth);
-    blockRange.setBorder(true, true, true, true, true, true, '#cccccc', SpreadsheetApp.BorderStyle.SOLID);
-    startCol += blockWidth + gap;
+  var fittedRows = dataRows.map(function (row) {
+    return fitRowToWidth_(row, report.size.cols);
   });
+  sheet
+    .getRange(report.anchorRow + 2, report.anchorCol, fittedRows.length, report.size.cols)
+    .setValues(fittedRows);
+
+  if (report.size.cols > 1 && fittedRows.length > 0) {
+    sheet
+      .getRange(report.anchorRow + 2, report.anchorCol + 1, fittedRows.length, report.size.cols - 1)
+      .setNumberFormat('0.00');
+  }
+}
+
+function fitRowToWidth_(row, width) {
+  var source = Array.isArray(row) ? row.slice(0, width) : [row];
+  while (source.length < width) {
+    source.push('');
+  }
+  return source;
 }
 
 function dashboardColumnToA1Letter_(column) {
@@ -428,6 +365,11 @@ function dashboardColumnToA1Letter_(column) {
     column = (column - temp - 1) / 26;
   }
   return letter;
+}
+
+function toNumberOrZero_(value) {
+  var num = Number(value);
+  return isNaN(num) ? 0 : num;
 }
 
 function runDashboardReportHarness_() {
@@ -442,7 +384,13 @@ function runDashboardReportHarness_() {
     accountNames: ['Checking'],
   };
 
-  var reports = buildDashboardReportsFromDefinitions_(definitions, dashboard, { mock: true });
+  var mockDailyPivot = {
+    headers: ['Month', 'Avg Cash', 'Avg Debt', 'Avg Net'],
+    rows: [['2026-02', 100, -50, 50]],
+  };
+
+  var reports = buildDashboardReportsFromDefinitions_(definitions, dashboard, mockDailyPivot);
+  assignDashboardReportAnchors_(reports);
   validateDashboardReportLayout_(reports);
 
   var ordered = reports.map(function (report) {
@@ -459,8 +407,8 @@ function runDashboardReportHarness_() {
   reports.forEach(function (report) {
     enabledById[report.id] = report.enabled;
   });
-  if (enabledById.trendCharts !== true) {
-    throw new Error('Dashboard harness failed: trendCharts should be enabled.');
+  if (enabledById.trendPivot !== true) {
+    throw new Error('Dashboard harness failed: trendPivot should be enabled.');
   }
   if (enabledById.financialHealthcheck !== true) {
     throw new Error('Dashboard harness failed: financialHealthcheck should be enabled.');
@@ -471,8 +419,8 @@ function runDashboardReportHarness_() {
   if (enabledById.negativeCashSources !== true) {
     throw new Error('Dashboard harness failed: negativeCashSources should be enabled.');
   }
-  if (enabledById.accountPositions !== true) {
-    throw new Error('Dashboard harness failed: accountPositions should be enabled.');
+  if (enabledById.accountPositionsPivot !== true) {
+    throw new Error('Dashboard harness failed: accountPositionsPivot should be enabled.');
   }
 
   return 'Dashboard report harness passed';
