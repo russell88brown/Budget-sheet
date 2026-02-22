@@ -3,17 +3,22 @@ function runSummary() {
   runSummaryForScenario(Config.SCENARIOS.DEFAULT);
 }
 
+var SUMMARY_RECON_TOLERANCE_ = 0.01;
+
 function runSummaryForScenario(scenarioId) {
   var activeScenarioId = normalizeScenario_(scenarioId);
   startRunProgress_('Summaries (' + activeScenarioId + ')', 7);
   try {
+    assertJournalRowsAvailableForScenarioSet_(activeScenarioId);
     toastStep_('Building daily summary...');
     var daily = buildDailySummary_(activeScenarioId);
+    assertDailyReconcilesWithJournal_(daily, activeScenarioId);
     toastStep_('Writing daily summary...');
     writeDailySummary_(daily);
 
     toastStep_('Building monthly summary...');
     var monthly = buildMonthlySummary_(daily);
+    assertMonthlyReconcilesWithDaily_(monthly, daily);
     toastStep_('Writing monthly summary...');
     writeMonthlySummary_(monthly);
 
@@ -33,7 +38,11 @@ function runSummaryForScenario(scenarioId) {
 }
 
 function buildDailySummary_(scenarioId) {
-  var activeScenarioId = normalizeScenario_(scenarioId);
+  var scenarioIds = Array.isArray(scenarioId) ? scenarioId : [scenarioId];
+  var scenarioLookup = {};
+  scenarioIds.forEach(function (value) {
+    scenarioLookup[normalizeScenario_(value)] = true;
+  });
   var ss = SpreadsheetApp.getActive();
   var journal = ss.getSheetByName(Config.SHEETS.JOURNAL);
   if (!journal) {
@@ -64,7 +73,7 @@ function buildDailySummary_(scenarioId) {
   values.forEach(function (row) {
     if (scenarioIndex !== -1) {
       var rowScenarioId = normalizeScenario_(row[scenarioIndex]);
-      if (rowScenarioId !== activeScenarioId) {
+      if (!scenarioLookup[rowScenarioId]) {
         return;
       }
     }
@@ -83,7 +92,10 @@ function buildDailySummary_(scenarioId) {
     return { headers: [], rows: [], accountNames: accountNames, accountTypes: {} };
   }
 
-  var accountTypes = buildAccountTypeMap_(filterByScenario_(Readers.readAccounts(), activeScenarioId));
+  var accountRows = typeof filterByScenarioSet_ === 'function'
+    ? filterByScenarioSet_(Readers.readAccounts(), scenarioIds)
+    : filterByScenario_(Readers.readAccounts(), scenarioIds[0]);
+  var accountTypes = buildAccountTypeMap_(accountRows);
   var rows = keys.map(function (key) {
     var entry = dayMap[key];
     var cash = 0;
@@ -105,6 +117,196 @@ function buildDailySummary_(scenarioId) {
 
   var headers = ['Date', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames);
   return { headers: headers, rows: rows, accountNames: accountNames, accountTypes: accountTypes };
+}
+
+function normalizeScenarioSet_(scenarioId) {
+  var values = Array.isArray(scenarioId) ? scenarioId : [scenarioId];
+  var normalized = values
+    .map(function (value) { return normalizeScenario_(value); })
+    .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
+  return normalized.length ? normalized : [Config.SCENARIOS.DEFAULT];
+}
+
+function buildJournalContextForScenarioSet_(scenarioId) {
+  var scenarioSet = normalizeScenarioSet_(scenarioId);
+  var lookup = {};
+  scenarioSet.forEach(function (value) {
+    lookup[value] = true;
+  });
+
+  var ss = SpreadsheetApp.getActive();
+  var journal = ss.getSheetByName(Config.SHEETS.JOURNAL);
+  if (!journal) {
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+  }
+  var lastRow = journal.getLastRow();
+  var lastCol = journal.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+  }
+
+  var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
+  var scenarioIndex = headerRow.indexOf('Scenario');
+  var alertsIndex = headerRow.indexOf('Alerts');
+  if (alertsIndex === -1) {
+    return { scenarioSet: scenarioSet, accountNames: [], rows: [] };
+  }
+  var accountNames = headerRow.slice(alertsIndex + 1).filter(function (name) {
+    return name !== '' && name !== null;
+  });
+
+  var rows = journal.getRange(2, 1, lastRow - 1, lastCol).getValues().filter(function (row) {
+    if (scenarioIndex === -1) {
+      return lookup[Config.SCENARIOS.DEFAULT] === true;
+    }
+    return !!lookup[normalizeScenario_(row[scenarioIndex])];
+  });
+  return { scenarioSet: scenarioSet, accountNames: accountNames, rows: rows };
+}
+
+function assertJournalRowsAvailableForScenarioSet_(scenarioId) {
+  var context = buildJournalContextForScenarioSet_(scenarioId);
+  if (context.rows.length) {
+    return context;
+  }
+  throw new Error(
+    'No Journal rows found for scenario selection [' +
+      context.scenarioSet.join(', ') +
+      ']. Run Generate journal first.'
+  );
+}
+
+function valuesWithinTolerance_(left, right, tolerance) {
+  var lhs = typeof left === 'number' ? left : 0;
+  var rhs = typeof right === 'number' ? right : 0;
+  var limit = tolerance === undefined ? SUMMARY_RECON_TOLERANCE_ : tolerance;
+  return Math.abs(lhs - rhs) <= limit;
+}
+
+function assertDailyReconcilesWithJournal_(daily, scenarioId) {
+  var context = assertJournalRowsAvailableForScenarioSet_(scenarioId);
+  if (!daily || !daily.rows || !daily.rows.length) {
+    throw new Error('Daily summary has no rows for selected scenario set.');
+  }
+  if ((daily.accountNames || []).join('|') !== (context.accountNames || []).join('|')) {
+    throw new Error('Daily reconciliation failed: account columns do not match Journal headers.');
+  }
+
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var dayClosings = {};
+  context.rows.forEach(function (row) {
+    var date = row[0];
+    if (!date) {
+      return;
+    }
+    var key = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM-dd');
+    dayClosings[key] = row.slice(7, 7 + context.accountNames.length);
+  });
+
+  daily.rows.forEach(function (row) {
+    var key = Utilities.formatDate(normalizeDate_(row[0]), tz, 'yyyy-MM-dd');
+    var expected = dayClosings[key];
+    if (!expected) {
+      throw new Error('Daily reconciliation failed: missing Journal closing for ' + key + '.');
+    }
+    for (var i = 0; i < context.accountNames.length; i += 1) {
+      var expectedValue = typeof expected[i] === 'number' ? expected[i] : 0;
+      var actualValue = typeof row[4 + i] === 'number' ? row[4 + i] : 0;
+      if (!valuesWithinTolerance_(expectedValue, actualValue)) {
+        throw new Error(
+          'Daily reconciliation failed at ' +
+            key +
+            ' for account "' +
+            context.accountNames[i] +
+            '".'
+        );
+      }
+    }
+  });
+}
+
+function assertMonthlyReconcilesWithDaily_(monthly, daily) {
+  if (!monthly || !monthly.rows || !monthly.rows.length) {
+    throw new Error('Monthly summary has no rows for selected scenario set.');
+  }
+  if (!daily || !daily.rows || !daily.rows.length) {
+    throw new Error('Monthly reconciliation failed: Daily summary has no rows.');
+  }
+
+  var dailyByMonth = {};
+  daily.rows.forEach(function (row) {
+    var date = normalizeDate_(row[0]);
+    var key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    if (!dailyByMonth[key]) {
+      dailyByMonth[key] = [];
+    }
+    dailyByMonth[key].push(row);
+  });
+
+  var monthlyByMonth = {};
+  monthly.rows.forEach(function (row) {
+    var monthDate = normalizeDate_(row[0]);
+    var key = monthDate.getFullYear() + '-' + String(monthDate.getMonth() + 1).padStart(2, '0');
+    monthlyByMonth[key] = row;
+  });
+
+  var monthKeys = Object.keys(dailyByMonth).sort();
+  if (monthKeys.length !== Object.keys(monthlyByMonth).length) {
+    throw new Error('Monthly reconciliation failed: month row count does not match Daily.');
+  }
+
+  monthKeys.forEach(function (key) {
+    var monthRows = dailyByMonth[key];
+    var monthRow = monthlyByMonth[key];
+    if (!monthRow) {
+      throw new Error('Monthly reconciliation failed: missing month row for ' + key + '.');
+    }
+    var first = monthRows[0];
+    var last = monthRows[monthRows.length - 1];
+
+    if (!valuesWithinTolerance_(monthRow[1], last[1])) {
+      throw new Error('Monthly reconciliation failed: Total Cash mismatch for ' + key + '.');
+    }
+    if (!valuesWithinTolerance_(monthRow[2], last[2])) {
+      throw new Error('Monthly reconciliation failed: Total Debt mismatch for ' + key + '.');
+    }
+    if (!valuesWithinTolerance_(monthRow[3], last[3])) {
+      throw new Error('Monthly reconciliation failed: Net Position mismatch for ' + key + '.');
+    }
+
+    var accountCount = (daily.accountNames || []).length;
+    for (var i = 0; i < accountCount; i += 1) {
+      var dailyIndex = 4 + i;
+      var monthlyIndex = 4 + i * 4;
+      var startValue = typeof first[dailyIndex] === 'number' ? first[dailyIndex] : 0;
+      var endValue = typeof last[dailyIndex] === 'number' ? last[dailyIndex] : 0;
+      var minValue = startValue;
+      var maxValue = startValue;
+
+      monthRows.forEach(function (dayRow) {
+        var value = typeof dayRow[dailyIndex] === 'number' ? dayRow[dailyIndex] : 0;
+        if (value < minValue) {
+          minValue = value;
+        }
+        if (value > maxValue) {
+          maxValue = value;
+        }
+      });
+
+      if (!valuesWithinTolerance_(monthRow[monthlyIndex], minValue)) {
+        throw new Error('Monthly reconciliation failed: Min mismatch for ' + key + '.');
+      }
+      if (!valuesWithinTolerance_(monthRow[monthlyIndex + 1], maxValue)) {
+        throw new Error('Monthly reconciliation failed: Max mismatch for ' + key + '.');
+      }
+      if (!valuesWithinTolerance_(monthRow[monthlyIndex + 2], endValue - startValue)) {
+        throw new Error('Monthly reconciliation failed: Net Change mismatch for ' + key + '.');
+      }
+      if (!valuesWithinTolerance_(monthRow[monthlyIndex + 3], endValue)) {
+        throw new Error('Monthly reconciliation failed: Ending mismatch for ' + key + '.');
+      }
+    }
+  });
 }
 
 function writeDailySummary_(daily) {
@@ -315,8 +517,12 @@ function buildDashboardData_(daily, monthly, scenarioId) {
   var debtStats = computeSeriesStats_(rows, 2);
   var netStats = computeSeriesStats_(rows, 3);
 
+  var scenarioLabel = Array.isArray(scenarioId)
+    ? scenarioId.map(function (value) { return normalizeScenario_(value); }).join(', ')
+    : normalizeScenario_(scenarioId);
+
   var metrics = [
-    ['Scenario', normalizeScenario_(scenarioId)],
+    ['Scenario', scenarioLabel],
     ['Forecast Start', startDate],
     ['Forecast End', endDate],
     ['Ending Cash', cashStats.end],

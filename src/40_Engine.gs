@@ -71,6 +71,7 @@ function runJournalPipeline_(options) {
       scenarioModel = buildScenarioModel_(scenarioId);
     }
     var accounts = scenarioModel.accounts || [];
+    assertUniqueScenarioAccountNames_(scenarioModel.scenarioId, accounts);
     var accountTypes = buildAccountTypeMap_(accounts);
     var incomeRules = scenarioModel.incomeRules || [];
     var transferRules = scenarioModel.transferRules || [];
@@ -137,6 +138,21 @@ function filterByScenario_(rows, scenarioId) {
   return rows.filter(function (row) {
     var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
     return rowScenarioId === activeScenarioId;
+  });
+}
+
+function filterByScenarioSet_(rows, scenarioIds) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return [];
+  }
+  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
+  var lookup = {};
+  ids.forEach(function (scenarioId) {
+    lookup[resolveScenarioId_(scenarioId)] = true;
+  });
+  return rows.filter(function (row) {
+    var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
+    return !!lookup[rowScenarioId];
   });
 }
 
@@ -800,6 +816,8 @@ function refreshAccountSummaries_() {
 function refreshAccountSummariesForScenarioModel_(scenarioModel) {
   scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
   var accounts = Array.isArray(scenarioModel.accounts) ? scenarioModel.accounts : [];
+  // Prevent ambiguous per-account writes when a scenario has duplicate account names.
+  assertUniqueScenarioAccountNames_(scenarioModel.scenarioId, accounts);
   var incomeTotalsByAccount = updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
   var expenseTotalsByAccount = updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
   var transferTotals = updateTransferMonthlyTotalsForScenarioModel_(
@@ -1234,11 +1252,11 @@ function updateAccountMonthlyFlowAveragesForScenarioModel_(
     return;
   }
 
-  transferTotals = transferTotals || { credits: {}, debits: {} };
+  transferTotals = normalizeTransferTotalsKeys_(transferTotals || { credits: {}, debits: {} });
   var transferCredits = transferTotals.credits || {};
   var transferDebits = transferTotals.debits || {};
-  incomeTotalsByAccount = incomeTotalsByAccount || {};
-  expenseTotalsByAccount = expenseTotalsByAccount || {};
+  incomeTotalsByAccount = normalizeAccountTotalsKeys_(incomeTotalsByAccount || {});
+  expenseTotalsByAccount = normalizeAccountTotalsKeys_(expenseTotalsByAccount || {});
 
   var accountByKey = {};
   var activeScenarioId = normalizeScenario_(scenarioId);
@@ -1246,7 +1264,11 @@ function updateAccountMonthlyFlowAveragesForScenarioModel_(
     if (!account || !account.name) {
       return;
     }
-    accountByKey[normalizeAccountLookupKey_(account.name)] = account;
+    var key = normalizeAccountLookupKey_(account.name);
+    if (!key || accountByKey[key]) {
+      return;
+    }
+    accountByKey[key] = account;
   });
 
   var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
@@ -1879,6 +1901,38 @@ function normalizeAccountTotalsKeys_(totalsByAccount) {
   return normalized;
 }
 
+function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
+  var seen = {};
+  var duplicates = [];
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    var key = normalizeAccountLookupKey_(account.name);
+    if (!key) {
+      return;
+    }
+    if (seen[key]) {
+      duplicates.push(account.name);
+      return;
+    }
+    seen[key] = true;
+  });
+  if (!duplicates.length) {
+    return;
+  }
+  var unique = duplicates
+    .map(function (name) { return String(name || '').trim(); })
+    .filter(function (name, idx, arr) { return name && arr.indexOf(name) === idx; });
+  throw new Error(
+    'Duplicate account names in scenario "' +
+      normalizeScenario_(scenarioId) +
+      '": ' +
+      unique.join(', ') +
+      '.'
+  );
+}
+
 function normalizeTransferTotalsKeys_(transferTotals) {
   return {
     credits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.credits),
@@ -1923,6 +1977,125 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
     return 0;
   }
   return periodsPerYear / 12;
+}
+
+function buildJournalArtifactsForScenarioModel_(scenarioModel) {
+  var model = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  var activeScenarioId = resolveScenarioId_(model.scenarioId);
+  var accounts = model.accounts || [];
+  assertUniqueScenarioAccountNames_(activeScenarioId, accounts);
+  var accountTypes = buildAccountTypeMap_(accounts);
+  var incomeRules = model.incomeRules || [];
+  var transferRules = model.transferRules || [];
+  var expenseRules = model.expenseRules || [];
+  var policies = model.policies || [];
+  var riskSettings = model.riskSettings || [];
+
+  var events = Events.buildIncomeEvents(incomeRules)
+    .concat(Events.buildTransferEvents(transferRules))
+    .concat(Events.buildExpenseEvents(expenseRules))
+    .concat(Events.buildInterestEvents(accounts));
+
+  events.sort(function (a, b) {
+    var dateDiff = normalizeDate_(a.date).getTime() - normalizeDate_(b.date).getTime();
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    var priorityDiff = eventSortPriority_(a) - eventSortPriority_(b);
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+    var nameA = a.name || '';
+    var nameB = b.name || '';
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+    return 0;
+  });
+
+  var journalData = buildJournalRows_(accounts, events, policies, riskSettings, activeScenarioId);
+  return {
+    rows: journalData.rows || [],
+    forecastAccounts: journalData.forecastAccounts || [],
+    accountTypes: accountTypes,
+    scenarioId: activeScenarioId,
+  };
+}
+
+function runJournalForScenarioIds_(scenarioIds) {
+  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
+  ids = ids
+    .map(function (value) { return resolveScenarioId_(value); })
+    .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
+  if (!ids.length) {
+    ids = [Config.SCENARIOS.DEFAULT];
+  }
+  if (ids.length === 1) {
+    if (Engine && Engine.runJournalForScenario) {
+      Engine.runJournalForScenario(ids[0]);
+      return;
+    }
+  }
+
+  startRunProgress_('Journal (' + ids.join(', ') + ')', ids.length + 2);
+  try {
+    toastStep_('Reading input sheets...');
+    var artifacts = ids.map(function (scenarioId) {
+      return buildJournalArtifactsForScenarioModel_(buildScenarioModel_(scenarioId));
+    });
+
+    toastStep_('Combining journal rows...');
+    var forecastLookup = {};
+    var globalForecastAccounts = [];
+    var accountTypes = {};
+    artifacts.forEach(function (artifact) {
+      (artifact.forecastAccounts || []).forEach(function (name) {
+        if (forecastLookup[name]) {
+          return;
+        }
+        forecastLookup[name] = true;
+        globalForecastAccounts.push(name);
+      });
+      Object.keys(artifact.accountTypes || {}).forEach(function (name) {
+        if (!accountTypes[name]) {
+          accountTypes[name] = artifact.accountTypes[name];
+        }
+      });
+    });
+
+    var combinedRows = [];
+    artifacts.forEach(function (artifact) {
+      var localIndex = {};
+      (artifact.forecastAccounts || []).forEach(function (name, idx) {
+        localIndex[name] = idx;
+      });
+      (artifact.rows || []).forEach(function (row) {
+        var base = row.slice(0, 7);
+        var localSnapshot = row.slice(7);
+        var aligned = globalForecastAccounts.map(function (name) {
+          var idx = localIndex[name];
+          if (idx === undefined) {
+            return '';
+          }
+          return idx < localSnapshot.length ? localSnapshot[idx] : '';
+        });
+        combinedRows.push(base.concat(aligned));
+      });
+    });
+
+    toastStep_('Writing journal...');
+    Writers.writeJournal(combinedRows, globalForecastAccounts, accountTypes);
+    recordLastRunMetadata_('Journal', ids.join(', '), 'Success');
+    toastStep_('Journal run complete.');
+  } catch (err) {
+    recordLastRunMetadata_('Journal', ids.join(', '), 'Failed');
+    throw err;
+  } finally {
+    endRunProgress_();
+  }
 }
 
 function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId) {

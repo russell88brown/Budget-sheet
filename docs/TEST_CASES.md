@@ -32,6 +32,85 @@ Run this quick sequence after housekeeping or setup changes:
 - Run `Run Budget...` with `Generate dashboard` only.
 - Expected: dashboard metrics/charts refresh and show the selected scenario.
 
+## Phase 2 (No Dashboard)
+
+### Scope and done criteria
+
+1. Accounts hardening
+- Goal: make Accounts summaries deterministic and scenario-safe.
+- Scope: `Summarise Accounts` only.
+- Done when:
+  - Base/Stress summaries do not overwrite each other.
+  - Re-running gives identical results.
+
+2. Journal reliability
+- Goal: make journal generation the trusted source of truth.
+- Scope: event build/sort/write and scenario filtering.
+- Done when:
+  - Base vs Stress isolation is exact.
+  - Row counts/balances are repeatable for fixtures.
+
+3. Daily integrity
+- Goal: ensure Daily is a clean projection of Journal.
+- Scope: per-day aggregation and scenario filtering.
+- Done when:
+  - Daily totals reconcile to journal balances.
+  - No stale rows after reruns.
+
+4. Monthly integrity
+- Goal: ensure Monthly correctly rolls up Daily.
+- Scope: min/max/net-change/ending by account.
+- Done when:
+  - Month start/end math reconciles to Daily.
+  - Repeat runs are idempotent.
+
+5. Guardrails + tests
+- Goal: lock behavior before adding Dashboard.
+- Scope:
+  - Expand test cases for Accounts -> Journal -> Daily -> Monthly only.
+  - Add one known fixture expected-output check.
+  - Known fixture check: run `Deterministic Fixture Tests (Phase 2) -> Fixture A` and verify expected `Accounts` and `Journal` values exactly.
+- Done when:
+  - Full non-dashboard regression passes in one click path.
+
+### Suggested run sequence each cycle
+
+1. `Fix Structure`
+2. `Fix Rules`
+3. `Summarise Accounts`
+4. `Generate journal`
+5. `Generate daily`
+6. `Generate monthly`
+
+### Phase 2 execution checks
+
+1. Accounts hardening: duplicate-name guard
+- In `Accounts`, create two included rows with the same `Account Name` under the same `Scenario`.
+- Run `Run Budget...` with `Summarise Accounts`.
+- Expected:
+  - Run fails fast with a duplicate-account error for that scenario.
+  - No partial cross-scenario overwrite is performed.
+
+2. Accounts hardening: repeatability
+- Use valid unique account names per scenario.
+- Run `Summarise Accounts` twice for `Base`, then twice for `Stress`.
+- Expected:
+  - Summary columns are identical across repeat runs for the same scenario.
+  - Running `Stress` does not alter `Base` rows and vice versa.
+
+3. Journal prerequisite guard
+- Select scenario mode `Choose custom scenario(s)` and pick a scenario set that has no Journal rows yet.
+- Run `Generate daily` (or `Generate monthly`) without running `Generate journal` first.
+- Expected:
+  - Run fails with message indicating no Journal rows found for the selected scenario set.
+
+4. Reconciliation guardrails
+- Run sequence for a scenario set: `Generate journal` -> `Generate daily` -> `Generate monthly`.
+- Expected:
+  - Daily reconciliation against Journal passes (no mismatch error).
+  - Monthly reconciliation against Daily passes (no mismatch error).
+  - Re-running the same sequence is idempotent.
+
 ## Core Scenario Tests
 
 1. Base run parity
