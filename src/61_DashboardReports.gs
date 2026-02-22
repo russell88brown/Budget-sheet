@@ -165,10 +165,12 @@ function validateDashboardReportLayout_(reports) {
 
 function getDashboardReportBounds_(report) {
   if (report.id === 'trendCharts') {
+    // Two charts are anchored at row N and N+17 with fixed pixel heights.
+    // Keep a conservative but realistic row span to avoid false overlap errors.
     return {
       top: report.anchorRow,
       left: report.anchorCol,
-      bottom: report.anchorRow + 33,
+      bottom: report.anchorRow + 30,
       right: report.anchorCol + 6,
     };
   }
