@@ -5,12 +5,16 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/pr-sandbox-clasp-deploy.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: clasp-sandbox-pr-${{ github.event.pull_request.number }}
+  group: clasp-sandbox-pr-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -21,38 +25,47 @@ jobs:
     env:
       CLASP_SANDBOX_SCRIPT_ID: ${{ secrets.CLASP_SANDBOX_SCRIPT_ID }}
       CLASP_OAUTH_CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS }}
+      CLASP_SCRIPT_ID_TEST: ${{ secrets.CLASP_SCRIPT_ID_TEST }}
+      CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate required secrets
+      - name: Resolve and validate secrets
         shell: bash
         run: |
-          if [ -z "$CLASP_SANDBOX_SCRIPT_ID" ]; then
-            echo "Missing secret: CLASP_SANDBOX_SCRIPT_ID"
+          SCRIPT_ID="${CLASP_SANDBOX_SCRIPT_ID:-$CLASP_SCRIPT_ID_TEST}"
+          CREDENTIALS="${CLASP_OAUTH_CREDENTIALS:-$CLASP_CREDENTIALS_JSON}"
+
+          if [ -z "$SCRIPT_ID" ]; then
+            echo "Missing secret: CLASP_SANDBOX_SCRIPT_ID (or CLASP_SCRIPT_ID_TEST)"
             exit 1
           fi
-          if [ -z "$CLASP_OAUTH_CREDENTIALS" ]; then
-            echo "Missing secret: CLASP_OAUTH_CREDENTIALS"
+          if [ -z "$CREDENTIALS" ]; then
+            echo "Missing secret: CLASP_OAUTH_CREDENTIALS (or CLASP_CREDENTIALS_JSON)"
             exit 1
           fi
+
+          echo "SCRIPT_ID=$SCRIPT_ID" >> "$GITHUB_ENV"
+          echo "CREDENTIALS=$CREDENTIALS" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Configure clasp auth
         shell: bash
         run: |
-          printf '%s' "$CLASP_OAUTH_CREDENTIALS" > "$HOME/.clasprc.json"
+          printf '%s' "$CREDENTIALS" > "$HOME/.clasprc.json"
 
       - name: Configure sandbox script target
         shell: bash
         run: |
           cat > .clasp.json <<EOF
           {
-            "scriptId": "${CLASP_SANDBOX_SCRIPT_ID}",
+            "scriptId": "${SCRIPT_ID}",
             "rootDir": "src",
             "scriptExtensions": [".js", ".gs"],
             "htmlExtensions": [".html"],
