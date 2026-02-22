@@ -73,7 +73,7 @@ function getDashboardContentLayout_() {
   return {
     startRow: 5,
     startCol: 1,
-    gapRows: 2,
+    gapRows: 4,
   };
 }
 
@@ -421,7 +421,8 @@ function buildDashboardPivotSourceValues_(report) {
   var width = report.size.cols;
   var headers = fitDashboardRowWidth_((report.data && report.data.headers) || [], width);
   var dataRows = ((report.data && report.data.rows) || [])
-    .slice(0, Math.max(1, report.size.rows - 3))
+    // Pivot output can include extra rows (header/total); keep a safety buffer.
+    .slice(0, Math.max(1, report.size.rows - 4))
     .map(function (row) {
       return fitDashboardRowWidth_(row, width);
     });
