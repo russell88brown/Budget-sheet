@@ -20,7 +20,7 @@ This project keeps Apps Script code in `src/` and syncs to Google Apps Script us
 
 1. Open the target Google Sheet.
 2. Open **Extensions -> Apps Script**.
-3. Copy all `.gs` and `.html` files from `src/` into the editor project.
+3. Copy all `.gs` and `.html` files from `src/` (including subfolders) into the editor project.
 4. Replace/update project manifest using `src/appsscript.json`.
 5. Save and reload the Google Sheet.
 
@@ -70,6 +70,7 @@ If you want pull requests to `main` to deploy `src/` to a sandbox Apps Script pr
 - `CLASP_OAUTH_CREDENTIALS`: JSON content of your local `~/.clasprc.json` after `clasp login`.
 
 The workflow should create `.clasp.json` at runtime using the sandbox script ID, then run `clasp push --force`.
+
 ## CI automation
 
 For GitHub Actions deploy/test flows and required secrets, see `docs/CI.md`.
