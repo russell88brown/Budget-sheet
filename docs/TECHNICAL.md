@@ -18,7 +18,7 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 ### Current program of work
 
 - Week 1 (completed): extract domain core for event compile/apply, keep behavior unchanged, add deterministic fixture runners.
-- Week 2 (in progress): add stable rule traceability (`Rule ID` -> `Source Rule ID`) while keeping explainability intentionally minimal.
+- Week 2 (in progress): add stable rule traceability (`Rule ID` -> `Source Rule ID`) with lightweight dashboard explainability for negative-cash contributors.
 - Next: scenario comparison metrics and onboarding/sanity checks.
 
 ---
@@ -257,6 +257,7 @@ Main modules:
   - Stable `Rule ID` columns on rule inputs.
   - Automatic assignment of missing `Rule ID` values during preprocessing.
   - `Source Rule ID` written to Journal rows.
+  - Dashboard block `Negative Cash Top Sources` (top 5 by absolute amount across `NEGATIVE_CASH`-flagged journal rows).
 - Explicitly deferred:
   - Rich explainability UI and advanced attribution APIs.
   - Multi-step causal narratives beyond rule-to-event mapping.

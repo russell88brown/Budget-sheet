@@ -200,6 +200,15 @@ Run this quick sequence after housekeeping or setup changes:
     - `Days Cash < 0 Delta`
     - `Days Net < 0 Delta`
 
+9. Dashboard explainability block (minimal)
+- Run `Run Budget...` with:
+  - scenario mode: `Use Base scenario` (or one custom scenario)
+  - operations: `Generate journal`, `Generate daily`, `Generate monthly`, `Generate dashboard`
+- Expected:
+  - Dashboard includes `Negative Cash Top Sources` only when there are `NEGATIVE_CASH` alerts in Journal.
+  - Rows show `Source Rule ID`, `Abs Amount`, and `Events`.
+  - Entries are sorted by `Abs Amount` descending.
+
 ## Deterministic Fixture Tests (Phase 2)
 
 Script editor runners (automated):

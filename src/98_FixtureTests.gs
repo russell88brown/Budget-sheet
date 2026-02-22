@@ -21,6 +21,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     incomeRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'INC_FIX_A_PAYCHECK',
         type: 'Salary',
         name: 'Paycheck',
         amount: 1200,
@@ -34,6 +35,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     expenseRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'EXP_FIX_A_RENT',
         type: 'Fixed',
         name: 'Rent',
         amount: 700,
@@ -47,6 +49,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     transferRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'TRN_FIX_A_CARD_PAYMENT',
         type: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
         behavior: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
         name: 'Card Payment',
@@ -74,6 +77,11 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
   });
   assertFixtureEqual_('Fixture A row count', 6, journal.rows.length);
   assertFixtureBalances_(journal, { Operating: 1300, Card: -300 });
+  assertJournalSourceRuleIdsPresent_(journal, [
+    'INC_FIX_A_PAYCHECK',
+    'EXP_FIX_A_RENT',
+    'TRN_FIX_A_CARD_PAYMENT',
+  ]);
   return 'Fixture A passed';
 }
 
@@ -262,6 +270,32 @@ function assertFixtureEqual_(label, expected, actual) {
   if (expected !== actual) {
     throw new Error(label + ' expected "' + expected + '" but got "' + actual + '".');
   }
+}
+
+function assertJournalSourceRuleIdsPresent_(journal, expectedRuleIds) {
+  if (!journal || !Array.isArray(journal.rows) || !journal.rows.length) {
+    throw new Error('Fixture assertion failed: no journal rows for source-rule checks.');
+  }
+  var expected = Array.isArray(expectedRuleIds) ? expectedRuleIds.slice() : [];
+  var seen = {};
+
+  journal.rows.forEach(function (row) {
+    var transactionType = String(row[3] || '');
+    if (transactionType === 'Opening') {
+      return;
+    }
+    var sourceRuleId = String(row[6] || '').trim();
+    if (!sourceRuleId) {
+      throw new Error('Fixture assertion failed: missing Source Rule ID on non-opening row.');
+    }
+    seen[sourceRuleId] = true;
+  });
+
+  expected.forEach(function (ruleId) {
+    if (!seen[ruleId]) {
+      throw new Error('Fixture assertion failed: expected Source Rule ID "' + ruleId + '" not found.');
+    }
+  });
 }
 
 function resetFixtureRunState_() {

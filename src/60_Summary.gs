@@ -148,8 +148,17 @@ function buildJournalContextForScenarioSet_(scenarioId) {
   var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
   var scenarioIndex = headerRow.indexOf('Scenario');
   var alertsIndex = headerRow.indexOf('Alerts');
+  var amountIndex = headerRow.indexOf('Amount');
+  var sourceRuleIdIndex = headerRow.indexOf('Source Rule ID');
   if (alertsIndex === -1) {
-    return { scenarioSet: scenarioSet, accountNames: [], rows: [], alertsIndex: -1 };
+    return {
+      scenarioSet: scenarioSet,
+      accountNames: [],
+      rows: [],
+      alertsIndex: -1,
+      amountIndex: amountIndex,
+      sourceRuleIdIndex: sourceRuleIdIndex,
+    };
   }
   var accountNames = headerRow.slice(alertsIndex + 1).filter(function (name) {
     return name !== '' && name !== null;
@@ -161,7 +170,14 @@ function buildJournalContextForScenarioSet_(scenarioId) {
     }
     return !!lookup[normalizeScenario_(row[scenarioIndex])];
   });
-  return { scenarioSet: scenarioSet, accountNames: accountNames, rows: rows, alertsIndex: alertsIndex };
+  return {
+    scenarioSet: scenarioSet,
+    accountNames: accountNames,
+    rows: rows,
+    alertsIndex: alertsIndex,
+    amountIndex: amountIndex,
+    sourceRuleIdIndex: sourceRuleIdIndex,
+  };
 }
 
 function assertJournalRowsAvailableForScenarioSet_(scenarioId) {
@@ -507,7 +523,13 @@ function writeMonthlySummary_(monthly) {
 
 function buildDashboardData_(daily, monthly, scenarioId) {
   if (!daily.rows.length) {
-    return { metrics: [], comparison: [], accountStats: [], accountNames: daily.accountNames || [] };
+    return {
+      metrics: [],
+      comparison: [],
+      explainability: [],
+      accountStats: [],
+      accountNames: daily.accountNames || [],
+    };
   }
 
   var rows = daily.rows;
@@ -556,13 +578,52 @@ function buildDashboardData_(daily, monthly, scenarioId) {
     daysCashNegative: countDaysBelow_(rows, 1, 0),
     daysNetNegative: countDaysBelow_(rows, 3, 0),
   });
+  var explainability = buildNegativeCashTopSources_(scenarioId);
 
   return {
     metrics: metrics,
     comparison: comparison,
+    explainability: explainability,
     accountStats: accountStats,
     accountNames: daily.accountNames,
   };
+}
+
+function buildNegativeCashTopSources_(scenarioId) {
+  var context = buildJournalContextForScenarioSet_(scenarioId);
+  if (!context || !context.rows || !context.rows.length) {
+    return [];
+  }
+  if (context.alertsIndex === -1 || context.amountIndex === -1 || context.sourceRuleIdIndex === -1) {
+    return [];
+  }
+
+  var totals = {};
+  context.rows.forEach(function (row) {
+    var alerts = String(row[context.alertsIndex] || '');
+    if (alerts.indexOf('NEGATIVE_CASH') === -1) {
+      return;
+    }
+    var key = String(row[context.sourceRuleIdIndex] || '').trim() || '(Unattributed)';
+    var amount = Math.abs(toNumber_(row[context.amountIndex]) || 0);
+    if (!totals[key]) {
+      totals[key] = { total: 0, events: 0 };
+    }
+    totals[key].total = roundUpCents_(totals[key].total + amount);
+    totals[key].events += 1;
+  });
+
+  var keys = Object.keys(totals).sort(function (left, right) {
+    var diff = totals[right].total - totals[left].total;
+    if (diff !== 0) {
+      return diff;
+    }
+    return left < right ? -1 : left > right ? 1 : 0;
+  });
+
+  return keys.slice(0, 5).map(function (key) {
+    return [key, totals[key].total, totals[key].events];
+  });
 }
 
 function buildScenarioComparisonData_(scenarioId, daily, current) {
@@ -725,6 +786,30 @@ function writeDashboard_(dashboard) {
     );
     compareRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
     compareRange.getCell(1, 1).setBackground('#f2f2f2');
+  }
+
+  if (dashboard.explainability && dashboard.explainability.length) {
+    var explainStartRow = 3;
+    var explainStartCol = 14;
+    sheet
+      .getRange(explainStartRow - 1, explainStartCol, 1, 3)
+      .setValues([['Negative Cash Top Sources', '', '']])
+      .setFontWeight('bold');
+    sheet
+      .getRange(explainStartRow, explainStartCol, 1, 3)
+      .setValues([['Source Rule ID', 'Abs Amount', 'Events']])
+      .setFontWeight('bold');
+    sheet
+      .getRange(explainStartRow + 1, explainStartCol, dashboard.explainability.length, 3)
+      .setValues(dashboard.explainability);
+    var explainRange = sheet.getRange(
+      explainStartRow - 1,
+      explainStartCol,
+      dashboard.explainability.length + 2,
+      3
+    );
+    explainRange.setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
+    explainRange.getCell(1, 1).setBackground('#f2f2f2');
   }
 
   var accountStartRow = 35;
