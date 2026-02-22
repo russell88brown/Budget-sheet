@@ -42,14 +42,23 @@ This file defines manual regression tests for the scenario-enabled planning engi
   - `Dashboard` metrics include `Scenario = Stress`.
   - Daily/Monthly values are based on Stress journal rows only.
 
-4. Export grouping by scenario + month
+4. Account-summary per-scenario write scope
+- Create at least one `Accounts` row with `Scenario=Base` and one with `Scenario=Stress`.
+- Run `Run Budget...` with:
+  - scenario mode: `Choose custom scenario(s)` and select both `Base` and `Stress`
+  - operations: `Summarise Accounts`
+- Expected:
+  - Account summary columns (`Money In / Month`, `Money Out / Month`, `Net Interest / Month`, `Net Change / Month`) are recalculated for each selected scenario.
+  - Running one scenario does not clear summary values on rows belonging to the other scenario.
+
+5. Export grouping by scenario + month
 - Ensure Journal has at least two months and two scenarios.
 - Run `Export` including `Journal`.
 - Expected:
   - Journal export files/rows are partitioned by `Scenario + Month`.
   - JSON payload includes `scenario`.
 
-5. Unknown scenario validation
+6. Unknown scenario validation
 - Put `Scenario=BadScenario` on an included input row.
 - Run forecast/journal with preprocessing path (`Run forecast`).
 - Expected:
@@ -57,7 +66,7 @@ This file defines manual regression tests for the scenario-enabled planning engi
   - Run completes without crash.
   - Toast indicates rows were disabled for unknown scenario values.
 
-6. Run metadata tracking
+7. Run metadata tracking
 - Run `Run Budget...` with:
   - scenario mode: `Choose custom scenario(s)` and select `Stress`
   - operations: `Generate journal`

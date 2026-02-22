@@ -40,7 +40,7 @@ function showRunBudgetDialog() {
   template.scenarios = available;
   template.defaultScenario = Config.SCENARIOS.DEFAULT;
   template.title = 'Run Budget';
-  var html = template.evaluate().setWidth(480).setHeight(560);
+  var html = template.evaluate().setWidth(760).setHeight(620);
   SpreadsheetApp.getUi().showModalDialog(html, 'Run Budget');
 }
 
@@ -92,17 +92,18 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
   });
 
   var executed = [];
-  var accountSummariesDone = false;
   selectedScenarios.forEach(function (scenarioId) {
+    var scenarioModel = buildScenarioModel_(scenarioId);
     var daily = null;
     var monthly = null;
 
-    if (selectedActions.indexOf('summarise_accounts') !== -1 && !accountSummariesDone) {
-      runAccountSummariesOnly_(scenarioId);
-      accountSummariesDone = true;
+    if (selectedActions.indexOf('summarise_accounts') !== -1) {
+      runAccountSummariesOnly_(scenarioModel);
     }
     if (selectedActions.indexOf('journal') !== -1) {
-      if (Engine && Engine.runJournalForScenario) {
+      if (Engine && Engine.runJournalForScenarioModel) {
+        Engine.runJournalForScenarioModel(scenarioModel);
+      } else if (Engine && Engine.runJournalForScenario) {
         Engine.runJournalForScenario(scenarioId);
       } else {
         runJournal();
@@ -154,15 +155,18 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
   return actionLabel + ' complete for: ' + executed.join(', ') + '.';
 }
 
-function runAccountSummariesOnly_(scenarioId) {
-  startRunProgress_('Account Summaries (' + normalizeScenario_(scenarioId) + ')', 3);
+function runAccountSummariesOnly_(scenarioModel) {
+  var activeScenarioId = scenarioModel && scenarioModel.scenarioId
+    ? normalizeScenario_(scenarioModel.scenarioId)
+    : Config.SCENARIOS.DEFAULT;
+  startRunProgress_('Account Summaries (' + activeScenarioId + ')', 3);
   try {
     toastStep_('Refreshing account summary values...');
-    refreshAccountSummaries_();
-    recordLastRunMetadata_('Account Summaries', scenarioId, 'Success');
+    refreshAccountSummariesForScenarioModel_(scenarioModel || buildScenarioModel_(activeScenarioId));
+    recordLastRunMetadata_('Account Summaries', activeScenarioId, 'Success');
     toastStep_('Account summaries complete.');
   } catch (err) {
-    recordLastRunMetadata_('Account Summaries', scenarioId, 'Failed');
+    recordLastRunMetadata_('Account Summaries', activeScenarioId, 'Failed');
     throw err;
   } finally {
     endRunProgress_();
@@ -170,7 +174,7 @@ function runAccountSummariesOnly_(scenarioId) {
 }
 
 function summariseAccounts() {
-  runAccountSummariesOnly_(Config.SCENARIOS.DEFAULT);
+  runAccountSummariesOnly_(buildScenarioModel_(Config.SCENARIOS.DEFAULT));
 }
 
 function validateTransfersExpenses() {

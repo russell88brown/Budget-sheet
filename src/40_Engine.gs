@@ -30,12 +30,26 @@ const Engine = {
       scenarioId: activeScenarioId,
     });
   },
+  runJournalForScenarioModel: function (scenarioModel) {
+    var model = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+    runJournalPipeline_({
+      modeLabel: 'Journal',
+      startToast: 'Running journal...',
+      completionToast: 'Journal run complete.',
+      preprocessInputs: false,
+      refreshSummaries: false,
+      toastDelayMs: 0,
+      scenarioId: resolveScenarioId_(model.scenarioId),
+      scenarioModel: model,
+    });
+  },
 };
 
 function runJournalPipeline_(options) {
   options = options || {};
   var modeLabel = options.modeLabel || 'Run';
   var scenarioId = resolveScenarioId_(options.scenarioId);
+  var scenarioModel = options.scenarioModel || null;
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
   var totalSteps = preprocessInputs ? 10 : 7;
@@ -53,17 +67,20 @@ function runJournalPipeline_(options) {
     }
 
     toastStep_('Reading input sheets...');
-    var accounts = filterByScenario_(Readers.readAccounts(), scenarioId);
+    if (!scenarioModel) {
+      scenarioModel = buildScenarioModel_(scenarioId);
+    }
+    var accounts = scenarioModel.accounts || [];
     var accountTypes = buildAccountTypeMap_(accounts);
-    var incomeRules = filterByScenario_(Readers.readIncome(), scenarioId);
-    var transferRules = filterByScenario_(Readers.readTransfers(), scenarioId);
-    var expenseRules = filterByScenario_(Readers.readExpenses(), scenarioId);
-    var policies = filterByScenario_(Readers.readPolicies(), scenarioId);
-    var goals = filterByScenario_(Readers.readGoals(), scenarioId);
-    var riskSettings = filterByScenario_(Readers.readRiskSettings(), scenarioId);
+    var incomeRules = scenarioModel.incomeRules || [];
+    var transferRules = scenarioModel.transferRules || [];
+    var expenseRules = scenarioModel.expenseRules || [];
+    var policies = scenarioModel.policies || [];
+    var goals = scenarioModel.goals || [];
+    var riskSettings = scenarioModel.riskSettings || [];
 
     if (refreshSummaries) {
-      refreshAccountSummaries_();
+      refreshAccountSummariesForScenarioModel_(scenarioModel);
     }
 
     toastStep_('Building events...');
@@ -780,6 +797,247 @@ function refreshAccountSummaries_() {
   var expenseMonthlyTotals = updateExpenseMonthlyTotals_();
   var transferMonthlyTotals = updateTransferMonthlyTotals_(incomeMonthlyTotals, expenseMonthlyTotals);
   updateAccountMonthlyFlowAverages_(incomeMonthlyTotals, transferMonthlyTotals, expenseMonthlyTotals);
+}
+
+function refreshAccountSummariesForScenarioModel_(scenarioModel) {
+  if (!scenarioModel) {
+    refreshAccountSummaries_();
+    return;
+  }
+  var accounts = Array.isArray(scenarioModel.accounts) ? scenarioModel.accounts : [];
+  var incomeTotalsByAccount = buildIncomeMonthlyTotalsForScenarioModel_(scenarioModel.incomeRules || []);
+  var expenseTotalsByAccount = buildExpenseMonthlyTotalsForScenarioModel_(scenarioModel.expenseRules || []);
+  var transferTotals = buildTransferMonthlyTotalsForScenarioModel_(
+    scenarioModel.transferRules || [],
+    accounts,
+    incomeTotalsByAccount,
+    expenseTotalsByAccount
+  );
+  updateAccountMonthlyFlowAveragesForScenarioModel_(
+    scenarioModel.scenarioId,
+    accounts,
+    incomeTotalsByAccount,
+    transferTotals,
+    expenseTotalsByAccount
+  );
+}
+
+function buildIncomeMonthlyTotalsForScenarioModel_(incomeRules) {
+  var totals = {};
+  (incomeRules || []).forEach(function (rule) {
+    if (!rule || !rule.paidTo || !rule.frequency) {
+      return;
+    }
+    if (!isRecurringForMonthlyAverage_(rule)) {
+      return;
+    }
+    var amount = toNumber_(rule.amount);
+    if (amount === null || amount < 0) {
+      return;
+    }
+    var monthly = roundUpCents_(amount * monthlyFactorForRecurrence_(rule.frequency, rule.repeatEvery));
+    var key = normalizeAccountLookupKey_(rule.paidTo);
+    totals[key] = roundUpCents_((totals[key] || 0) + monthly);
+  });
+  return totals;
+}
+
+function buildExpenseMonthlyTotalsForScenarioModel_(expenseRules) {
+  var totals = {};
+  (expenseRules || []).forEach(function (rule) {
+    if (!rule || !rule.paidFrom || !rule.frequency) {
+      return;
+    }
+    if (!isRecurringForMonthlyAverage_(rule)) {
+      return;
+    }
+    var amount = toNumber_(rule.amount);
+    if (amount === null || amount < 0) {
+      return;
+    }
+    var monthly = roundUpCents_(amount * monthlyFactorForRecurrence_(rule.frequency, rule.repeatEvery));
+    var key = normalizeAccountLookupKey_(rule.paidFrom);
+    totals[key] = roundUpCents_((totals[key] || 0) + monthly);
+  });
+  return totals;
+}
+
+function buildTransferMonthlyTotalsForScenarioModel_(
+  transferRules,
+  accounts,
+  incomeTotalsByAccount,
+  expenseTotalsByAccount
+) {
+  var credits = {};
+  var debits = {};
+  var accountBalances = {};
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
+  });
+
+  (transferRules || []).forEach(function (rule) {
+    if (!rule || !rule.frequency) {
+      return;
+    }
+    if (!isRecurringForMonthlyAverage_(rule)) {
+      return;
+    }
+    var fromKey = normalizeAccountLookupKey_(rule.paidFrom);
+    var toKey = normalizeAccountLookupKey_(rule.paidTo);
+    if (!fromKey || !toKey) {
+      return;
+    }
+    var amount = toNumber_(rule.amount);
+    var behavior = normalizeTransferType_(rule.type || rule.behavior, amount);
+    var factor = monthlyFactorForRecurrence_(rule.frequency, rule.repeatEvery);
+    if (factor <= 0) {
+      return;
+    }
+
+    var monthly = null;
+    if (
+      behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
+      behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT
+    ) {
+      if (amount === null || amount < 0) {
+        return;
+      }
+      monthly = roundUpCents_(amount * factor);
+    } else if (behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
+      var debt = roundUpCents_(Math.max(0, -(accountBalances[toKey] || 0)));
+      monthly = roundUpCents_(debt * factor);
+    } else if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+      var keep = amount === null || amount < 0 ? 0 : amount;
+      var sourceBalance = accountBalances[fromKey] || 0;
+      var sourceIncome = incomeTotalsByAccount[fromKey] || 0;
+      var sourceExpense = expenseTotalsByAccount[fromKey] || 0;
+      monthly = roundUpCents_(Math.max(0, sourceBalance + sourceIncome - sourceExpense - keep));
+    }
+
+    if (monthly === null || monthly <= 0) {
+      return;
+    }
+    debits[fromKey] = roundUpCents_((debits[fromKey] || 0) + monthly);
+    credits[toKey] = roundUpCents_((credits[toKey] || 0) + monthly);
+  });
+
+  return { credits: credits, debits: debits };
+}
+
+function updateAccountMonthlyFlowAveragesForScenarioModel_(
+  scenarioId,
+  accounts,
+  incomeTotalsByAccount,
+  transferTotals,
+  expenseTotalsByAccount
+) {
+  var accountsSheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
+  if (!accountsSheet) {
+    return;
+  }
+  var lastRow = accountsSheet.getLastRow();
+  var lastCol = accountsSheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return;
+  }
+
+  var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var nameIdx = headers.indexOf('Account Name');
+  var scenarioIdx = headers.indexOf('Scenario');
+  var summaryIndexes = getAccountSummaryHeaderIndexes_(headers);
+  var interestAvgIdx = summaryIndexes.interest;
+  var expenseAvgIdx = summaryIndexes.debits;
+  var incomeAvgIdx = summaryIndexes.credits;
+  var netFlowIdx = summaryIndexes.net;
+  if (nameIdx === -1) {
+    return;
+  }
+
+  transferTotals = transferTotals || { credits: {}, debits: {} };
+  var transferCredits = transferTotals.credits || {};
+  var transferDebits = transferTotals.debits || {};
+  incomeTotalsByAccount = incomeTotalsByAccount || {};
+  expenseTotalsByAccount = expenseTotalsByAccount || {};
+
+  var accountByKey = {};
+  var activeScenarioId = normalizeScenario_(scenarioId);
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    accountByKey[normalizeAccountLookupKey_(account.name)] = account;
+  });
+
+  var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var interestAvgValues = [];
+  var expenseAvgValues = [];
+  var incomeAvgValues = [];
+  var netFlowValues = [];
+
+  rows.forEach(function (row) {
+    var existingInterest = interestAvgIdx === -1 ? '' : row[interestAvgIdx];
+    var existingExpense = expenseAvgIdx === -1 ? '' : row[expenseAvgIdx];
+    var existingIncome = incomeAvgIdx === -1 ? '' : row[incomeAvgIdx];
+    var existingNet = netFlowIdx === -1 ? '' : row[netFlowIdx];
+    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+    if (rowScenarioId !== activeScenarioId) {
+      interestAvgValues.push([existingInterest]);
+      expenseAvgValues.push([existingExpense]);
+      incomeAvgValues.push([existingIncome]);
+      netFlowValues.push([existingNet]);
+      return;
+    }
+
+    var name = row[nameIdx];
+    var key = normalizeAccountLookupKey_(name);
+    var account = accountByKey[key];
+    if (!account || account.forecast !== true) {
+      interestAvgValues.push(['']);
+      expenseAvgValues.push(['']);
+      incomeAvgValues.push(['']);
+      netFlowValues.push(['']);
+      return;
+    }
+
+    var rate = toNumber_(account.interestRate);
+    var balance = toNumber_(account.balance);
+    var frequency = account.interestPostingFrequency;
+    var method = account.interestMethod || '';
+    var fee = toNumber_(account.interestMonthlyFee);
+
+    var interest = 0;
+    if (rate !== null && balance !== null && frequency) {
+      interest = computeEstimatedMonthlyInterest_(balance, rate, method);
+    }
+
+    var income = roundUpCents_((incomeTotalsByAccount[key] || 0) + (transferCredits[key] || 0));
+    var expense = roundUpCents_((expenseTotalsByAccount[key] || 0) + (transferDebits[key] || 0));
+    if (fee !== null && fee > 0) {
+      expense = roundUpCents_(expense + fee);
+    }
+    var net = roundUpCents_(income + interest - expense);
+
+    interestAvgValues.push([interest]);
+    expenseAvgValues.push([expense]);
+    incomeAvgValues.push([income]);
+    netFlowValues.push([net]);
+  });
+
+  if (expenseAvgIdx !== -1) {
+    accountsSheet.getRange(2, expenseAvgIdx + 1, expenseAvgValues.length, 1).setValues(expenseAvgValues);
+  }
+  if (interestAvgIdx !== -1) {
+    accountsSheet.getRange(2, interestAvgIdx + 1, interestAvgValues.length, 1).setValues(interestAvgValues);
+  }
+  if (incomeAvgIdx !== -1) {
+    accountsSheet.getRange(2, incomeAvgIdx + 1, incomeAvgValues.length, 1).setValues(incomeAvgValues);
+  }
+  if (netFlowIdx !== -1) {
+    accountsSheet.getRange(2, netFlowIdx + 1, netFlowValues.length, 1).setValues(netFlowValues);
+  }
 }
 
 function toast_(_message) {
