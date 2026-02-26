@@ -98,8 +98,16 @@ function withTemporaryClaspConfig(scriptId, fn) {
 
 function deployMain() {
   writeCredentialsIfProvided();
-  const scriptId = requireEnv('CLASP_SCRIPT_ID_PROD');
-  withTemporaryClaspConfig(scriptId, () => {
+  const prodScriptId = requireEnv('CLASP_SCRIPT_ID_PROD');
+  const personalScriptId = requireEnv('CLASP_SCRIPT_ID_PERSONAL');
+
+  withTemporaryClaspConfig(prodScriptId, () => {
+    console.log('Deploying to production Apps Script');
+    runCommand(['push', '--force']);
+  });
+
+  withTemporaryClaspConfig(personalScriptId, () => {
+    console.log('Deploying to personal Apps Script');
     runCommand(['push', '--force']);
   });
 }
