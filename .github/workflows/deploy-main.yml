@@ -1,7 +1,9 @@
 name: Deploy Apps Script on Main
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
     paths:
@@ -19,6 +21,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,6 +41,7 @@ jobs:
         env:
           CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
           CLASP_SCRIPT_ID_PROD: ${{ secrets.CLASP_SCRIPT_ID_PROD }}
+          CLASP_SCRIPT_ID_PERSONAL: ${{ secrets.CLASP_SCRIPT_ID_PERSONAL }}
         run: |
           if [ -z "$CLASP_CREDENTIALS_JSON" ]; then
             echo "Missing secret: CLASP_CREDENTIALS_JSON"
@@ -47,9 +51,14 @@ jobs:
             echo "Missing secret: CLASP_SCRIPT_ID_PROD"
             exit 1
           fi
+          if [ -z "$CLASP_SCRIPT_ID_PERSONAL" ]; then
+            echo "Missing secret: CLASP_SCRIPT_ID_PERSONAL"
+            exit 1
+          fi
 
-      - name: Deploy to production Apps Script
+      - name: Deploy to production and personal Apps Script
         env:
           CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
           CLASP_SCRIPT_ID_PROD: ${{ secrets.CLASP_SCRIPT_ID_PROD }}
+          CLASP_SCRIPT_ID_PERSONAL: ${{ secrets.CLASP_SCRIPT_ID_PERSONAL }}
         run: npm run pr:deploy-main
