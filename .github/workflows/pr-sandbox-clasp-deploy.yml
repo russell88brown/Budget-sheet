@@ -31,6 +31,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Verify typed build and tests
+        run: npm run verify
+
       - name: Resolve and validate secrets
         shell: bash
         run: |
@@ -45,12 +57,6 @@ jobs:
             echo "Missing secret: CLASP_OAUTH_CREDENTIALS (or CLASP_CREDENTIALS_JSON)"
             exit 1
           fi
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
 
       - name: Configure clasp auth
         shell: bash
