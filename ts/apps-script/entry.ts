@@ -177,6 +177,7 @@ import { normalizeAccountRows } from "../core/accountRowNormalization";
 import { deactivateRowsByValidator } from "../core/rowDeactivation";
 import { buildExpenseMonthlyTotals, buildIncomeMonthlyTotals } from "../core/monthlyRuleTotals";
 import { buildTransferMonthlyTotals } from "../core/transferRuleTotals";
+import { computeTransferMonthlyWorksheet } from "../core/transferMonthlyWorksheet";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -202,6 +203,7 @@ export const TypedBudget = {
   buildIncomeMonthlyTotals,
   buildExpenseMonthlyTotals,
   buildTransferMonthlyTotals,
+  computeTransferMonthlyWorksheet,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,
