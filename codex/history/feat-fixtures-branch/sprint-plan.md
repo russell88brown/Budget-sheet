@@ -31,16 +31,16 @@ Add high-value deterministic fixture tests that lock down typed-core behavior du
 - Runtime/sheet integration tests outside current unit test harness.
 
 ## Task Checklist
-- [ ] Confirm baseline and map each of the 10 requested fixtures to existing test files or new fixture-focused test files.
-- [ ] Add fixture assertions for event sorting contracts (order list + priority ranking + tie-break deterministic ordering).
-- [ ] Add fixture assertions for transfer resolution contracts (estimate + resolve matrix, skip/cap/creditPaidOff).
-- [ ] Add fixture assertions for normalization contracts (`normalizeTransferType` alias compatibility).
-- [ ] Add fixture assertions for recurrence boundary contracts (month-end clamp + alignToWindow + ONCE in past).
-- [ ] Add fixture assertions for policy contracts (active date boundaries + auto-deficit selection sort/filter).
-- [ ] Add fixture assertions for scenario scope contracts (Base inclusion + column inclusion rules).
-- [ ] Add fixture assertions for summary stats contracts (tolerance, min/max/start/end/netChange, mixed-type counting).
-- [ ] Run validation (`npm test`, `npm run sprint:check`) and resolve failures.
-- [ ] Update `PR.md` with per-task change log, evidence, and residual follow-ups.
+- [x] Confirm baseline and map each of the 10 requested fixtures to existing test files or new fixture-focused test files.
+- [x] Add fixture assertions for event sorting contracts (order list + priority ranking + tie-break deterministic ordering).
+- [x] Add fixture assertions for transfer resolution contracts (estimate + resolve matrix, skip/cap/creditPaidOff).
+- [x] Add fixture assertions for normalization contracts (`normalizeTransferType` alias compatibility).
+- [x] Add fixture assertions for recurrence boundary contracts (month-end clamp + alignToWindow + ONCE in past).
+- [x] Add fixture assertions for policy contracts (active date boundaries + auto-deficit selection sort/filter).
+- [x] Add fixture assertions for scenario scope contracts (Base inclusion + column inclusion rules).
+- [x] Add fixture assertions for summary stats contracts (tolerance, min/max/start/end/netChange, mixed-type counting).
+- [x] Run validation (`npm test`, `npm run sprint:check`) and resolve failures.
+- [x] Update `PR.md` with per-task change log, evidence, and residual follow-ups.
 
 ## Acceptance Criteria
 - All 10 requested fixture contracts are represented by explicit assertions in tests.
@@ -55,9 +55,9 @@ Add high-value deterministic fixture tests that lock down typed-core behavior du
 - Keep fixture values deterministic and timezone-safe by normalizing dates in test context.
 
 ## Definition Of Done
-- [ ] Planned scope implemented
-- [ ] Validation/test evidence recorded
-- [ ] `PR.md` updated with evidence
+- [x] Planned scope implemented
+- [x] Validation/test evidence recorded
+- [x] `PR.md` updated with evidence
 
 ## Risks And Mitigations
 - Risk: Existing tests already overlap some fixtures, causing redundant/fragile assertions.
