@@ -164,6 +164,7 @@ import {
   buildAccountLookupFromRows,
   validateAccountsRows,
 } from "../core/journalAccountRows";
+import { validatePolicyRows } from "../core/journalPolicyRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -177,6 +178,7 @@ export const TypedBudget = {
   disableUnknownScenarioRows,
   buildAccountLookupFromRows,
   validateAccountsRows,
+  validatePolicyRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

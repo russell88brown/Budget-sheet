@@ -35,6 +35,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Added `tests/scenarioValidation.test.ts` and expanded typed API surface checks for scenario validation helper export. | Ensure extracted scenario validation transform remains covered and discoverable through typed runtime API contract. | Reduces regression risk during further D04 extraction phases. |
 | 2026-02-27 | Extracted D04 account lookup + account validation row transforms into `ts/core/journalAccountRows.ts`, exported via typed runtime, and wired `D04_JournalEngine.gs` to typed-first execution with fallback. | Continue isolating pure account-validation logic from sheet I/O in the highest-priority split module (`D04`). | Account lookup/validation behavior is now unit-testable TS logic, reducing logic density in GAS runtime paths. |
 | 2026-02-27 | Added `tests/journalAccountRows.test.ts` and expanded typed API surface checks for account-row helper exports. | Protect the newly extracted account transforms and maintain typed runtime contract coverage. | Improves confidence for subsequent D04 extraction phases and regression detection. |
+| 2026-02-27 | Extracted D04 policy-row validation transform into `ts/core/journalPolicyRows.ts`, exported via typed runtime, and wired `validatePoliciesSheet_` to typed-first execution with fallback. | Continue shrinking mixed validation logic in `D04_JournalEngine.gs` while keeping sheet I/O boundaries in GAS. | Policy validation logic is now directly testable TS code and easier to evolve safely. |
+| 2026-02-27 | Added `tests/journalPolicyRows.test.ts` and expanded typed API surface checks for policy-row helper export. | Protect new policy-validation extraction and maintain typed runtime contract coverage. | Reduces regression risk while moving remaining D04 row validators to TS core. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 
 ## Test Evidence
@@ -51,6 +53,8 @@ Target architecture agreed for implementation:
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `disableUnknownScenarioRows` export and adapter wiring. |
 | Unit | `npm test` | Pass | Includes new `tests/journalAccountRows.test.ts` coverage for D04 account lookup/validation row transforms. |
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `buildAccountLookupFromRows` and `validateAccountsRows` exports and adapter wiring. |
+| Unit | `npm test` | Pass | Includes new `tests/journalPolicyRows.test.ts` coverage for D04 policy-row validation transform extraction. |
+| Build | `npm run build:typed` | Pass | Regenerated typed bundle with `validatePolicyRows` export and adapter wiring. |
 | Validation | Updated `codex/README.md` prompt catalog to match `codex/SKILL.md` phase model | Pass | Prompt set now explicitly maps to required sprint phases and sprint artifacts. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
 
@@ -68,4 +72,5 @@ Target architecture agreed for implementation:
 - Continue `D04_JournalEngine.gs` extraction by moving pure scenario/account validation row transforms next.
 - Continue `D04_JournalEngine.gs` extraction with account lookup/validation transforms that do not require direct sheet I/O.
 - Continue `D04_JournalEngine.gs` extraction by moving policy/goal row validation transforms that can be isolated from sheet write operations.
+- Continue `D04_JournalEngine.gs` extraction by moving goal-row validation transforms and shared row-validator helpers into `ts/core`.
 

@@ -21,6 +21,7 @@ const required = [
   "disableUnknownScenarioRows",
   "buildAccountLookupFromRows",
   "validateAccountsRows",
+  "validatePolicyRows",
 ];
 
 for (const key of required) {

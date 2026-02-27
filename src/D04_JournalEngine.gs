@@ -589,60 +589,66 @@ function validatePoliciesSheet_(validAccounts) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = 0;
-  values.forEach(function (row, rowIndex) {
-    if (!toBoolean_(row[idx.include])) {
-      return;
-    }
-    var reasons = [];
-    var policyType = normalizePolicyType_(row[idx.type]);
-    var name = row[idx.name] ? String(row[idx.name]).trim() : '';
-    var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
-    var trigger = normalizeAccountLookupKey_(row[idx.trigger]);
-    var funding = normalizeAccountLookupKey_(row[idx.funding]);
-    var threshold = idx.threshold === -1 ? null : toNumber_(row[idx.threshold]);
-    var maxPerEvent = idx.maxPerEvent === -1 ? null : toNumber_(row[idx.maxPerEvent]);
+  var typedPolicies = validatePolicyRowsTyped_(values, idx, validAccounts);
+  if (typedPolicies && Array.isArray(typedPolicies.rows) && typeof typedPolicies.updated === 'number') {
+    values = typedPolicies.rows;
+    updated = typedPolicies.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[idx.include])) {
+        return;
+      }
+      var reasons = [];
+      var policyType = normalizePolicyType_(row[idx.type]);
+      var name = row[idx.name] ? String(row[idx.name]).trim() : '';
+      var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
+      var trigger = normalizeAccountLookupKey_(row[idx.trigger]);
+      var funding = normalizeAccountLookupKey_(row[idx.funding]);
+      var threshold = idx.threshold === -1 ? null : toNumber_(row[idx.threshold]);
+      var maxPerEvent = idx.maxPerEvent === -1 ? null : toNumber_(row[idx.maxPerEvent]);
 
-    if (policyType !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
-      reasons.push('invalid policy type');
-    }
-    if (!name) {
-      reasons.push('missing name');
-    }
-    if (!trigger) {
-      reasons.push('missing trigger account');
-    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, trigger)) {
-      reasons.push('unknown trigger account');
-    }
-    if (!funding) {
-      reasons.push('missing funding account');
-    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, funding)) {
-      reasons.push('unknown funding account');
-    }
-    if (trigger && funding && trigger === funding) {
-      reasons.push('trigger and funding account cannot match');
-    }
-    if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
-      reasons.push('invalid priority');
-    }
-    if (idx.start !== -1 && row[idx.start] && !toDate_(row[idx.start])) {
-      reasons.push('invalid start date');
-    }
-    if (idx.end !== -1 && row[idx.end] && !toDate_(row[idx.end])) {
-      reasons.push('invalid end date');
-    }
-    if (threshold !== null && threshold < 0) {
-      reasons.push('threshold must be >= 0');
-    }
-    if (maxPerEvent !== null && maxPerEvent <= 0) {
-      reasons.push('max per event must be > 0');
-    }
+      if (policyType !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
+        reasons.push('invalid policy type');
+      }
+      if (!name) {
+        reasons.push('missing name');
+      }
+      if (!trigger) {
+        reasons.push('missing trigger account');
+      } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, trigger)) {
+        reasons.push('unknown trigger account');
+      }
+      if (!funding) {
+        reasons.push('missing funding account');
+      } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, funding)) {
+        reasons.push('unknown funding account');
+      }
+      if (trigger && funding && trigger === funding) {
+        reasons.push('trigger and funding account cannot match');
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
+        reasons.push('invalid priority');
+      }
+      if (idx.start !== -1 && row[idx.start] && !toDate_(row[idx.start])) {
+        reasons.push('invalid start date');
+      }
+      if (idx.end !== -1 && row[idx.end] && !toDate_(row[idx.end])) {
+        reasons.push('invalid end date');
+      }
+      if (threshold !== null && threshold < 0) {
+        reasons.push('threshold must be >= 0');
+      }
+      if (maxPerEvent !== null && maxPerEvent <= 0) {
+        reasons.push('max per event must be > 0');
+      }
 
-    if (!reasons.length) {
-      return;
-    }
-    row[idx.include] = false;
-    updated += 1;
-  });
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
