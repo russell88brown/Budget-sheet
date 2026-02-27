@@ -18,15 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy-sandbox:
-    # Secrets are not available to forked PRs; skip safely.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+  verify:
     runs-on: ubuntu-latest
-    env:
-      CLASP_SANDBOX_SCRIPT_ID: ${{ secrets.CLASP_SANDBOX_SCRIPT_ID }}
-      CLASP_OAUTH_CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS }}
-      CLASP_SCRIPT_ID_TEST: ${{ secrets.CLASP_SCRIPT_ID_TEST }}
-      CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,6 +35,20 @@ jobs:
 
       - name: Verify typed build and tests
         run: npm run verify
+
+  deploy-sandbox:
+    needs: verify
+    # Secrets are not available to forked PRs; skip safely.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    env:
+      CLASP_SANDBOX_SCRIPT_ID: ${{ secrets.CLASP_SANDBOX_SCRIPT_ID }}
+      CLASP_OAUTH_CREDENTIALS: ${{ secrets.CLASP_OAUTH_CREDENTIALS }}
+      CLASP_SCRIPT_ID_TEST: ${{ secrets.CLASP_SCRIPT_ID_TEST }}
+      CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Resolve and validate secrets
         shell: bash
