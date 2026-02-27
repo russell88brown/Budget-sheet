@@ -18,11 +18,14 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 |---|---|---|---|
 | 2026-02-27 | Added `migration-matrix.md` with full per-file classification and next-action plan. | Provide concrete migration planning artifact for `src -> ts` continuation. | Team can sequence migration work file-by-file instead of using broad estimates. |
 | 2026-02-27 | Added sprint plan and PR notes for `feat-typescript-migration-2`. | Keep sprint-loop documentation workflow intact. | New migration sprint is auditable and ready for execution. |
+| 2026-02-27 | Created execution branch `feat/typescript-migration-2` and aligned sprint metadata to this branch. | Keep sprint execution isolated to one branch per sprint run. | Sprint implementation and audit trail now match the active branch. |
+| 2026-02-27 | Removed `npm run sprint:check` from sprint instructions/templates and switched to change-relevant validation evidence. | `sprint:check` is no longer part of project workflow. | Sprint process docs now match the current tooling contract. |
+| 2026-02-27 | Updated sprint instructions to require incremental commits with descriptive messages. | Ensure sprint execution is auditable and easier to review step-by-step. | Workflow now enforces commit hygiene during execution, not only at handoff. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
 |---|---|---|---|
-| Validation | `N/A (docs-only)` | N/A | No code behavior changed. |
+| Validation | Reviewed/updated sprint process docs and sprint history artifacts | Pass | Confirmed no sprint instructions require `npm run sprint:check`. |
 | Unit | `N/A (docs-only)` | N/A | No test-affecting code changed. |
 | Typecheck | `N/A (docs-only)` | N/A | No TypeScript code changed. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |

@@ -13,7 +13,8 @@ Sprint loop:
 2. Create/switch branch (user-driven).
 3. Fill `codex/history/<sprint-id>/sprint-plan.md`.
 4. Build the feature and keep `codex/history/<sprint-id>/PR.md` updated.
-5. Run `npm run sprint:check`.
+5. Commit as you go with descriptive messages for each completed task chunk.
+6. Run relevant validation for the changes made.
 
 Notes:
 

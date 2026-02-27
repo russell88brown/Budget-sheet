@@ -29,6 +29,8 @@ This skill is the default workflow for this repo.
 2. Execute
    - Implement one task at a time from `Task Checklist`.
    - Keep work aligned to acceptance criteria.
+   - Commit as you complete meaningful units of work; do not wait until sprint end.
+   - Use descriptive commit messages that state the specific task/change.
 3. Document Continuously
    - After each completed task, update `PR.md`:
      - change made,
@@ -37,7 +39,6 @@ This skill is the default workflow for this repo.
      - residual risk or follow-up.
 4. Validate
    - Run relevant checks for your code changes.
-   - Always run `npm run sprint:check` before handoff.
 5. Close
    - Ensure open items are explicit in `Follow-Ups`.
 
@@ -46,6 +47,7 @@ This skill is the default workflow for this repo.
 - Keep Git flow user-driven.
 - Use any branch naming convention, but keep one branch per sprint execution.
 - Keep commits scoped to sprint work.
+- Prefer multiple small commits over one large commit.
 
 ## Quality Bar
 
@@ -58,4 +60,3 @@ This skill is the default workflow for this repo.
 
 - Planned scope completed or explicitly de-scoped with rationale.
 - `PR.md` includes clear change log and test/validation evidence.
-- `npm run sprint:check` passes.

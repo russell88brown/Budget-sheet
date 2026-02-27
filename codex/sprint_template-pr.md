@@ -19,7 +19,7 @@ Summarize what changed and why it was needed.
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
 |---|---|---|---|
-| Validation | `npm run sprint:check` | Pass/Fail | Required for sprint docs |
+| Validation | Process/docs verification (if applicable) | Pass/Fail/N/A | Record what was validated |
 | Unit | `npm test` (if code changed) | Pass/Fail/N/A | Include key evidence |
 | Typecheck | `npm run typecheck` (if TS touched) | Pass/Fail/N/A | Include key evidence |
 | Manual | Manual verification method | Pass/Fail/N/A | Include short result summary |

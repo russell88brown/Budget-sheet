@@ -73,10 +73,10 @@ Use this exact flow for your first sprint and every sprint after that.
 5. Fill required sections in:
    - `codex/history/<sprint-id>/sprint-plan.md`
    - `codex/history/<sprint-id>/PR.md`
-6. Validate docs before implementation:
-   - `npm run sprint:check`
+6. Validate documentation/process expectations needed for the sprint.
 7. Implement work, updating `PR.md` continuously.
-8. Before PR/merge, run final checks.
+8. Commit as you go with clear, task-specific commit messages.
+9. Before PR/merge, run final checks.
 
 ### End-To-End Flow (Default Convention)
 
@@ -85,9 +85,9 @@ Use this exact flow for your first sprint and every sprint after that.
    - `npm run sprint:start -- <sprint-id>`
 3. Implement on `sprint/<sprint-id>`.
 4. Update `PR.md` continuously as tasks complete.
-5. Before opening/updating PR, run:
-   - `npm run sprint:check`
-6. Merge when acceptance criteria and checks are satisfied.
+5. Commit incrementally as tasks land, using descriptive commit messages.
+6. Before opening/updating PR, run the checks relevant to your changes and capture evidence in `PR.md`.
+7. Merge when acceptance criteria and checks are satisfied.
 
 ### Commands
 
@@ -103,17 +103,12 @@ Start docs only (no branch create):
 npm run sprint:start -- <sprint-id> --no-branch
 ```
 
-Validate required sprint docs and section completeness:
-
-```bash
-npm run sprint:check
-```
-
 ### Repeatability Rules
 
 - Keep one sprint folder per sprint ID.
 - Keep `PR.md` as a running log; do not backfill only at the end.
-- Run `npm run sprint:check` at least once before coding and once before PR.
+- Commit throughout the sprint with descriptive messages tied to completed work.
+- Run relevant validation for the work you changed and capture evidence in `PR.md`.
 - Keep Git operations lightweight and user-driven; focus AI effort on plan quality, execution tracking, and documentation evidence.
 
 ### If You Want A Different Structure
@@ -138,3 +133,4 @@ Keep commit safety simple:
 
 1. Stage only what belongs to this sprint.
 2. Check staged files once before commit.
+3. Use descriptive commit messages that map to completed sprint tasks.

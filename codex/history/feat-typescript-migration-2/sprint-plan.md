@@ -5,7 +5,7 @@
 - Start date (YYYY-MM-DD): 2026-02-27
 - End date (YYYY-MM-DD): 2026-02-27
 - Owner: Codex + User
-- Branch: `codex/feat-fixtures-branch`
+- Branch: `feat/typescript-migration-2`
 
 ## Objective
 Produce a file-by-file migration matrix for `src/*.gs` that estimates current TypeScript migration coverage and identifies what should move to `ts/core`, what should remain Apps Script runtime, and what should be split.
