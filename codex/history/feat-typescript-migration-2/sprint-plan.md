@@ -27,6 +27,8 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Capture results in sprint PR notes.
 - [x] Execute quick-win extraction for `B01_Config.gs` + `B02_Schema.gs` into shared TypeScript modules.
 - [x] Regenerate typed bundle and keep GAS runtime wrappers aligned.
+- [x] Move `C02_RunModel.gs` orchestration logic into typed core with GAS wrapper integration.
+- [x] Move `C03_RunExtensions.gs` extension shaping logic into typed core with GAS wrapper integration.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

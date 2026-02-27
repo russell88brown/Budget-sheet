@@ -28,8 +28,8 @@ Notes:
 | `B07_TypedAdapters.gs` | 1158 | 0 | Transitional bridge/fallback layer | Transitional | Reduce surface over time; delete legacy fallback sections after coverage confidence. |
 | `B08_TypedBudget.generated.gs` | 1702 | 0 | Generated typed runtime bundle | Migrated/generated | Keep generated; do not hand-edit. |
 | `C01_Readers.gs` | 251 | 2 | Sheet read + normalization mix | Split | Keep sheet extraction in GAS; move normalization/row mapping logic fully to TS. |
-| `C02_RunModel.gs` | 40 | 0 | Run model assembly | Candidate | Move model assembly to TS core + keep GAS entry wrapper. |
-| `C03_RunExtensions.gs` | 16 | 0 | Extension orchestration | Candidate | Move orchestration logic to TS core; leave GAS call boundary only. |
+| `C02_RunModel.gs` | 40 | 0 | Run model assembly | Split (mostly migrated) | Completed 2026-02-27: logic moved to `ts/core/runModel.ts`; keep GAS wrapper boundary. |
+| `C03_RunExtensions.gs` | 16 | 0 | Extension orchestration | Split (mostly migrated) | Completed 2026-02-27: logic moved to `ts/core/runExtensions.ts`; keep GAS wrapper boundary. |
 | `D01_Events.gs` | 172 | 0 | Event builders and mapping | Split (mostly migrated) | Keep wrapper boundary; remove duplicated legacy event construction. |
 | `D02_CoreCompile.gs` | 72 | 0 | Compile/sort orchestration | Split (mostly migrated) | Keep thin wrapper; lean on typed compile path. |
 | `D03_CoreApply.gs` | 451 | 0 | Core apply pipeline with typed hooks | Split | Continue extracting pure algorithms to `ts/core/journal*`; keep runtime state and integration in GAS. |

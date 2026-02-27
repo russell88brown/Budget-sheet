@@ -149,10 +149,20 @@ import {
 } from "../core/recurrence";
 import { CONFIG } from "../core/config";
 import { SCHEMA } from "../core/schema";
+import {
+  buildRunModel,
+  buildRunModelWithExtensions,
+  filterScenarioRowsForModel,
+} from "../core/runModel";
+import { buildRunExtensions } from "../core/runExtensions";
 
 export const TypedBudget = {
   Config: CONFIG,
   Schema: SCHEMA,
+  buildRunModel,
+  buildRunModelWithExtensions,
+  filterScenarioRowsForModel,
+  buildRunExtensions,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

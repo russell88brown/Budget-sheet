@@ -2061,10 +2061,56 @@ var TypedBudget = (() => {
     toMarkdown: () => schemaToMarkdown(SCHEMA.inputs, SCHEMA.outputs)
   };
 
+  // ts/core/runModel.ts
+  function filterScenarioRowsForModel(rows, scenarioId, normalizeScenario, defaultScenarioId) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return [];
+    }
+    const activeScenarioId = normalizeScenario(scenarioId);
+    return rows.filter((row) => {
+      const rowScenarioId = row && typeof row === "object" ? normalizeScenario(row.scenarioId) : defaultScenarioId;
+      return rowScenarioId === activeScenarioId;
+    });
+  }
+  function buildRunModel(scenarioId, sources, normalizeScenario, defaultScenarioId) {
+    const activeScenarioId = normalizeScenario(scenarioId);
+    const accounts = filterScenarioRowsForModel(sources.accounts, activeScenarioId, normalizeScenario, defaultScenarioId).filter(
+      (account) => account && account.name
+    );
+    return {
+      scenarioId: activeScenarioId,
+      accounts,
+      incomeRules: filterScenarioRowsForModel(sources.incomeRules, activeScenarioId, normalizeScenario, defaultScenarioId),
+      transferRules: filterScenarioRowsForModel(sources.transferRules, activeScenarioId, normalizeScenario, defaultScenarioId),
+      expenseRules: filterScenarioRowsForModel(sources.expenseRules, activeScenarioId, normalizeScenario, defaultScenarioId)
+    };
+  }
+  function buildRunModelWithExtensions(scenarioId, sources, normalizeScenario, defaultScenarioId) {
+    const core = buildRunModel(scenarioId, sources, normalizeScenario, defaultScenarioId);
+    return {
+      ...core,
+      policies: filterScenarioRowsForModel(sources.policies, core.scenarioId, normalizeScenario, defaultScenarioId),
+      goals: filterScenarioRowsForModel(sources.goals, core.scenarioId, normalizeScenario, defaultScenarioId)
+    };
+  }
+
+  // ts/core/runExtensions.ts
+  function buildRunExtensions(runModelWithExtensions) {
+    const model = runModelWithExtensions || {};
+    return {
+      policies: Array.isArray(model.policies) ? model.policies : [],
+      goals: Array.isArray(model.goals) ? model.goals : []
+    };
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
     Config: CONFIG,
     Schema: SCHEMA,
+    buildRunModel,
+    buildRunModelWithExtensions,
+    filterScenarioRowsForModel,
+    buildRunExtensions,
     DEFAULT_TAG: "Base",
     normalizeTag,
     normalizeAvailableTags,

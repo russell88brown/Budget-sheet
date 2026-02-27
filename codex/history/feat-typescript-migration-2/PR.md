@@ -23,6 +23,8 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 | 2026-02-27 | Updated sprint instructions to require incremental commits with descriptive messages. | Ensure sprint execution is auditable and easier to review step-by-step. | Workflow now enforces commit hygiene during execution, not only at handoff. |
 | 2026-02-27 | Extracted `Config` and `Schema` source-of-truth into `ts/core/config.ts` and `ts/core/schema.ts`, then exposed them via `TypedBudget`. | Execute the first quick-win migration target from the matrix while preserving GAS runtime usage. | `src/B01_Config.gs` and `src/B02_Schema.gs` are now thin wrappers over typed exports, reducing duplicated constant/schema maintenance. |
 | 2026-02-27 | Regenerated `src/B08_TypedBudget.generated.gs` and added API surface test coverage for `TypedBudget.Config`/`TypedBudget.Schema`. | Keep generated runtime aligned with new typed exports and guard the integration contract. | Future regressions in config/schema export availability will fail tests earlier. |
+| 2026-02-27 | Migrated run-model orchestration to `ts/core/runModel.ts` and run-extension shaping to `ts/core/runExtensions.ts`, with `C02`/`C03` wrappers using typed-first calls + fallback. | Continue reducing non-typed logic surface in `src/*.gs` while retaining Apps Script entry boundaries. | Core model assembly and extension shaping are now unit-testable TS logic and exported through `TypedBudget`. |
+| 2026-02-27 | Added `tests/runModel.test.ts` and `tests/runExtensions.test.ts`, and expanded typed API surface checks for run-model functions. | Ensure the newly extracted logic is covered by repeatable Node tests. | Increases confidence that further GAS wrapper-thinning can happen without behavior drift. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
@@ -31,6 +33,7 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 | Unit | `npm test` | Pass | Includes updated `tests/typedApiSurface.test.ts` assertions for `Config` and `Schema`. |
 | Typecheck | `npm run typecheck` | Pass | New `ts/core/config.ts` and `ts/core/schema.ts` compile cleanly. |
 | Build | `npm run build:typed` | Pass | Regenerated `src/B08_TypedBudget.generated.gs` with exported `Config` and `Schema`. |
+| Build | `npm run build:typed` | Pass | Regenerated `src/B08_TypedBudget.generated.gs` with run-model and run-extension exports. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
 
 ## Risks

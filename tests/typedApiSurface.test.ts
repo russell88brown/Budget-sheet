@@ -12,6 +12,10 @@ const required = [
   "getApplicableAutoDeficitPolicies",
   "normalizeScenarioSet",
   "computeSeriesStats",
+  "buildRunModel",
+  "buildRunModelWithExtensions",
+  "filterScenarioRowsForModel",
+  "buildRunExtensions",
 ];
 
 for (const key of required) {
