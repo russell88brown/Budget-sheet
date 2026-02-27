@@ -55,4 +55,5 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Confirm whether sprint docs should also be mirrored to any `.codex/...` path used by local IDE views.
+- Decision recorded: keep canonical sprint docs under `codex/history/...` only (no `.codex` mirroring).
+- Handoff created for migration planning in `codex/history/feat-typescript-migration-2/`.
