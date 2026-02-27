@@ -1,7 +1,16 @@
 // Typed adapter bridge. Uses generated TypedBudget API when available.
 
 function typedBudgetApi_() {
-  return typeof TypedBudget !== 'undefined' ? TypedBudget : null;
+  if (typeof TypedBudget === 'undefined' || !TypedBudget) {
+    return null;
+  }
+  if (typeof TypedBudget.normalizeTag === 'function') {
+    return TypedBudget;
+  }
+  if (TypedBudget.TypedBudget && typeof TypedBudget.TypedBudget === 'object') {
+    return TypedBudget.TypedBudget;
+  }
+  return null;
 }
 
 function normalizeTagTyped_(value) {
