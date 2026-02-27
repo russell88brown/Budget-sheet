@@ -886,6 +886,24 @@ function mapPolicyReaderRowsTyped_(rows) {
   return null;
 }
 
+function mapGoalReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapGoalReaderRows === 'function') {
+    return api.mapGoalReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        toNumber: toNumber_,
+        toDate: toDate_,
+        toPositiveInt: toPositiveInt_,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

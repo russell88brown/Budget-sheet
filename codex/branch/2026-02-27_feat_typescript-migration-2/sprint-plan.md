@@ -62,6 +62,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Extract `C01_Readers.gs` scenario-catalog builder helper to typed core and keep GAS fallback.
 - [x] Extract `C01_Readers.gs` account-row reader mapping helper to typed core and keep GAS fallback.
 - [x] Extract `C01_Readers.gs` policy-row reader mapping helper to typed core and keep GAS fallback.
+- [x] Extract `C01_Readers.gs` goal-row reader mapping helper to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

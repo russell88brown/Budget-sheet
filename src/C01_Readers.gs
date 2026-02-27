@@ -65,6 +65,10 @@ const Readers = {
 
   readGoals: function () {
     var rows = readSheetRows_(Config.SHEETS.GOALS);
+    var typed = mapGoalReaderRowsTyped_(rows);
+    if (typed) {
+      return typed;
+    }
     return rows
       .filter(function (row) {
         return toBoolean_(row['Include']);
