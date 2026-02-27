@@ -10,6 +10,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const codexRoot = path.join(repoRoot, 'codex');
 const branchDir = path.join(codexRoot, 'branch');
 const currentSprintFile = path.join(codexRoot, 'current-sprint');
+const currentPhaseFile = path.join(codexRoot, 'current-phase');
 const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
 const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
 
@@ -106,6 +107,8 @@ function startSprint(sprintId, options) {
 
   writeFile(currentSprintFile, `${sprintId}\n`);
   info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${sprintId}`);
+  writeFile(currentPhaseFile, 'create_plan_from_prompt|in_progress\n');
+  info(`Updated: ${path.relative(repoRoot, currentPhaseFile)} -> create_plan_from_prompt|in_progress`);
 
   if (!options.noBranch) {
     runGitCreateBranch(`sprint/${sprintId}`);
@@ -198,6 +201,13 @@ function checkSprint() {
   const sprintPath = path.join(branchDir, sprintId);
   if (!fs.existsSync(sprintPath)) {
     fail(`Current sprint folder missing: ${path.relative(repoRoot, sprintPath)}`);
+  }
+  if (!fs.existsSync(currentPhaseFile)) {
+    fail(`Missing ${path.relative(repoRoot, currentPhaseFile)}.`);
+  }
+  const phaseStatus = readFile(currentPhaseFile).trim();
+  if (!/^[a-z_]+\|(in_progress|completed)$/.test(phaseStatus)) {
+    fail(`${path.relative(repoRoot, currentPhaseFile)} must match <phase>|<status>.`);
   }
 
   const failures = [];
