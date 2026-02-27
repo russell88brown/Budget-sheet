@@ -56,7 +56,7 @@ This section is the source of truth for planning, executing, and closing sprints
 
 ### Folder Contract (`codex`)
 
-- Skill: `codex/skill/SKILL.md`
+- Skill: `codex/SKILL.md`
 - Plan template: `codex/sprint_tempalte-plan.md`
 - PR template: `codex/sprint_template-pr.md`
 - Sprint history: `codex/history/<sprint-id>/`
@@ -125,7 +125,7 @@ Current automation is hard-wired to these paths in `scripts/sprint-tools.mjs`:
 - `codex/history/`
 - `codex/current-sprint`
 
-If you want another root (for example `codex/`), update those constants in `scripts/sprint-tools.mjs` once, then keep that structure stable across sprints.
+If you want another root, update those constants in `scripts/sprint-tools.mjs` once, then keep that structure stable across sprints.
 
 ### Skill
 

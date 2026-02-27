@@ -19,7 +19,7 @@ Improved the `codex` sprint system so it is repeatable for first-time usage, les
 | Date | Change | Reason | Impact |
 |---|---|---|---|
 | 2026-02-27 | Updated `docs/tooling/CODEX.md` with first-time repeatable runbook and simplified commit guidance. | Reduce onboarding friction and keep workflow practical. | New contributors can execute sprint flow consistently. |
-| 2026-02-27 | Consolidated workflow into one skill at `codex/skill/SKILL.md`. | Simplify execution model and reduce cognitive overhead. | One default loop for planning, delivery, and documentation. |
+| 2026-02-27 | Consolidated workflow into one skill at `codex/SKILL.md`. | Simplify execution model and reduce cognitive overhead. | One default loop for planning, delivery, and documentation. |
 | 2026-02-27 | Migrated sprint structure to `codex/history/<sprint-id>/` with two templates only. | Match desired structure and remove redundant artifacts. | Leaner, clearer sprint system. |
 | 2026-02-27 | Updated `scripts/sprint-tools.mjs` to use `codex/` paths and two required docs. | Align automation with new contract. | `npm run sprint:start` and `npm run sprint:check` match new layout. |
 
@@ -32,7 +32,7 @@ Improved the `codex` sprint system so it is repeatable for first-time usage, les
 | Manual | Documentation review | Pass | Verified consistency across `codex` docs, skill, templates, and history paths. |
 
 ## Risks
-- Legacy `.codex` artifacts may remain locally until cleanup.
+- No open risks for this documentation sprint.
 
 ## Definition Of Done Check
 - [x] Scope delivered
@@ -40,4 +40,4 @@ Improved the `codex` sprint system so it is repeatable for first-time usage, les
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Remove legacy `.codex` folder after migration is confirmed.
+- Optional: rename `sprint_tempalte-plan.md` to `sprint_template-plan.md` (typo fix) in a dedicated small change.
