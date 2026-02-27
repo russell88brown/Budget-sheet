@@ -193,6 +193,7 @@ import { buildScenarioCatalog } from "../core/scenarioCatalog";
 import { mapAccountReaderRows } from "../core/accountReaderRows";
 import { mapPolicyReaderRows } from "../core/policyReaderRows";
 import { mapGoalReaderRows } from "../core/goalReaderRows";
+import { mapIncomeReaderRows } from "../core/incomeReaderRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -234,6 +235,7 @@ export const TypedBudget = {
   mapAccountReaderRows,
   mapPolicyReaderRows,
   mapGoalReaderRows,
+  mapIncomeReaderRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,
