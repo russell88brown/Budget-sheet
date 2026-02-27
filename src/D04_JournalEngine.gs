@@ -203,38 +203,44 @@ function assignMissingRuleIdsForSheet_(sheetName, prefix) {
   }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var existing = {};
-  values.forEach(function (row) {
-    var id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
-    if (id) {
-      existing[id] = true;
-    }
-  });
-
-  var nextNumber = 1;
+  var typedAssigned = assignMissingRuleIdsRowsTyped_(values, ruleIdIdx, prefix);
   var assigned = 0;
-  values.forEach(function (row) {
-    var current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
-    if (current) {
-      return;
-    }
-    if (!hasMeaningfulRowDataForRuleId_(row, ruleIdIdx)) {
-      return;
-    }
-
-    var candidate = '';
-    while (!candidate) {
-      var serial = ('00000' + nextNumber).slice(-5);
-      var trial = prefix + '-' + serial;
-      nextNumber += 1;
-      if (!existing[trial]) {
-        candidate = trial;
+  if (typedAssigned && typeof typedAssigned.assigned === 'number' && Array.isArray(typedAssigned.rows)) {
+    values = typedAssigned.rows;
+    assigned = typedAssigned.assigned;
+  } else {
+    var existing = {};
+    values.forEach(function (row) {
+      var id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+      if (id) {
+        existing[id] = true;
       }
-    }
-    row[ruleIdIdx] = candidate;
-    existing[candidate] = true;
-    assigned += 1;
-  });
+    });
+
+    var nextNumber = 1;
+    values.forEach(function (row) {
+      var current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+      if (current) {
+        return;
+      }
+      if (!hasMeaningfulRowDataForRuleId_(row, ruleIdIdx)) {
+        return;
+      }
+
+      var candidate = '';
+      while (!candidate) {
+        var serial = ('00000' + nextNumber).slice(-5);
+        var trial = prefix + '-' + serial;
+        nextNumber += 1;
+        if (!existing[trial]) {
+          candidate = trial;
+        }
+      }
+      row[ruleIdIdx] = candidate;
+      existing[candidate] = true;
+      assigned += 1;
+    });
+  }
 
   if (assigned > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -243,6 +249,10 @@ function assignMissingRuleIdsForSheet_(sheetName, prefix) {
 }
 
 function hasMeaningfulRowDataForRuleId_(row, ruleIdIdx) {
+  var typed = hasMeaningfulRowDataForRuleIdTyped_(row, ruleIdIdx);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
   for (var i = 0; i < row.length; i += 1) {
     if (i === ruleIdIdx) {
       continue;

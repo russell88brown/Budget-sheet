@@ -29,6 +29,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Regenerated `src/B08_TypedBudget.generated.gs` and added API surface test coverage for `TypedBudget.Config`/`TypedBudget.Schema`. | Keep generated runtime aligned with new typed exports and guard the integration contract. | Future regressions in config/schema export availability will fail tests earlier. |
 | 2026-02-27 | Migrated run-model orchestration to `ts/core/runModel.ts` and run-extension shaping to `ts/core/runExtensions.ts`, with `C02`/`C03` wrappers using typed-first calls + fallback. | Continue reducing non-typed logic surface in `src/*.gs` while retaining Apps Script entry boundaries. | Core model assembly and extension shaping are now unit-testable TS logic and exported through `TypedBudget`. |
 | 2026-02-27 | Added `tests/runModel.test.ts` and `tests/runExtensions.test.ts`, and expanded typed API surface checks for run-model functions. | Ensure the newly extracted logic is covered by repeatable Node tests. | Increases confidence that further GAS wrapper-thinning can happen without behavior drift. |
+| 2026-02-27 | Extracted D04 Rule ID assignment logic into `ts/core/ruleIdAssignment.ts`, exported via typed runtime, and wired `D04_JournalEngine.gs` to typed-first execution with fallback. | Start high-priority `D04_JournalEngine.gs` decomposition without changing Apps Script runtime boundaries. | Rule ID assignment behavior is now directly unit-testable in TS and no longer maintained only in GAS code. |
+| 2026-02-27 | Added `tests/ruleIdAssignment.test.ts` and expanded typed API surface checks for Rule ID assignment helpers. | Guard the new typed extraction and preserve runtime contract coverage. | Future regressions in Rule ID assignment behavior/export availability will fail in CI tests. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
@@ -38,6 +40,8 @@ Target architecture agreed for implementation:
 | Typecheck | `npm run typecheck` | Pass | New `ts/core/config.ts` and `ts/core/schema.ts` compile cleanly. |
 | Build | `npm run build:typed` | Pass | Regenerated `src/B08_TypedBudget.generated.gs` with exported `Config` and `Schema`. |
 | Build | `npm run build:typed` | Pass | Regenerated `src/B08_TypedBudget.generated.gs` with run-model and run-extension exports. |
+| Unit | `npm test` | Pass | Includes new `tests/ruleIdAssignment.test.ts` coverage for D04 Rule ID assignment extraction. |
+| Build | `npm run build:typed` | Pass | Regenerated typed bundle with `hasMeaningfulRowDataForRuleId` and `assignMissingRuleIdsRows` exports. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
 
 ## Risks
@@ -51,4 +55,5 @@ Target architecture agreed for implementation:
 
 ## Follow-Ups
 - Next implementation target: begin `D04_JournalEngine.gs` extraction of pure decision logic to `ts/core`.
+- Continue `D04_JournalEngine.gs` extraction by moving pure scenario/account validation row transforms next.
 

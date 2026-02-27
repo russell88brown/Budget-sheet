@@ -2103,6 +2103,58 @@ var TypedBudget = (() => {
     };
   }
 
+  // ts/core/ruleIdAssignment.ts
+  function hasMeaningfulRowDataForRuleId(row, ruleIdIdx) {
+    for (let i = 0; i < row.length; i += 1) {
+      if (i === ruleIdIdx) {
+        continue;
+      }
+      const value = row[i];
+      if (value === null || value === "") {
+        continue;
+      }
+      if (value === false) {
+        continue;
+      }
+      return true;
+    }
+    return false;
+  }
+  function assignMissingRuleIdsRows(sourceRows, ruleIdIdx, prefix) {
+    const rows = sourceRows.map((row) => row.slice());
+    const existing = {};
+    rows.forEach((row) => {
+      const id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : "";
+      if (id) {
+        existing[id] = true;
+      }
+    });
+    let nextNumber = 1;
+    let assigned = 0;
+    rows.forEach((row) => {
+      const current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : "";
+      if (current) {
+        return;
+      }
+      if (!hasMeaningfulRowDataForRuleId(row, ruleIdIdx)) {
+        return;
+      }
+      let candidate = "";
+      while (!candidate) {
+        const serial = ("00000" + nextNumber).slice(-5);
+        const trial = `${prefix}-${serial}`;
+        nextNumber += 1;
+        if (!existing[trial]) {
+          candidate = trial;
+        }
+      }
+      row[ruleIdIdx] = candidate;
+      existing[candidate] = true;
+      assigned += 1;
+    });
+    return { rows, assigned };
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
     Config: CONFIG,
@@ -2111,6 +2163,8 @@ var TypedBudget = (() => {
     buildRunModelWithExtensions,
     filterScenarioRowsForModel,
     buildRunExtensions,
+    hasMeaningfulRowDataForRuleId,
+    assignMissingRuleIdsRows,
     DEFAULT_TAG: "Base",
     normalizeTag,
     normalizeAvailableTags,

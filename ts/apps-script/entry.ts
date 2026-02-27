@@ -155,6 +155,10 @@ import {
   filterScenarioRowsForModel,
 } from "../core/runModel";
 import { buildRunExtensions } from "../core/runExtensions";
+import {
+  assignMissingRuleIdsRows,
+  hasMeaningfulRowDataForRuleId,
+} from "../core/ruleIdAssignment";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -163,6 +167,8 @@ export const TypedBudget = {
   buildRunModelWithExtensions,
   filterScenarioRowsForModel,
   buildRunExtensions,
+  hasMeaningfulRowDataForRuleId,
+  assignMissingRuleIdsRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

@@ -16,6 +16,8 @@ const required = [
   "buildRunModelWithExtensions",
   "filterScenarioRowsForModel",
   "buildRunExtensions",
+  "hasMeaningfulRowDataForRuleId",
+  "assignMissingRuleIdsRows",
 ];
 
 for (const key of required) {

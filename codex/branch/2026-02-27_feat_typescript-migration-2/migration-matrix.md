@@ -33,7 +33,7 @@ Notes:
 | `D01_Events.gs` | 172 | 0 | Event builders and mapping | Split (mostly migrated) | Keep wrapper boundary; remove duplicated legacy event construction. |
 | `D02_CoreCompile.gs` | 72 | 0 | Compile/sort orchestration | Split (mostly migrated) | Keep thin wrapper; lean on typed compile path. |
 | `D03_CoreApply.gs` | 451 | 0 | Core apply pipeline with typed hooks | Split | Continue extracting pure algorithms to `ts/core/journal*`; keep runtime state and integration in GAS. |
-| `D04_JournalEngine.gs` | 2048 | 25 | Large mixed engine (I/O + core logic) | Split (high priority) | Extract pure transforms/filters/selection logic to `ts/core`; retain sheet I/O, toast, and GAS utilities here. |
+| `D04_JournalEngine.gs` | 2048 | 25 | Large mixed engine (I/O + core logic) | Split (high priority) | In progress (2026-02-27): extracted Rule ID assignment logic to `ts/core/ruleIdAssignment.ts`; continue moving pure validation/selection transforms. |
 | `D05_Writers.gs` | 202 | 5 | Journal write/formatting | Runtime-bound | Keep as GAS writer module. |
 | `E01_Summary.gs` | 733 | 13 | Mixed summary compute + output formatting | Split | Move pure summary calculations to `ts/core`; keep rendering/writes/formatting in GAS. |
 | `E02_DashboardReports.gs` | 476 | 11 | Dashboard pivot/report rendering | Runtime-bound | Keep as GAS reporting/UI writer. |

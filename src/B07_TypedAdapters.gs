@@ -441,6 +441,22 @@ function buildScenarioLookupTyped_(catalogValues) {
   return lookup;
 }
 
+function hasMeaningfulRowDataForRuleIdTyped_(row, ruleIdIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.hasMeaningfulRowDataForRuleId === 'function') {
+    return api.hasMeaningfulRowDataForRuleId(Array.isArray(row) ? row : [], ruleIdIdx);
+  }
+  return null;
+}
+
+function assignMissingRuleIdsRowsTyped_(rows, ruleIdIdx, prefix) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.assignMissingRuleIdsRows === 'function') {
+    return api.assignMissingRuleIdsRows(Array.isArray(rows) ? rows : [], ruleIdIdx, prefix || '');
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

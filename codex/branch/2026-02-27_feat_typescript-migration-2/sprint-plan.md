@@ -34,6 +34,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Regenerate typed bundle and keep GAS runtime wrappers aligned.
 - [x] Move `C02_RunModel.gs` orchestration logic into typed core with GAS wrapper integration.
 - [x] Move `C03_RunExtensions.gs` extension shaping logic into typed core with GAS wrapper integration.
+- [x] Extract `D04_JournalEngine.gs` Rule ID assignment logic to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.
