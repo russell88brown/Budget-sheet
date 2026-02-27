@@ -908,6 +908,25 @@ function getJournalBaseColumnCountTyped_(outputs, journalSheetName, fallbackCoun
   return null;
 }
 
+function buildJournalArtifactsForRunModelTyped_(runModel) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildJournalArtifactsForRunModel === 'function') {
+    return api.buildJournalArtifactsForRunModel(runModel || {}, {
+      resolveScenarioId: resolveScenarioId_,
+      assertUniqueScenarioAccountNames: assertUniqueScenarioAccountNames_,
+      buildAccountTypeMap: buildAccountTypeMap_,
+      buildRunExtensions: buildRunExtensions_,
+      buildSortedEvents: function (model) {
+        return CoreCompileRules.buildSortedEvents(model || {});
+      },
+      applyEventsToJournal: function (options) {
+        return CoreApplyEvents.applyEventsToJournal(options || {});
+      },
+    });
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

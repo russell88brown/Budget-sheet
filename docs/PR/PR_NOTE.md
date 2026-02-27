@@ -3,7 +3,7 @@
 ## Summary
 - Introduces TypeScript migration foundation with low-risk adapter wiring.
 - Keeps Apps Script runtime stable with typed-first + JS fallback behavior.
-- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, journal-apply-helper, journal-row, journal-event-application, journal-deficit-interest, journal-auto-deficit, journal-transfer-resolution, and journal-orchestration utilities with tests.
+- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, journal-apply-helper, journal-row, journal-event-application, journal-deficit-interest, journal-auto-deficit, journal-transfer-resolution, journal-orchestration, and journal-build utilities with tests.
 
 ## Implemented
 - TS build/test foundation (`tsconfig`, scripts, typed modules, tests).
@@ -36,6 +36,7 @@
   - auto-deficit cover row generation helper (`D03` routes through typed adapters)
   - transfer resolution journal side-effects (skip/apply/warning) helper (`D03` routes through typed adapters)
   - run-id normalization + journal base-column resolution helpers (`D04` routes through typed adapters)
+  - shared run-model-to-journal-artifacts builder (`D04` routes through typed adapters and pipeline)
 
 ## Local Validation Steps
 1. `npm install`

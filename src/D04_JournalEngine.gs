@@ -79,28 +79,16 @@ function runJournalPipeline_(options) {
     if (!runModel) {
       runModel = buildRunModelWithExtensions_(scenarioId);
     }
-    var accounts = runModel.accounts || [];
-    assertUniqueScenarioAccountNames_(runModel.scenarioId, accounts);
-    var accountTypes = buildAccountTypeMap_(accounts);
-    var runExtensions = buildRunExtensions_(runModel);
-    var policies = runExtensions.policies || [];
 
     if (refreshSummaries) {
       refreshAccountSummariesForRunModel_(runModel);
     }
 
     toastStep_('Building events...');
-    var events = CoreCompileRules.buildSortedEvents(runModel);
-
     toastStep_('Building journal...');
-    var journalData = CoreApplyEvents.applyEventsToJournal({
-      accounts: accounts,
-      events: events,
-      policies: policies,
-      scenarioId: scenarioId,
-    });
+    var journalData = buildJournalArtifactsForRunModel_(runModel);
     toastStep_('Writing journal...');
-    Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
+    Writers.writeJournal(journalData.rows, journalData.forecastAccounts, journalData.accountTypes);
     recordLastRunMetadata_(modeLabel, scenarioId, 'Success', preprocessReport);
     toastStep_(options.completionToast || 'Run complete.');
   } catch (err) {
@@ -2127,6 +2115,10 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
 
 function buildJournalArtifactsForRunModel_(runModel) {
   var model = runModel || buildRunModelWithExtensions_(Config.SCENARIOS.DEFAULT);
+  var typed = buildJournalArtifactsForRunModelTyped_(model);
+  if (typed) {
+    return typed;
+  }
   var activeScenarioId = resolveScenarioId_(model.scenarioId);
   var accounts = model.accounts || [];
   assertUniqueScenarioAccountNames_(activeScenarioId, accounts);

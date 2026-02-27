@@ -1431,6 +1431,30 @@ var TypedBudget = (() => {
     return fallbackCount;
   }
 
+  // ts/core/journalBuild.ts
+  function buildJournalArtifactsForRunModel(runModel, ctx) {
+    const model = runModel || {};
+    const activeScenarioId = ctx.resolveScenarioId(model.scenarioId);
+    const accounts = model.accounts || [];
+    ctx.assertUniqueScenarioAccountNames(activeScenarioId, accounts);
+    const accountTypes = ctx.buildAccountTypeMap(accounts) || {};
+    const runExtensions = ctx.buildRunExtensions(model) || {};
+    const policies = runExtensions.policies || [];
+    const events = ctx.buildSortedEvents(model) || [];
+    const journalData = ctx.applyEventsToJournal({
+      accounts,
+      events,
+      policies,
+      scenarioId: activeScenarioId
+    }) || {};
+    return {
+      rows: journalData.rows || [],
+      forecastAccounts: journalData.forecastAccounts || [],
+      accountTypes,
+      scenarioId: activeScenarioId
+    };
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1648,7 +1672,8 @@ var TypedBudget = (() => {
     applyAutoDeficitCoverRowsBeforeEvent,
     resolveTransferAmountForJournalWithDefault,
     normalizeJournalRunIds,
-    getJournalBaseColumnCount
+    getJournalBaseColumnCount,
+    buildJournalArtifactsForRunModel
   };
   return __toCommonJS(entry_exports);
 })();
