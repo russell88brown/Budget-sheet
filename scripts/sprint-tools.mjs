@@ -7,10 +7,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
-const codexRoot = path.join(repoRoot, '.codex');
-const templatesDir = path.join(codexRoot, 'templates');
-const sprintsDir = path.join(codexRoot, 'sprints');
+const codexRoot = path.join(repoRoot, 'codex');
+const historyDir = path.join(codexRoot, 'history');
 const currentSprintFile = path.join(codexRoot, 'current-sprint');
+const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
+const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
 
 const requiredSections = {
   'sprint-plan.md': [
@@ -27,13 +28,6 @@ const requiredSections = {
     'Completed Scope',
     'Change Log',
     'Test Evidence',
-  ],
-  'retro.md': [
-    'Wins',
-    'Issues',
-    'Root Causes',
-    'What To Change Next Sprint',
-    'Action Items',
   ],
 };
 
@@ -62,8 +56,7 @@ function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf8');
 }
 
-function copyTemplate(templateName, targetFilePath, sprintId) {
-  const templatePath = path.join(templatesDir, templateName);
+function copyTemplate(templatePath, targetFilePath, sprintId) {
   if (!fs.existsSync(templatePath)) {
     fail(`Template missing: ${templatePath}`);
   }
@@ -103,15 +96,13 @@ function startSprint(sprintId, options) {
   }
 
   ensureDir(codexRoot);
-  ensureDir(sprintsDir);
-  ensureDir(templatesDir);
+  ensureDir(historyDir);
 
-  const sprintPath = path.join(sprintsDir, sprintId);
+  const sprintPath = path.join(historyDir, sprintId);
   ensureDir(sprintPath);
 
-  copyTemplate('sprint-plan.md', path.join(sprintPath, 'sprint-plan.md'), sprintId);
-  copyTemplate('PR.md', path.join(sprintPath, 'PR.md'), sprintId);
-  copyTemplate('retro.md', path.join(sprintPath, 'retro.md'), sprintId);
+  copyTemplate(planTemplateFile, path.join(sprintPath, 'sprint-plan.md'), sprintId);
+  copyTemplate(prTemplateFile, path.join(sprintPath, 'PR.md'), sprintId);
 
   writeFile(currentSprintFile, `${sprintId}\n`);
   info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${sprintId}`);
@@ -204,7 +195,7 @@ function checkSprint() {
     fail(`${path.relative(repoRoot, currentSprintFile)} is empty.`);
   }
 
-  const sprintPath = path.join(sprintsDir, sprintId);
+  const sprintPath = path.join(historyDir, sprintId);
   if (!fs.existsSync(sprintPath)) {
     fail(`Current sprint folder missing: ${path.relative(repoRoot, sprintPath)}`);
   }
