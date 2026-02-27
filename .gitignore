@@ -1,3 +1,4 @@
 .clasp.json
 codex/config.toml
 tmp/
+node_modules/
