@@ -19,6 +19,8 @@ const required = [
   "hasMeaningfulRowDataForRuleId",
   "assignMissingRuleIdsRows",
   "disableUnknownScenarioRows",
+  "buildAccountLookupFromRows",
+  "validateAccountsRows",
 ];
 
 for (const key of required) {

@@ -438,6 +438,10 @@ function buildAccountLookup_() {
     return lookup;
   }
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var typedLookup = buildAccountLookupFromRowsTyped_(values, nameIdx, includeIdx, scenarioIdx);
+  if (typedLookup) {
+    return typedLookup;
+  }
   values.forEach(function (row) {
     if (includeIdx !== -1 && !toBoolean_(row[includeIdx])) {
       return;
@@ -498,40 +502,49 @@ function validateAccountsSheet_() {
   }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var seen = {};
   var updated = 0;
-
-  values.forEach(function (row) {
-    if (!toBoolean_(row[includeIdx])) {
-      return;
-    }
-    var name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
-    var scenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    var normalizedName = normalizeAccountLookupKey_(name);
-    var type = normalizeAccountType_(row[typeIdx]);
-    var balance = toNumber_(row[balanceIdx]);
-    var reasons = [];
-
-    if (!name) {
-      reasons.push('missing account name');
-    } else {
-      var duplicateKey = scenarioId + '|' + normalizedName;
-      if (seen[duplicateKey]) {
-        reasons.push('duplicate account name');
+  var typedValidation = validateAccountsRowsTyped_(values, includeIdx, nameIdx, scenarioIdx, typeIdx, balanceIdx);
+  if (
+    typedValidation &&
+    Array.isArray(typedValidation.rows) &&
+    typeof typedValidation.updated === 'number'
+  ) {
+    values = typedValidation.rows;
+    updated = typedValidation.updated;
+  } else {
+    var seen = {};
+    values.forEach(function (row) {
+      if (!toBoolean_(row[includeIdx])) {
+        return;
       }
-      seen[duplicateKey] = true;
-    }
-    if (type !== Config.ACCOUNT_TYPES.CASH && type !== Config.ACCOUNT_TYPES.CREDIT) {
-      reasons.push('invalid account type');
-    }
-    if (balance === null) {
-      reasons.push('invalid balance');
-    }
-    if (reasons.length) {
-      row[includeIdx] = false;
-      updated += 1;
-    }
-  });
+      var name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+      var scenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+      var normalizedName = normalizeAccountLookupKey_(name);
+      var type = normalizeAccountType_(row[typeIdx]);
+      var balance = toNumber_(row[balanceIdx]);
+      var reasons = [];
+
+      if (!name) {
+        reasons.push('missing account name');
+      } else {
+        var duplicateKey = scenarioId + '|' + normalizedName;
+        if (seen[duplicateKey]) {
+          reasons.push('duplicate account name');
+        }
+        seen[duplicateKey] = true;
+      }
+      if (type !== Config.ACCOUNT_TYPES.CASH && type !== Config.ACCOUNT_TYPES.CREDIT) {
+        reasons.push('invalid account type');
+      }
+      if (balance === null) {
+        reasons.push('invalid balance');
+      }
+      if (reasons.length) {
+        row[includeIdx] = false;
+        updated += 1;
+      }
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);

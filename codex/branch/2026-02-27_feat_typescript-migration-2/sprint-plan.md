@@ -36,6 +36,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Move `C03_RunExtensions.gs` extension shaping logic into typed core with GAS wrapper integration.
 - [x] Extract `D04_JournalEngine.gs` Rule ID assignment logic to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` unknown-scenario row disable transform to typed core and keep GAS fallback.
+- [x] Extract `D04_JournalEngine.gs` account lookup/validation row transforms to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

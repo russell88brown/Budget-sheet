@@ -2174,6 +2174,103 @@ var TypedBudget = (() => {
     return { rows, disabledCount, updated };
   }
 
+  // ts/core/journalAccountRows.ts
+  function buildAccountLookupFromRows(params) {
+    const {
+      rows,
+      nameIdx,
+      includeIdx,
+      scenarioIdx,
+      defaultScenarioId,
+      toBoolean: toBoolean2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey
+    } = params;
+    const lookup = {};
+    const counts = {};
+    const scopedCounts = {};
+    rows.forEach((row) => {
+      if (includeIdx !== -1 && !toBoolean2(row[includeIdx])) {
+        return;
+      }
+      const name = row[nameIdx];
+      if (!name) {
+        return;
+      }
+      const key = normalizeAccountLookupKey(name);
+      if (!key) {
+        return;
+      }
+      const scenarioId = scenarioIdx === -1 ? defaultScenarioId : normalizeScenarioId(row[scenarioIdx]);
+      counts[key] = (counts[key] || 0) + 1;
+      const scopedKey = `${scenarioId}|${key}`;
+      scopedCounts[scopedKey] = (scopedCounts[scopedKey] || 0) + 1;
+    });
+    Object.keys(counts).forEach((key) => {
+      if (counts[key] === 1) {
+        lookup[key] = true;
+      }
+    });
+    Object.keys(scopedCounts).forEach((key) => {
+      if (scopedCounts[key] === 1) {
+        lookup[key] = true;
+      }
+    });
+    return lookup;
+  }
+  function validateAccountsRows(params) {
+    const {
+      rows: sourceRows,
+      includeIdx,
+      nameIdx,
+      scenarioIdx,
+      typeIdx,
+      balanceIdx,
+      defaultScenarioId,
+      cashType,
+      creditType,
+      toBoolean: toBoolean2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey,
+      normalizeAccountType: normalizeAccountType2,
+      toNumber: toNumber2
+    } = params;
+    const rows = sourceRows.map((row) => row.slice());
+    const seen = {};
+    let updated = 0;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[includeIdx])) {
+        return;
+      }
+      const name = row[nameIdx] ? String(row[nameIdx]).trim() : "";
+      const scenarioId = scenarioIdx === -1 ? defaultScenarioId : normalizeScenarioId(row[scenarioIdx]);
+      const normalizedName = normalizeAccountLookupKey(name);
+      const type = normalizeAccountType2(row[typeIdx]);
+      const balance = toNumber2(row[balanceIdx]);
+      const reasons = [];
+      if (!name) {
+        reasons.push("missing account name");
+      } else {
+        const duplicateKey = `${scenarioId}|${normalizedName}`;
+        if (seen[duplicateKey]) {
+          reasons.push("duplicate account name");
+        }
+        seen[duplicateKey] = true;
+      }
+      if (type !== cashType && type !== creditType) {
+        reasons.push("invalid account type");
+      }
+      if (balance === null) {
+        reasons.push("invalid balance");
+      }
+      if (reasons.length > 0) {
+        row[includeIdx] = false;
+        updated += 1;
+      }
+    });
+    return { rows, updated };
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
     Config: CONFIG,
@@ -2185,6 +2282,8 @@ var TypedBudget = (() => {
     hasMeaningfulRowDataForRuleId,
     assignMissingRuleIdsRows,
     disableUnknownScenarioRows,
+    buildAccountLookupFromRows,
+    validateAccountsRows,
     DEFAULT_TAG: "Base",
     normalizeTag,
     normalizeAvailableTags,

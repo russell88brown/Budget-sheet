@@ -160,6 +160,10 @@ import {
   hasMeaningfulRowDataForRuleId,
 } from "../core/ruleIdAssignment";
 import { disableUnknownScenarioRows } from "../core/scenarioValidation";
+import {
+  buildAccountLookupFromRows,
+  validateAccountsRows,
+} from "../core/journalAccountRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -171,6 +175,8 @@ export const TypedBudget = {
   hasMeaningfulRowDataForRuleId,
   assignMissingRuleIdsRows,
   disableUnknownScenarioRows,
+  buildAccountLookupFromRows,
+  validateAccountsRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

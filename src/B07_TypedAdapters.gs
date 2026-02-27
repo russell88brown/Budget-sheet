@@ -472,6 +472,46 @@ function disableUnknownScenarioRowsTyped_(rows, includeIdx, scenarioIdx, validSc
   return null;
 }
 
+function buildAccountLookupFromRowsTyped_(rows, nameIdx, includeIdx, scenarioIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountLookupFromRows === 'function') {
+    return api.buildAccountLookupFromRows({
+      rows: Array.isArray(rows) ? rows : [],
+      nameIdx: nameIdx,
+      includeIdx: includeIdx,
+      scenarioIdx: scenarioIdx,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      toBoolean: toBoolean_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+    });
+  }
+  return null;
+}
+
+function validateAccountsRowsTyped_(rows, includeIdx, nameIdx, scenarioIdx, typeIdx, balanceIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateAccountsRows === 'function') {
+    return api.validateAccountsRows({
+      rows: Array.isArray(rows) ? rows : [],
+      includeIdx: includeIdx,
+      nameIdx: nameIdx,
+      scenarioIdx: scenarioIdx,
+      typeIdx: typeIdx,
+      balanceIdx: balanceIdx,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      cashType: Config.ACCOUNT_TYPES.CASH,
+      creditType: Config.ACCOUNT_TYPES.CREDIT,
+      toBoolean: toBoolean_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      normalizeAccountType: normalizeAccountType_,
+      toNumber: toNumber_,
+    });
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
