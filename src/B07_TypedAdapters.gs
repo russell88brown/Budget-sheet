@@ -650,6 +650,20 @@ function normalizeAccountRowsTyped_(rows, indexes) {
   return null;
 }
 
+function deactivateRowsByValidatorTyped_(rows, includeIdx, toBooleanFn, validator, indexes) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.deactivateRowsByValidator === 'function') {
+    return api.deactivateRowsByValidator(
+      Array.isArray(rows) ? rows : [],
+      includeIdx,
+      typeof toBooleanFn === 'function' ? toBooleanFn : toBoolean_,
+      typeof validator === 'function' ? validator : function () { return []; },
+      indexes || {}
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

@@ -20,6 +20,7 @@ Target architecture agreed for implementation:
 - [x] Extract `D04_JournalEngine.gs` transfer-row normalization transform to typed core (`ts/core/transferRowNormalization.ts`) and keep GAS fallback wiring.
 - [x] Extract `D04_JournalEngine.gs` recurrence-row normalization transform to typed core (`ts/core/recurrenceRowNormalization.ts`) and keep GAS fallback wiring.
 - [x] Extract `D04_JournalEngine.gs` account-row normalization transform to typed core (`ts/core/accountRowNormalization.ts`) and keep GAS fallback wiring.
+- [x] Extract `D04_JournalEngine.gs` shared row-deactivation loop to typed core (`ts/core/rowDeactivation.ts`) and keep GAS fallback wiring.
 
 ## PR Review Against Code
 - [x] PR notes match implemented code changes.
@@ -56,6 +57,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Added `tests/recurrenceRowNormalization.test.ts` and expanded typed API surface checks for `normalizeRecurrenceRows`. | Guard recurrence-row normalization extraction and keep typed runtime contract explicit. | Export and behavior regressions for recurrence-row normalization are caught earlier in Node tests. |
 | 2026-02-27 | Extracted D04 account-row normalization transform into `ts/core/accountRowNormalization.ts`, exported via typed runtime, and wired `normalizeAccountRows_` to typed-first execution with fallback. | Continue extracting D04 pure row normalization transforms while preserving sheet I/O boundaries in GAS. | Account row normalization is now testable TS logic and easier to maintain independently from sheet access. |
 | 2026-02-27 | Added `tests/accountRowNormalization.test.ts` and expanded typed API surface checks for `normalizeAccountRows`. | Guard account-row normalization extraction and keep typed runtime contract explicit. | Export and behavior regressions for account-row normalization are caught earlier in Node tests. |
+| 2026-02-27 | Extracted D04 shared row-deactivation loop into `ts/core/rowDeactivation.ts`, exported via typed runtime, and wired `validateAndDeactivateRows_` to typed-first execution with fallback. | Continue shrinking D04 orchestration complexity by moving pure row mutation loops into TS core. | Shared include-flag deactivation behavior is now centralized, testable TS logic with GAS fallback retained. |
+| 2026-02-27 | Added `tests/rowDeactivation.test.ts` and expanded typed API surface checks for `deactivateRowsByValidator`. | Guard shared row-deactivation extraction and keep typed runtime contract explicit. | Export and behavior regressions for row deactivation are caught earlier in Node tests. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 

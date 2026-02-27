@@ -913,17 +913,23 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = 0;
-  values.forEach(function (row, idx) {
-    if (!toBoolean_(row[indexes.include])) {
-      return;
-    }
-    var reasons = validator(row, indexes) || [];
-    if (!reasons.length) {
-      return;
-    }
-    row[indexes.include] = false;
-    updated += 1;
-  });
+  var typed = deactivateRowsByValidatorTyped_(values, indexes.include, toBoolean_, validator, indexes);
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'number') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[indexes.include])) {
+        return;
+      }
+      var reasons = validator(row, indexes) || [];
+      if (!reasons.length) {
+        return;
+      }
+      row[indexes.include] = false;
+      updated += 1;
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);

@@ -29,6 +29,7 @@ const required = [
   "normalizeTransferRows",
   "normalizeRecurrenceRows",
   "normalizeAccountRows",
+  "deactivateRowsByValidator",
 ];
 
 for (const key of required) {
