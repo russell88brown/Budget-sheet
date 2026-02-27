@@ -426,9 +426,17 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
       row = maxRows + 1;
     }
   }
-  settingsSheet.getRange(row, 10, 1, 5).setValues([
-    [new Date(), modeLabel || 'Run', resolveScenarioId_(scenarioId), status || '', notes],
-  ]);
+  var logEntryRow = buildRunLogEntryRowTyped_(
+    new Date(),
+    modeLabel || 'Run',
+    resolveScenarioId_(scenarioId),
+    status || '',
+    notes
+  );
+  if (!Array.isArray(logEntryRow) || logEntryRow.length !== 5) {
+    logEntryRow = [new Date(), modeLabel || 'Run', resolveScenarioId_(scenarioId), status || '', notes];
+  }
+  settingsSheet.getRange(row, 10, 1, 5).setValues([logEntryRow]);
   settingsSheet.getRange(row, 10).setNumberFormat('yyyy-mm-dd hh:mm');
 }
 

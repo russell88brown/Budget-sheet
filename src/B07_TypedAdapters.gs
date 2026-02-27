@@ -793,6 +793,14 @@ function resolveRunLogWriteRowTyped_(columnValues, startRow, maxRows) {
   return null;
 }
 
+function buildRunLogEntryRowTyped_(timestamp, modeLabel, scenarioId, status, notes) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildRunLogEntryRow === 'function') {
+    return api.buildRunLogEntryRow(timestamp, modeLabel, scenarioId, status, notes);
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

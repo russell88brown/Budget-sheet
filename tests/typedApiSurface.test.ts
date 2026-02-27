@@ -41,6 +41,7 @@ const required = [
   "composeRunLogNotes",
   "listDuplicateAccountNames",
   "resolveRunLogWriteRow",
+  "buildRunLogEntryRow",
 ];
 
 for (const key of required) {
