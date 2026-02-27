@@ -8,6 +8,9 @@ Copy/paste:
 Follow codex/SKILL.md for full process.
 
 Request:
+Branch folder path:
+<PASTE_BRANCH_FOLDER_PATH>
+
 Create a sprint plan from this prompt array:
 [
   "<PROMPT_1>",
@@ -26,6 +29,9 @@ Examples:
 Copy/paste:
 
 ```text
+Branch folder path:
+<PASTE_BRANCH_FOLDER_PATH>
+
 Finalise the sprint plan from this branch folder path:
 <PASTE_BRANCH_FOLDER_PATH>
 ```
@@ -35,6 +41,9 @@ Finalise the sprint plan from this branch folder path:
 Copy/paste:
 
 ```text
+Branch folder path:
+<PASTE_BRANCH_FOLDER_PATH>
+
 Implement the plan and update documentation.
 ```
 
@@ -43,6 +52,9 @@ Implement the plan and update documentation.
 Copy/paste:
 
 ```text
+Branch folder path:
+<PASTE_BRANCH_FOLDER_PATH>
+
 Review and update PR notes, do final housekeeping, and do a diff against production.
 ```
 
