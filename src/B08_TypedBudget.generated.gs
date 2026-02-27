@@ -823,6 +823,27 @@ var TypedBudget = (() => {
     return ctx.roundMoney(balance * monthlyRate);
   }
 
+  // ts/core/accountValidation.ts
+  function findDuplicateAccountNames(accounts, normalizeAccountLookupKey) {
+    const seen = {};
+    const duplicates = [];
+    (accounts || []).forEach((account) => {
+      if (!account || !account.name) {
+        return;
+      }
+      const key = normalizeAccountLookupKey(account.name);
+      if (!key) {
+        return;
+      }
+      if (seen[key]) {
+        duplicates.push(String(account.name || "").trim());
+        return;
+      }
+      seen[key] = true;
+    });
+    return duplicates.filter((name, idx, arr) => !!name && arr.indexOf(name) === idx);
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1012,7 +1033,8 @@ var TypedBudget = (() => {
     normalizeAccountTotalsKeys,
     normalizeTransferTotalsKeys,
     getAccountSummaryHeaderIndexes,
-    computeEstimatedMonthlyInterest
+    computeEstimatedMonthlyInterest,
+    findDuplicateAccountNames
   };
   return __toCommonJS(entry_exports);
 })();

@@ -82,6 +82,7 @@ import {
   normalizeAccountTotalsKeys,
   normalizeTransferTotalsKeys,
 } from "../core/accountSummaries";
+import { findDuplicateAccountNames } from "../core/accountValidation";
 import {
   alignToWindow,
   expandRecurrence,
@@ -154,6 +155,7 @@ export const TypedBudget = {
   normalizeTransferTotalsKeys,
   getAccountSummaryHeaderIndexes,
   computeEstimatedMonthlyInterest,
+  findDuplicateAccountNames,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

@@ -547,6 +547,14 @@ function computeEstimatedMonthlyInterestTyped_(balance, ratePercent, method) {
   return null;
 }
 
+function findDuplicateAccountNamesTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.findDuplicateAccountNames === 'function') {
+    return api.findDuplicateAccountNames(accounts || [], normalizeAccountLookupKey_);
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

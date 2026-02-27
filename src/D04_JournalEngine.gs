@@ -1984,6 +1984,20 @@ function normalizeAccountTotalsKeys_(totalsByAccount) {
 }
 
 function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
+  var typedDuplicates = findDuplicateAccountNamesTyped_(accounts);
+  if (typedDuplicates && typedDuplicates.length) {
+    throw new Error(
+      'Duplicate account names in tag "' +
+        normalizeScenario_(scenarioId) +
+        '": ' +
+        typedDuplicates.join(', ') +
+        '.'
+    );
+  }
+  if (typedDuplicates && !typedDuplicates.length) {
+    return;
+  }
+
   var seen = {};
   var duplicates = [];
   (accounts || []).forEach(function (account) {
