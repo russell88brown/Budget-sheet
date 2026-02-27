@@ -16,6 +16,12 @@ Target architecture agreed for implementation:
 - [x] Capture migrated vs remaining estimates.
 - [x] Produce per-file migration recommendations and next actions.
 - [x] Link cleanup handoff from previous sprint.
+- [x] Extract `D04_JournalEngine.gs` income/transfer/expense row validation callbacks to typed core (`ts/core/journalRowValidation.ts`) and keep GAS fallback wiring.
+
+## PR Review Against Code
+- [x] PR notes match implemented code changes.
+- [x] Evidence table matches executed checks.
+- [x] No undocumented behavioral changes remain.
 
 ## Change Log
 | Date | Change | Reason | Impact |
@@ -39,6 +45,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Added `tests/journalPolicyRows.test.ts` and expanded typed API surface checks for policy-row helper export. | Protect new policy-validation extraction and maintain typed runtime contract coverage. | Reduces regression risk while moving remaining D04 row validators to TS core. |
 | 2026-02-27 | Extracted D04 goal-row validation transform into `ts/core/journalGoalRows.ts`, exported via typed runtime, and wired `validateGoalsSheet_` to typed-first execution with fallback. | Continue decomposing D04 validation logic into testable core modules without altering GAS sheet I/O boundaries. | Goal validation behavior is now unit-testable TS logic and reduces D04 monolith complexity further. |
 | 2026-02-27 | Added `tests/journalGoalRows.test.ts` and expanded typed API surface checks for goal-row helper export. | Protect goal-row extraction and ensure typed runtime contract remains explicit. | Further lowers regression risk for continued D04 extraction work. |
+| 2026-02-27 | Extracted D04 income/transfer/expense row-validator reason callbacks into `ts/core/journalRowValidation.ts`, exported via typed runtime, and wired `validateIncomeSheet_`/`validateTransferSheet_`/`validateExpenseSheet_` to typed-first execution with fallback. | Complete the planned D04 validator-callback extraction while preserving Apps Script runtime boundary behavior. | Core row-validation reason logic is now centralized and testable in TS with GAS fallback retained. |
+| 2026-02-27 | Expanded typed API surface assertions to include `validateIncomeRowReasons`/`validateTransferRowReasons`/`validateExpenseRowReasons`. | Keep generated runtime contract explicit for newly extracted row-validator helpers. | Export regressions for validator callbacks are caught during test runs. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 
@@ -60,6 +68,8 @@ Target architecture agreed for implementation:
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `validatePolicyRows` export and adapter wiring. |
 | Unit | `npm test` | Pass | Includes new `tests/journalGoalRows.test.ts` coverage for D04 goal-row validation transform extraction. |
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `validateGoalRows` export and adapter wiring. |
+| Unit | `npm test` | Pass | Includes `tests/journalRowValidation.test.ts` coverage for typed income/transfer/expense row-validator callbacks. |
+| Build | `npm run build:typed` | Pass | Regenerated typed bundle with `validateIncomeRowReasons`, `validateTransferRowReasons`, and `validateExpenseRowReasons` exports and adapter wiring. |
 | Validation | Updated `codex/README.md` prompt catalog to match `codex/SKILL.md` phase model | Pass | Prompt set now explicitly maps to required sprint phases and sprint artifacts. |
 | Validation | `node scripts/sprint-tools.mjs check` | Pass | Passed with current marker stored at `codex/current-sprint.md`. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
@@ -75,9 +85,5 @@ Target architecture agreed for implementation:
 
 ## Follow-Ups
 - Next implementation target: begin `D04_JournalEngine.gs` extraction of pure decision logic to `ts/core`.
-- Continue `D04_JournalEngine.gs` extraction by moving pure scenario/account validation row transforms next.
-- Continue `D04_JournalEngine.gs` extraction with account lookup/validation transforms that do not require direct sheet I/O.
-- Continue `D04_JournalEngine.gs` extraction by moving policy/goal row validation transforms that can be isolated from sheet write operations.
-- Continue `D04_JournalEngine.gs` extraction by moving goal-row validation transforms and shared row-validator helpers into `ts/core`.
-- Continue `D04_JournalEngine.gs` extraction by moving income/transfer/expense row validation callbacks into typed core modules.
+- Continue `D04_JournalEngine.gs` extraction for remaining pure decision logic and non-I/O transforms still embedded in GAS wrappers.
 
