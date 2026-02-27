@@ -52,22 +52,68 @@ Recommended path:
 
 ## Backlog And Sprint Automation
 
-Sprint execution is managed in:
+This section is the source of truth for planning, executing, and closing sprints with Codex.
 
-- `.codex/templates/`
-- `.codex/sprints/<sprint-id>/`
-- `.codex/current-sprint`
+### Folder Contract
 
-Use these commands:
+Each sprint is stored in `.codex/sprints/<sprint-id>/` with:
 
-1. Start a sprint:
+- `sprint-plan.md`
+- `PR.md`
+- `retro.md`
+
+Templates live in `.codex/templates/`.
+
+### End-To-End Flow
+
+1. On `main`, define sprint scope and acceptance in `sprint-plan.md`.
+2. Start sprint scaffolding and branch:
    - `npm run sprint:start -- <sprint-id>`
-2. Validate sprint docs:
+3. Implement on `sprint/<sprint-id>`.
+4. Update `PR.md` continuously as tasks complete.
+5. Before opening/updating PR, run:
    - `npm run sprint:check`
+6. Review delivery quality and complete `retro.md`.
+7. Merge when acceptance criteria and checks are satisfied.
 
-By convention:
+### Commands
 
-- Create the sprint plan on `main`.
-- Implement on branch `sprint/<sprint-id>`.
-- Keep `.codex/sprints/<sprint-id>/PR.md` updated during execution.
-- Complete `.codex/sprints/<sprint-id>/retro.md` at sprint close.
+Start sprint docs and branch:
+
+```bash
+npm run sprint:start -- <sprint-id>
+```
+
+Start docs only (no branch create):
+
+```bash
+npm run sprint:start -- <sprint-id> --no-branch
+```
+
+Validate required sprint docs and section completeness:
+
+```bash
+npm run sprint:check
+```
+
+### Skills
+
+- `sprint-planner`
+  - builds/refines `.codex/sprints/<sprint-id>/sprint-plan.md`
+- `sprint-executor`
+  - executes plan items and maintains `.codex/sprints/<sprint-id>/PR.md`
+- `sprint-review-retro`
+  - reviews PR outcomes and writes `.codex/sprints/<sprint-id>/retro.md`
+
+### Commit Safety
+
+Always enforce commit scope during sprint execution:
+
+1. Verify branch:
+   - `git branch --show-current`
+2. Stage only intended files:
+   - `git add <file1> <file2>`
+3. Verify staged scope:
+   - `git diff --cached --name-only`
+4. Optional deterministic guard:
+   - `node .codex/skills/sprint-executor/scripts/guard-commit.mjs <sprint-id> .codex/ src/ tests/ scripts/`

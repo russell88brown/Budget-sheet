@@ -76,17 +76,12 @@ function runJournalPipeline_(options) {
     }
 
     toastStep_('Reading input sheets...');
-    if (!runModel) {
-      runModel = buildRunModelWithExtensions_(scenarioId);
+    var execution = executeJournalPipelineCoreTyped_(scenarioId, runModel, refreshSummaries);
+    if (!execution) {
+      throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
     }
-
-    if (refreshSummaries) {
-      refreshAccountSummariesForRunModel_(runModel);
-    }
-
-    toastStep_('Building events...');
     toastStep_('Building journal...');
-    var journalData = buildJournalArtifactsForRunModel_(runModel);
+    var journalData = execution.journalData;
     toastStep_('Writing journal...');
     Writers.writeJournal(journalData.rows, journalData.forecastAccounts, journalData.accountTypes);
     recordLastRunMetadata_(modeLabel, scenarioId, 'Success', preprocessReport);
@@ -2120,47 +2115,23 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
 function buildJournalArtifactsForRunModel_(runModel) {
   var model = runModel || buildRunModelWithExtensions_(Config.SCENARIOS.DEFAULT);
   var typed = buildJournalArtifactsForRunModelTyped_(model);
-  if (typed) {
-    return typed;
+  if (!typed) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-  var activeScenarioId = resolveScenarioId_(model.scenarioId);
-  var accounts = model.accounts || [];
-  assertUniqueScenarioAccountNames_(activeScenarioId, accounts);
-  var accountTypes = buildAccountTypeMap_(accounts);
-  var runExtensions = buildRunExtensions_(model);
-  var policies = runExtensions.policies || [];
-  var events = CoreCompileRules.buildSortedEvents(model);
-  var journalData = CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts,
-    events: events,
-    policies: policies,
-    scenarioId: activeScenarioId,
-  });
-  return {
-    rows: journalData.rows || [],
-    forecastAccounts: journalData.forecastAccounts || [],
-    accountTypes: accountTypes,
-    scenarioId: activeScenarioId,
-  };
+  return typed;
 }
 
 function runJournalForIds_(scenarioIds) {
   var ids = normalizeJournalRunIdsTyped_(scenarioIds);
   if (!ids) {
-    ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
-    ids = ids
-      .map(function (value) { return resolveScenarioId_(value); })
-      .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
-    if (!ids.length) {
-      ids = [Config.SCENARIOS.DEFAULT];
-    }
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
   var useEngineDirect = shouldUseEngineDirectTyped_(
     ids,
     !!(Engine && Engine.runJournalForScenario)
   );
   if (useEngineDirect === null || useEngineDirect === undefined) {
-    useEngineDirect = ids.length === 1 && !!(Engine && Engine.runJournalForScenario);
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
   if (useEngineDirect) {
     Engine.runJournalForScenario(ids[0]);
@@ -2173,58 +2144,12 @@ function runJournalForIds_(scenarioIds) {
     toastStep_('Combining journal rows...');
     var baseColumnCount = getJournalBaseColumnCount_();
     var payload = buildMultiRunJournalPayloadTyped_(ids, baseColumnCount);
-    var globalForecastAccounts = payload ? payload.forecastAccounts : [];
-    var accountTypes = payload ? payload.accountTypes : {};
-    var combinedRows = payload ? payload.combinedRows : [];
     if (!payload) {
-      var artifacts = ids.map(function (scenarioId) {
-        return buildJournalArtifactsForRunModel_(buildRunModelWithExtensions_(scenarioId));
-      });
-      var merged = mergeJournalArtifactsTyped_(artifacts, baseColumnCount);
-      if (merged) {
-        globalForecastAccounts = merged.forecastAccounts || [];
-        accountTypes = merged.accountTypes || {};
-        combinedRows = merged.combinedRows || [];
-      } else {
-      var forecastLookup = {};
-      artifacts.forEach(function (artifact) {
-        (artifact.forecastAccounts || []).forEach(function (name) {
-          if (forecastLookup[name]) {
-            return;
-          }
-          forecastLookup[name] = true;
-          globalForecastAccounts.push(name);
-        });
-        Object.keys(artifact.accountTypes || {}).forEach(function (name) {
-          if (!accountTypes[name]) {
-            accountTypes[name] = artifact.accountTypes[name];
-          }
-        });
-      });
-
-      artifacts.forEach(function (artifact) {
-        var localIndex = {};
-        (artifact.forecastAccounts || []).forEach(function (name, idx) {
-          localIndex[name] = idx;
-        });
-        (artifact.rows || []).forEach(function (row) {
-          var base = row.slice(0, baseColumnCount);
-          var localSnapshot = row.slice(baseColumnCount);
-          var aligned = globalForecastAccounts.map(function (name) {
-            var idx = localIndex[name];
-            if (idx === undefined) {
-              return '';
-            }
-            return idx < localSnapshot.length ? localSnapshot[idx] : '';
-          });
-          combinedRows.push(base.concat(aligned));
-        });
-      });
-      }
+      throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
     }
 
     toastStep_('Writing journal...');
-    Writers.writeJournal(combinedRows, globalForecastAccounts, accountTypes);
+    Writers.writeJournal(payload.combinedRows, payload.forecastAccounts, payload.accountTypes);
     recordLastRunMetadata_('Journal', ids.join(', '), 'Success');
     toastStep_('Journal run complete.');
   } catch (err) {
@@ -2254,19 +2179,6 @@ function getJournalBaseColumnCount_() {
     }
   }
   return 8;
-}
-
-function buildJournalRows_(accounts, events, policies, scenarioId) {
-  var typed = buildJournalRowsRuntimeTyped_(accounts, events, policies, scenarioId);
-  if (typed) {
-    return typed;
-  }
-  return CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts || [],
-    events: events || [],
-    policies: policies || [],
-    scenarioId: scenarioId || Config.SCENARIOS.DEFAULT,
-  });
 }
 
 function buildAccountTypeMap_(accounts) {

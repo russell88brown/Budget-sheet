@@ -1474,16 +1474,18 @@ var TypedBudget = (() => {
   function resolveJournalScenarioId(scenarioId, normalizeTag2) {
     return normalizeTag2(scenarioId);
   }
-  function buildJournalRowsRuntime(accounts, events, policies, scenarioId, defaultTag, applyEventsToJournal) {
-    return applyEventsToJournal({
-      accounts: accounts || [],
-      events: events || [],
-      policies: policies || [],
-      scenarioId: scenarioId || defaultTag
-    });
-  }
   function shouldUseEngineDirect(ids, hasEngineRunJournalForScenario) {
     return Array.isArray(ids) && ids.length === 1 && hasEngineRunJournalForScenario;
+  }
+
+  // ts/core/journalPipelineExecution.ts
+  function executeJournalPipelineCore(scenarioId, runModel, refreshSummaries, ctx) {
+    const activeRunModel = runModel || ctx.buildRunModelWithExtensions(scenarioId);
+    if (refreshSummaries) {
+      ctx.refreshAccountSummariesForRunModel(activeRunModel);
+    }
+    const journalData = ctx.buildJournalArtifactsForRunModel(activeRunModel);
+    return { runModel: activeRunModel, journalData };
   }
 
   // ts/core/recurrence.ts
@@ -1707,8 +1709,8 @@ var TypedBudget = (() => {
     buildJournalArtifactsForRunModel,
     buildMultiRunJournalPayload,
     resolveJournalScenarioId,
-    buildJournalRowsRuntime,
-    shouldUseEngineDirect
+    shouldUseEngineDirect,
+    executeJournalPipelineCore
   };
   return __toCommonJS(entry_exports);
 })();

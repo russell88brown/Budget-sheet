@@ -99,6 +99,7 @@ This project is structured around operational pipeline stages plus shared utilit
   - `core/journalBuild`
   - `core/journalMultiRun`
   - `core/journalRuntime`
+  - `core/journalPipelineExecution`
 - Build command: `npm run build:typed`.
 - Typecheck command: `npm run typecheck`.
 - Test command: `npm test`.
@@ -110,7 +111,6 @@ This project is structured around operational pipeline stages plus shared utilit
 
 - User-facing key is `Tag`.
 - `Base` is always included in run selections.
-- Legacy `Scenario` columns are still accepted for compatibility.
 
 ## Determinism Guarantees
 

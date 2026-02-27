@@ -949,27 +949,27 @@ function resolveJournalScenarioIdTyped_(scenarioId) {
   return null;
 }
 
-function buildJournalRowsRuntimeTyped_(accounts, events, policies, scenarioId) {
-  var api = typedBudgetApi_();
-  if (api && typeof api.buildJournalRowsRuntime === 'function') {
-    return api.buildJournalRowsRuntime(
-      accounts || [],
-      events || [],
-      policies || [],
-      scenarioId,
-      Config.SCENARIOS.DEFAULT,
-      function (options) {
-        return CoreApplyEvents.applyEventsToJournal(options || {});
-      }
-    );
-  }
-  return null;
-}
-
 function shouldUseEngineDirectTyped_(ids, hasEngineRunJournalForScenario) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldUseEngineDirect === 'function') {
     return api.shouldUseEngineDirect(ids || [], !!hasEngineRunJournalForScenario);
+  }
+  return null;
+}
+
+function executeJournalPipelineCoreTyped_(scenarioId, runModel, refreshSummaries) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.executeJournalPipelineCore === 'function') {
+    return api.executeJournalPipelineCore(
+      scenarioId,
+      runModel || null,
+      !!refreshSummaries,
+      {
+        buildRunModelWithExtensions: buildRunModelWithExtensions_,
+        refreshAccountSummariesForRunModel: refreshAccountSummariesForRunModel_,
+        buildJournalArtifactsForRunModel: buildJournalArtifactsForRunModel_,
+      }
+    );
   }
   return null;
 }
