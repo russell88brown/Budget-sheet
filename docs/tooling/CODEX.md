@@ -59,20 +59,20 @@ This section is the source of truth for planning, executing, and closing sprints
 - Skill: `codex/SKILL.md`
 - Plan template: `codex/sprint_tempalte-plan.md`
 - PR template: `codex/sprint_template-pr.md`
-- Sprint history: `codex/history/<sprint-id>/`
+- Sprint history: `codex/branch/<sprint-id>/`
 
 ### First-Time Quickstart (Repeatable)
 
 Use this exact flow for your first sprint and every sprint after that.
 
 1. Start from `main`.
-2. Choose sprint ID (example: `feat-fixtures-branch`).
+2. Choose sprint ID (example: `2026-02-27_feat_fixtures-branch`).
 3. Scaffold sprint docs:
    - `npm run sprint:start -- <sprint-id> --no-branch`
 4. Create/switch branch in your preferred way (user-driven).
 5. Fill required sections in:
-   - `codex/history/<sprint-id>/sprint-plan.md`
-   - `codex/history/<sprint-id>/PR.md`
+   - `codex/branch/<sprint-id>/sprint-plan.md`
+   - `codex/branch/<sprint-id>/PR.md`
 6. Validate documentation/process expectations needed for the sprint.
 7. Implement work, updating `PR.md` continuously.
 8. Commit as you go with clear, task-specific commit messages.
@@ -117,7 +117,7 @@ Current automation is hard-wired to these paths in `scripts/sprint-tools.mjs`:
 
 - `codex/sprint_tempalte-plan.md`
 - `codex/sprint_template-pr.md`
-- `codex/history/`
+- `codex/branch/`
 - `codex/current-sprint`
 
 If you want another root, update those constants in `scripts/sprint-tools.mjs` once, then keep that structure stable across sprints.
@@ -134,3 +134,4 @@ Keep commit safety simple:
 1. Stage only what belongs to this sprint.
 2. Check staged files once before commit.
 3. Use descriptive commit messages that map to completed sprint tasks.
+

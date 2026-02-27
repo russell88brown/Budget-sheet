@@ -4,8 +4,8 @@
 Summarize what changed and why it was needed.
 
 ## Sprint Plan Reference
-- Sprint folder: `codex/history/<sprint-id>/`
-- Plan file: `codex/history/<sprint-id>/sprint-plan.md`
+- Sprint folder: `codex/branch/<sprint-id>/`
+- Plan file: `codex/branch/<sprint-id>/sprint-plan.md`
 
 ## Completed Scope
 - [ ] Completed item 1
@@ -35,3 +35,4 @@ Summarize what changed and why it was needed.
 ## Follow-Ups
 - Out-of-scope improvement 1
 - Out-of-scope improvement 2
+

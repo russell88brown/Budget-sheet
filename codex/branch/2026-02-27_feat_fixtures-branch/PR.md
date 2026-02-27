@@ -1,11 +1,11 @@
-# PR Notes: feat-fixtures-branch
+# PR Notes: 2026-02-27_feat_fixtures-branch
 
 ## Summary
 Build deterministic fixture coverage for high-risk typed-core contracts during migration (sorting, transfers, recurrence, policy selection, scenario scope, and summary stats), with incremental commits and evidence.
 
 ## Sprint Plan Reference
-- Sprint folder: `codex/history/feat-fixtures-branch/`
-- Plan file: `codex/history/feat-fixtures-branch/sprint-plan.md`
+- Sprint folder: `codex/branch/2026-02-27_feat_fixtures-branch/`
+- Plan file: `codex/branch/2026-02-27_feat_fixtures-branch/sprint-plan.md`
 
 ## Completed Scope
 - [x] Sprint plan created for the 10 requested fixture contracts.
@@ -29,14 +29,14 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 | 2026-02-27 | Expanded `policyRules.test.ts` with explicit active range boundary checks and tighter auto-deficit selection fixtures (type/account/date filtering + deterministic priority/name ordering). | Protect policy application behavior from off-by-one and ordering regressions. | Policy filtering and ordering contracts are now pinned with exact expected rule ids. |
 | 2026-02-27 | Expanded `tagScope.test.ts` for `null` scenario normalization to Base and scenario-column inclusion behavior with normalized duplicate tags. | Lock scenario scoping semantics that affect filtered outputs. | Base-default and column-visibility behavior is explicitly covered. |
 | 2026-02-27 | Expanded `summaryStats.test.ts` with requested tolerance examples and mixed numeric/string threshold counting behavior. | Guard reconciliation/stat logic against input-shape drift. | Tolerance and mixed-value counting behavior is now documented by fixtures. |
-| 2026-02-27 | Set `codex/current-sprint` to `feat-fixtures-branch` and completed final validation (`sprint:check`, `typecheck`, `test`). | Satisfy sprint-loop quality gate and record completion evidence. | Sprint documentation status is now checkable and complete for handoff. |
+| 2026-02-27 | Set `codex/current-sprint` to `2026-02-27_feat_fixtures-branch` and completed final validation (`sprint:check`, `typecheck`, `test`). | Satisfy sprint-loop quality gate and record completion evidence. | Sprint documentation status is now checkable and complete for handoff. |
 | 2026-02-27 | Refactored `src/Z01_FixtureTests.gs` to generate fixture specs from ids and reuse shared helpers (`fixtureModel_`, `fixtureAccount_`, `compileAndApplyFixtureModel_`, `applyFixtureEvents_`, sequence assertion helper). | Reduce fixture LOC/duplication while preserving deterministic behavior during migration. | Fixture harness is shorter and easier to extend without changing fixture semantics. |
 | 2026-02-27 | Added `tests/typedApiSurface.test.ts` to assert required exported functions on `TypedBudget` from `ts/apps-script/entry.ts`. | Quick migration guardrail for `src` -> generated TypeScript API surface parity. | Missing/miswired core exports now fail fast in Node test runs. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
 |---|---|---|---|
-| Validation | `npm run sprint:check` | Pass | Passed after setting `codex/current-sprint` to `feat-fixtures-branch`. |
+| Validation | `npm run sprint:check` | Pass | Passed after setting `codex/current-sprint` to `2026-02-27_feat_fixtures-branch`. |
 | Unit | `npm exec tsx -- tests/eventSort.test.ts` + `npm exec tsx -- tests/compiledEvent.test.ts` | Fail | Windows ESM path issue when invoking single files directly from this shell; using `npm test` runner for authoritative validation. |
 | Unit | `npm test` | Pass | Passed after final fixture and doc completion. |
 | Typecheck | `npm run typecheck` | Pass | No TS errors after fixture updates. |
@@ -55,5 +55,6 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Decision recorded: keep canonical sprint docs under `codex/history/...` only (no `.codex` mirroring).
-- Handoff created for migration planning in `codex/history/feat-typescript-migration-2/`.
+- Decision recorded: keep canonical sprint docs under `codex/branch/...` only (no `.codex` mirroring).
+- Handoff created for migration planning in `codex/branch/2026-02-27_feat_typescript-migration-2/`.
+

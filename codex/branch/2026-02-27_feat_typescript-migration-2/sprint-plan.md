@@ -1,7 +1,7 @@
-# Sprint Plan: feat-typescript-migration-2
+# Sprint Plan: 2026-02-27_feat_typescript-migration-2
 
 ## Metadata
-- Sprint ID: `feat-typescript-migration-2`
+- Sprint ID: `2026-02-27_feat_typescript-migration-2`
 - Start date (YYYY-MM-DD): 2026-02-27
 - End date (YYYY-MM-DD): 2026-02-27
 - Owner: Codex + User
@@ -9,6 +9,11 @@
 
 ## Objective
 Produce a file-by-file migration matrix for `src/*.gs` that estimates current TypeScript migration coverage and identifies what should move to `ts/core`, what should remain Apps Script runtime, and what should be split.
+
+## Desired End State
+- TypeScript (`ts/core/*`) owns most business logic and is covered by Node tests.
+- `src/*.gs` is primarily runtime boundary code (SpreadsheetApp/UI/triggers/I/O wrappers).
+- Typed exports in `ts/apps-script/entry.ts` are the integration surface for GAS wrappers.
 
 ## Scope In
 - Inventory all `src/*.gs` files with line counts.
@@ -49,3 +54,4 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
   Mitigation: Mark counts as directional and provide qualitative split recommendations.
 - Risk: Naming overlap may imply migration when only wrappers changed.
   Mitigation: Include per-file “next action” to clarify exact migration intent.
+

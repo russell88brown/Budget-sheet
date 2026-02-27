@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 const codexRoot = path.join(repoRoot, 'codex');
-const historyDir = path.join(codexRoot, 'history');
+const branchDir = path.join(codexRoot, 'branch');
 const currentSprintFile = path.join(codexRoot, 'current-sprint');
 const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
 const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
@@ -45,7 +45,7 @@ function ensureDir(dirPath) {
 }
 
 function isValidSprintId(sprintId) {
-  return /^[a-z0-9][a-z0-9._-]*$/.test(sprintId);
+  return /^\d{4}-\d{2}-\d{2}_feat_[a-z0-9][a-z0-9-]*$/.test(sprintId);
 }
 
 function readFile(filePath) {
@@ -92,13 +92,13 @@ function startSprint(sprintId, options) {
     fail('Usage: node scripts/sprint-tools.mjs start <sprint-id> [--no-branch]');
   }
   if (!isValidSprintId(sprintId)) {
-    fail('Sprint ID must match: lowercase letters, digits, dots, underscores, hyphens.');
+    fail('Sprint ID must match: YYYY-MM-DD_feat_<kebab-name>.');
   }
 
   ensureDir(codexRoot);
-  ensureDir(historyDir);
+  ensureDir(branchDir);
 
-  const sprintPath = path.join(historyDir, sprintId);
+  const sprintPath = path.join(branchDir, sprintId);
   ensureDir(sprintPath);
 
   copyTemplate(planTemplateFile, path.join(sprintPath, 'sprint-plan.md'), sprintId);
@@ -195,7 +195,7 @@ function checkSprint() {
     fail(`${path.relative(repoRoot, currentSprintFile)} is empty.`);
   }
 
-  const sprintPath = path.join(historyDir, sprintId);
+  const sprintPath = path.join(branchDir, sprintId);
   if (!fs.existsSync(sprintPath)) {
     fail(`Current sprint folder missing: ${path.relative(repoRoot, sprintPath)}`);
   }

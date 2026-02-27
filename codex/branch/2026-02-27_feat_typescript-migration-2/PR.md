@@ -1,11 +1,15 @@
-# PR Notes: feat-typescript-migration-2
+# PR Notes: 2026-02-27_feat_typescript-migration-2
 
 ## Summary
 Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, including quantitative migration estimates and explicit recommendations for what should move to `ts/core`, what should remain Apps Script runtime, and what should be split.
 
+Target architecture agreed for implementation:
+- TypeScript owns most business logic with automated tests.
+- Apps Script files remain as thin runtime/integration wrappers.
+
 ## Sprint Plan Reference
-- Sprint folder: `codex/history/feat-typescript-migration-2/`
-- Plan file: `codex/history/feat-typescript-migration-2/sprint-plan.md`
+- Sprint folder: `codex/branch/2026-02-27_feat_typescript-migration-2/`
+- Plan file: `codex/branch/2026-02-27_feat_typescript-migration-2/sprint-plan.md`
 
 ## Completed Scope
 - [x] Inventory and classify all `src/*.gs` files.
@@ -17,7 +21,7 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 | Date | Change | Reason | Impact |
 |---|---|---|---|
 | 2026-02-27 | Added `migration-matrix.md` with full per-file classification and next-action plan. | Provide concrete migration planning artifact for `src -> ts` continuation. | Team can sequence migration work file-by-file instead of using broad estimates. |
-| 2026-02-27 | Added sprint plan and PR notes for `feat-typescript-migration-2`. | Keep sprint-loop documentation workflow intact. | New migration sprint is auditable and ready for execution. |
+| 2026-02-27 | Added sprint plan and PR notes for `2026-02-27_feat_typescript-migration-2`. | Keep sprint-loop documentation workflow intact. | New migration sprint is auditable and ready for execution. |
 | 2026-02-27 | Created execution branch `feat/typescript-migration-2` and aligned sprint metadata to this branch. | Keep sprint execution isolated to one branch per sprint run. | Sprint implementation and audit trail now match the active branch. |
 | 2026-02-27 | Removed `npm run sprint:check` from sprint instructions/templates and switched to change-relevant validation evidence. | `sprint:check` is no longer part of project workflow. | Sprint process docs now match the current tooling contract. |
 | 2026-02-27 | Updated sprint instructions to require incremental commits with descriptive messages. | Ensure sprint execution is auditable and easier to review step-by-step. | Workflow now enforces commit hygiene during execution, not only at handoff. |
@@ -47,3 +51,4 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 
 ## Follow-Ups
 - Next implementation target: begin `D04_JournalEngine.gs` extraction of pure decision logic to `ts/core`.
+
