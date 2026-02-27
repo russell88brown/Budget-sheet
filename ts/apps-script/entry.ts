@@ -105,6 +105,11 @@ import {
 } from "../core/journalApplyHelpers";
 import { buildJournalEventRows, buildOpeningRows } from "../core/journalRows";
 import {
+  applyEventWithSnapshots,
+  buildAccountTypesByKey,
+  cloneBalances,
+} from "../core/journalEventApplication";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -193,6 +198,9 @@ export const TypedBudget = {
   buildAlerts,
   buildOpeningRows,
   buildJournalEventRows,
+  cloneBalances,
+  buildAccountTypesByKey,
+  applyEventWithSnapshots,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

@@ -229,6 +229,11 @@ function coreBuildAlerts_(cashNegative, creditPaidOff, explicitAlert) {
 }
 
 function coreApplyEventWithSnapshots_(balances, event) {
+  var typed = applyEventWithSnapshotsTyped_(balances, event);
+  if (typed) {
+    return typed;
+  }
+
   var pre = coreCloneBalances_(balances);
   var amount = roundUpCents_(event.amount || 0);
   var toKey = coreAccountKey_(event.to);
@@ -640,6 +645,11 @@ function coreGetInterestBucket_(accountName) {
 }
 
 function coreCloneBalances_(balances) {
+  var typed = cloneBalancesTyped_(balances);
+  if (typed) {
+    return typed;
+  }
+
   return Object.keys(balances).reduce(function (copy, key) {
     copy[key] = balances[key];
     return copy;
@@ -651,6 +661,11 @@ function coreAccountKey_(value) {
 }
 
 function coreBuildAccountTypesByKey_(accounts) {
+  var typed = buildAccountTypesByKeyTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
   var byKey = {};
   (accounts || []).forEach(function (account) {
     if (!account || !account.name) {

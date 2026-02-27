@@ -1196,6 +1196,76 @@ var TypedBudget = (() => {
     ];
   }
 
+  // ts/core/journalEventApplication.ts
+  function cloneBalances(balances) {
+    return Object.keys(balances || {}).reduce((copy, key) => {
+      copy[key] = (balances || {})[key];
+      return copy;
+    }, {});
+  }
+  function buildAccountTypesByKey(accounts, accountKey) {
+    const byKey = {};
+    (accounts || []).forEach((account) => {
+      if (!account || !account.name) return;
+      byKey[accountKey(account.name)] = account.type;
+    });
+    return byKey;
+  }
+  function applyEventWithSnapshots(balances, event, ctx) {
+    const pre = ctx.cloneBalances(balances);
+    let amount = ctx.roundMoney(event.amount || 0);
+    const toKey = ctx.accountKey(event.to);
+    const fromKey = ctx.accountKey(event.from);
+    const accountKey = ctx.accountKey(event.account);
+    if (event.kind === "Income") {
+      if (toKey && balances[toKey] !== void 0) {
+        balances[toKey] = ctx.roundMoney((balances[toKey] || 0) + amount);
+      }
+      event.appliedAmount = amount;
+      return { afterFrom: ctx.cloneBalances(balances), afterTo: ctx.cloneBalances(balances) };
+    }
+    if (event.kind === "Expense") {
+      if (fromKey && balances[fromKey] !== void 0) {
+        balances[fromKey] = ctx.roundMoney((balances[fromKey] || 0) - amount);
+      }
+      event.appliedAmount = amount;
+      return { afterFrom: ctx.cloneBalances(balances), afterTo: ctx.cloneBalances(balances) };
+    }
+    if (event.kind === "Interest") {
+      const interestAmount = ctx.computeInterestAmount(balances, event);
+      event.appliedAmount = interestAmount;
+      if (interestAmount === 0) {
+        event.skipJournal = true;
+        return { afterFrom: pre, afterTo: pre };
+      }
+      if (accountKey && balances[accountKey] !== void 0) {
+        balances[accountKey] = ctx.roundMoney((balances[accountKey] || 0) + interestAmount);
+      }
+      return { afterFrom: ctx.cloneBalances(balances), afterTo: ctx.cloneBalances(balances) };
+    }
+    if (event.kind === "Transfer") {
+      const transferResolution = ctx.resolveTransferAmount(balances, event, amount);
+      amount = transferResolution.amount;
+      if (transferResolution.skip) {
+        return { afterFrom: pre, afterTo: pre };
+      }
+      const afterFrom = ctx.cloneBalances(pre);
+      if (fromKey && afterFrom[fromKey] !== void 0) {
+        afterFrom[fromKey] = ctx.roundMoney((afterFrom[fromKey] || 0) - amount);
+      }
+      const afterTo = ctx.cloneBalances(afterFrom);
+      if (toKey && afterTo[toKey] !== void 0) {
+        afterTo[toKey] = ctx.roundMoney((afterTo[toKey] || 0) + amount);
+      }
+      Object.keys(afterTo).forEach((name) => {
+        balances[name] = afterTo[name];
+      });
+      event.appliedAmount = amount;
+      return { afterFrom, afterTo };
+    }
+    return { afterFrom: pre, afterTo: pre };
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1402,7 +1472,10 @@ var TypedBudget = (() => {
     buildForecastBalanceCells,
     buildAlerts,
     buildOpeningRows,
-    buildJournalEventRows
+    buildJournalEventRows,
+    cloneBalances,
+    buildAccountTypesByKey,
+    applyEventWithSnapshots
   };
   return __toCommonJS(entry_exports);
 })();

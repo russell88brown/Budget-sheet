@@ -734,6 +734,44 @@ function buildJournalEventRowsTyped_(
   return null;
 }
 
+function cloneBalancesTyped_(balances) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.cloneBalances === 'function') {
+    return api.cloneBalances(balances || {});
+  }
+  return null;
+}
+
+function buildAccountTypesByKeyTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountTypesByKey === 'function') {
+    return api.buildAccountTypesByKey(accounts || [], coreAccountKey_);
+  }
+  return null;
+}
+
+function applyEventWithSnapshotsTyped_(balances, event) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.applyEventWithSnapshots === 'function') {
+    return api.applyEventWithSnapshots(balances || {}, event || {}, {
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+      accountKey: coreAccountKey_,
+      cloneBalances: function (source) {
+        var copy = {};
+        Object.keys(source || {}).forEach(function (key) { copy[key] = source[key]; });
+        return copy;
+      },
+      computeInterestAmount: function (balanceMap, typedEvent) {
+        return coreComputeInterestAmount_(balanceMap, typedEvent);
+      },
+      resolveTransferAmount: function (balanceMap, typedEvent, amount) {
+        return coreResolveTransferAmount_(balanceMap, typedEvent, amount);
+      },
+    });
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {
