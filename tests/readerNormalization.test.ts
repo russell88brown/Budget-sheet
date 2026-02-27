@@ -62,6 +62,8 @@ assert.ok(recurrence.startDate instanceof Date);
 
 const repaymentLegacy = normalizeTransferType("repayment", 0, transferTypes);
 assert.equal(repaymentLegacy, transferTypes.REPAYMENT_ALL);
+const repaymentLegacyAmount = normalizeTransferType("repayment", 25, transferTypes);
+assert.equal(repaymentLegacyAmount, transferTypes.REPAYMENT_AMOUNT);
 
 const transferLegacy = normalizeTransferType("transfer", 50, transferTypes);
 assert.equal(transferLegacy, transferTypes.TRANSFER_AMOUNT);

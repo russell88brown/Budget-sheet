@@ -10,6 +10,7 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 ## Completed Scope
 - [x] Sprint plan created for the 10 requested fixture contracts.
 - [x] Fixture slice 1: canonical event sort order and compiled-event tie-break ordering contracts.
+- [x] Fixture slice 2: transfer resolution matrix expansion and legacy transfer alias normalization.
 - [ ] Fixture implementation and validation (in progress).
 
 ## Change Log
@@ -18,13 +19,15 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 | 2026-02-27 | Added sprint plan with explicit tasks, acceptance criteria, and risks for the fixture sprint. | Align implementation to the sprint-loop skill and lock scope before coding. | Clear execution checklist and documentation baseline. |
 | 2026-02-27 | Expanded `eventSort.test.ts` with a full golden order assertion and exact priority ranking. | Lock deterministic backbone ordering during migration. | Regressions in event ordering now fail with precise fixture diffs. |
 | 2026-02-27 | Expanded `compiledEvent.test.ts` with same-day tie-break fixture (`sourceRuleId` -> `name` -> `id`) and default id assertion (`evt_<index>`). | Prevent non-deterministic compiled event ordering drift. | Stable sort behavior is now explicitly pinned by exact expected id order. |
+| 2026-02-27 | Expanded `applyCalculations.test.ts` with transfer resolution matrix cases (everything-except skip path, repay-all payoff amount, repay cap/skip behavior, `creditPaidOff` flags) and outgoing estimate behavior. | Pin down money movement edge cases most likely to drift during migration. | Transfer behavior is now protected by exact amount/skip/flag assertions. |
+| 2026-02-27 | Expanded `readerNormalization.test.ts` for legacy `"repayment"` alias with amount > 0 mapping to repayment-by-amount. | Complete compatibility coverage for shorthand transfer aliases. | Prevents normalization regressions between `REPAYMENT_ALL` and `REPAYMENT_AMOUNT`. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
 |---|---|---|---|
 | Validation | `npm run sprint:check` | Pending | Run after fixture implementation commits are complete. |
 | Unit | `npm exec tsx -- tests/eventSort.test.ts` + `npm exec tsx -- tests/compiledEvent.test.ts` | Fail | Windows ESM path issue when invoking single files directly from this shell; using `npm test` runner for authoritative validation. |
-| Unit | `npm test` | Pending | Final result will be recorded after all slices are merged. |
+| Unit | `npm test` | Pass | Passed after slice 2 fixture additions. |
 | Typecheck | `npm run typecheck` | Pending | To be captured with final validation pass. |
 | Manual | Sprint doc review | Pass | `sprint-plan.md` now reflects requested 10-fixture scope. |
 
