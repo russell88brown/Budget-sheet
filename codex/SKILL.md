@@ -40,6 +40,7 @@ The agent receives:
 1. User prompt (feature/goal request)
 2. Repository state
 3. This `SKILL.md`
+4. Current action/task state from `codex/current-phase`
 
 The agent MUST derive:
 1. `slug`: concise `kebab-name` from prompt
