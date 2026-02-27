@@ -1,19 +1,21 @@
-# Scenario Setup Integration
+# Tag Modeling Guide
 
-This document describes the implementation details behind scenario support.
+This guide describes how tag-based planning works in the app.
 
-For user-facing examples and case studies, see `README.md`.
+## Core Model
 
-## Setup Integration
+- User-facing selector uses `Tag`.
+- `Base` is always included in run selections.
+- Optional additional tags can be selected with multi-select.
+- Legacy `Scenario` input headers are still accepted for compatibility.
 
-- Setup stage `Validation + settings` now seeds the scenario catalog in `Settings!H2:H`.
-- Default seeded values:
-  - `Base`
-  - `Stress`
-- Named range `ScenarioList` is bound to `Settings!H2:H`.
-- Input sheets with `Scenario` column use this named range for data validation.
+## Where Tags Live
 
-Scenario-capable input sheets:
+- Settings catalog: `Settings!H2:H`
+- Named range: `ScenarioList` (legacy name retained for compatibility)
+
+## Tag-Aware Input Sheets
+
 - `Accounts`
 - `Income`
 - `Expense`
@@ -21,40 +23,20 @@ Scenario-capable input sheets:
 - `Policies`
 - `Goals`
 
-## Default Data Integration
+Rows without an explicit tag default to `Base` behavior.
 
-- `Load default data` ensures the scenario catalog exists before writing input rows.
-- If a row is missing `Scenario`, writer logic defaults it to `Base`.
-- This keeps older datasets compatible while enabling scenario-specific rows immediately.
+## Run Behavior
 
-## Run-Time Integration
+- `Run Budget...` accepts one or more selected tags.
+- Engine always includes `Base` and then any selected additional tags.
+- Unknown tag values on included rows are auto-disabled during integrity checks.
 
-- Journal and summaries can be run for a selected scenario from the menu.
-- Scenario runs filter inputs before event generation.
-- Journal output includes `Scenario` to preserve traceability in exports and summaries.
-- Scenario buttons in menu:
-  - `Run Budget...`:
-    - popup with operation checkboxes:
-      - `Summarise Accounts`
-      - `Generate journal`
-      - `Generate daily`
-      - `Generate monthly`
-      - `Generate dashboard`
-    - scenario mode radios:
-      - `Use Base scenario` (default)
-      - `Choose custom scenario(s)` with multi-select list from `ScenarioList`
-- Setup now exposes run metadata fields in `Settings`:
-  - `Last Run Mode` (`B5`)
-  - `Last Run Scenario` (`B6`)
-  - `Last Run At` (`B7`)
-  - `Run Status` (`B8`)
-- Run history log is appended in `Settings` (no extra sheet):
-  - Headers in `J1:N1`
-  - Data rows appended from `J2:N` (`Run At`, `Mode`, `Scenario`, `Status`, `Notes`)
+## Metadata + Run Log
 
-## Validation Behavior
+- `Settings!B5:B8`: last run mode/tag/time/status
+- `Settings!J:N`: append-only run log (`Run At`, `Mode`, `Tag`, `Status`, `Notes`)
 
-- If an included row has an unknown scenario, the row is auto-disabled (`Include=false`).
-- The run surfaces feedback via toast.
-- Unknown-scenario disable counts are written into run log notes when present.
+## Notes
 
+- Internally, some function names still use `scenario` for backward compatibility.
+- Output headers are tag-oriented where user-facing (`Tag`).

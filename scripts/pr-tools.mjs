@@ -115,7 +115,7 @@ function deployMain() {
 function testBranch() {
   writeCredentialsIfProvided();
   const scriptId = requireEnv('CLASP_SCRIPT_ID_TEST');
-  const runner = (process.env.TEST_RUNNER_FUNCTION || 'runDeterministicFixtureTestsPhase2_All').trim();
+  const runner = (process.env.TEST_RUNNER_FUNCTION || 'runDeterministicFixtureTests_All').trim();
 
   withTemporaryClaspConfig(scriptId, () => {
     runCommand(['push', '--force']);
@@ -132,3 +132,4 @@ if (action === 'deploy-main') {
 } else {
   fail('Usage: node scripts/pr-tools.mjs <deploy-main|test-branch>');
 }
+

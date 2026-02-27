@@ -43,17 +43,13 @@ const Engine = {
       runModel: model,
     });
   },
-  runJournalForScenarioModel: function (scenarioModel) {
-    // Deprecated wrapper: use runJournalForRunModel.
-    this.runJournalForRunModel(scenarioModel);
-  },
 };
 
 function runJournalPipeline_(options) {
   options = options || {};
   var modeLabel = options.modeLabel || 'Run';
   var scenarioId = resolveScenarioId_(options.scenarioId);
-  var runModel = options.runModel || options.scenarioModel || null;
+  var runModel = options.runModel || null;
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
   var totalSteps = preprocessInputs ? 9 : 6;
@@ -144,6 +140,24 @@ function enforceCoreInputIntegrityForRun_() {
 
 function resolveScenarioId_(scenarioId) {
   return normalizeScenario_(scenarioId);
+}
+
+function getTagColumnIndex_(headers) {
+  if (!headers || !headers.length) {
+    return -1;
+  }
+  var tagIdx = headers.indexOf('Tag');
+  if (tagIdx !== -1) {
+    return tagIdx;
+  }
+  return headers.indexOf('Scenario');
+}
+
+function readTagCatalog_() {
+  if (Readers && typeof Readers.readTags === 'function') {
+    return Readers.readTags();
+  }
+  return [Config.SCENARIOS.DEFAULT];
 }
 
 function filterByScenario_(rows, scenarioId) {
@@ -290,7 +304,7 @@ function reviewAndCleanupInputSheets_() {
     toastStep_(
       'Disabled ' +
         scenarioValidation.totalDisabled +
-        ' row(s) with unknown scenario values.'
+        ' row(s) with unknown tag values.'
     );
   }
   var validAccounts = validateAccountsSheet_();
@@ -305,9 +319,9 @@ function reviewAndCleanupInputSheets_() {
 }
 
 function buildScenarioLookup_() {
-  var scenarios = Readers.readScenarios();
+  var tags = readTagCatalog_();
   var lookup = {};
-  (scenarios || []).forEach(function (scenarioId) {
+  (tags || []).forEach(function (scenarioId) {
     lookup[resolveScenarioId_(scenarioId)] = true;
   });
   lookup[Config.SCENARIOS.DEFAULT] = true;
@@ -346,7 +360,7 @@ function disableRowsWithUnknownScenario_(sheetName, validScenarios) {
   }
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIdx = headers.indexOf('Include');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   if (includeIdx === -1 || scenarioIdx === -1) {
     return 0;
   }
@@ -398,7 +412,7 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
   var explicitNote = details && details.note ? String(details.note).trim() : '';
   var notes = '';
   if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
-    notes = 'Disabled unknown scenario rows: ' + scenarioValidation.totalDisabled;
+    notes = 'Disabled unknown tag rows: ' + scenarioValidation.totalDisabled;
   }
   if (coreValidation && coreValidation.totalDisabled > 0) {
     notes = notes
@@ -440,7 +454,7 @@ function buildAccountLookup_() {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
   var includeIdx = headers.indexOf('Include');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   if (nameIdx === -1) {
     return lookup;
   }
@@ -497,7 +511,7 @@ function validateAccountsSheet_() {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
   var includeIdx = headers.indexOf('Include');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   var typeIdx = headers.indexOf('Type');
   var balanceIdx = headers.indexOf('Balance');
   if (nameIdx === -1 || includeIdx === -1 || typeIdx === -1 || balanceIdx === -1) {
@@ -560,7 +574,7 @@ function validatePoliciesSheet_(validAccounts) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var idx = {
     include: headers.indexOf('Include'),
-    scenario: headers.indexOf('Scenario'),
+    scenario: getTagColumnIndex_(headers),
     type: headers.indexOf('Policy Type'),
     name: headers.indexOf('Name'),
     priority: headers.indexOf('Priority'),
@@ -657,7 +671,7 @@ function validateGoalsSheet_(validAccounts) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var idx = {
     include: headers.indexOf('Include'),
-    scenario: headers.indexOf('Scenario'),
+    scenario: getTagColumnIndex_(headers),
     name: headers.indexOf('Goal Name'),
     targetAmount: headers.indexOf('Target Amount'),
     targetDate: headers.indexOf('Target Date'),
@@ -859,7 +873,7 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var indexes = {
     include: headers.indexOf('Include'),
-    scenario: headers.indexOf('Scenario'),
+    scenario: getTagColumnIndex_(headers),
     type: headers.indexOf('Type'),
     name: headers.indexOf('Name'),
     amount: headers.indexOf('Amount'),
@@ -1047,7 +1061,7 @@ function updateIncomeMonthlyTotalsForRunModel_(runModel) {
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIdx = headers.indexOf('Include');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   var amountIdx = headers.indexOf('Amount');
   var freqIdx = headers.indexOf('Frequency');
   var repeatIdx = headers.indexOf('Repeat Every');
@@ -1114,7 +1128,7 @@ function updateExpenseMonthlyTotalsForRunModel_(runModel) {
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIdx = headers.indexOf('Include');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   var amountIdx = headers.indexOf('Amount');
   var freqIdx = headers.indexOf('Frequency');
   var repeatIdx = headers.indexOf('Repeat Every');
@@ -1192,7 +1206,7 @@ function updateTransferMonthlyTotalsForRunModel_(
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var includeIdx = headers.indexOf('Include');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   var typeIdx = headers.indexOf('Type');
   var amountIdx = headers.indexOf('Amount');
   var freqIdx = headers.indexOf('Frequency');
@@ -1352,7 +1366,7 @@ function updateAccountMonthlyFlowAveragesForRunModel_(
 
   var headers = accountsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
-  var scenarioIdx = headers.indexOf('Scenario');
+  var scenarioIdx = getTagColumnIndex_(headers);
   var summaryIndexes = getAccountSummaryHeaderIndexes_(headers);
   var interestAvgIdx = summaryIndexes.interest;
   var expenseAvgIdx = summaryIndexes.debits;
@@ -1990,7 +2004,7 @@ function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
     .map(function (name) { return String(name || '').trim(); })
     .filter(function (name, idx, arr) { return name && arr.indexOf(name) === idx; });
   throw new Error(
-    'Duplicate account names in scenario "' +
+    'Duplicate account names in tag "' +
       normalizeScenario_(scenarioId) +
       '": ' +
       unique.join(', ') +
@@ -2141,11 +2155,6 @@ function runJournalForIds_(scenarioIds) {
   }
 }
 
-function runJournalForScenarioIds_(scenarioIds) {
-  // Deprecated wrapper: use runJournalForIds_.
-  runJournalForIds_(scenarioIds);
-}
-
 function getJournalBaseColumnCount_() {
   if (typeof Schema !== 'undefined' && Schema && Array.isArray(Schema.outputs)) {
     var journalSpec = Schema.outputs.filter(function (spec) {
@@ -2209,4 +2218,7 @@ function roundUpCents_(value) {
   var rounded = Math.round((absolute + Number.EPSILON) * 100) / 100;
   return value < 0 ? -rounded : rounded;
 }
+
+
+
 

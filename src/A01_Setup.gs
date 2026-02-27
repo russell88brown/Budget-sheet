@@ -275,12 +275,28 @@ function remapSheetDataByHeaders_(sheet, rows, sourceHeaders, targetHeaders) {
     return targetHeaders.map(function (header) {
       var idx = sourceIndex[header];
       if (idx === undefined) {
+        idx = resolveHeaderAliasIndex_(sourceIndex, header);
+      }
+      if (idx === undefined) {
         return '';
       }
       return row[idx];
     });
   });
   sheet.getRange(2, 1, remapped.length, targetHeaders.length).setValues(remapped);
+}
+
+function resolveHeaderAliasIndex_(sourceIndex, header) {
+  if (!sourceIndex) {
+    return undefined;
+  }
+  if (header === 'Tag' && sourceIndex.Scenario !== undefined) {
+    return sourceIndex.Scenario;
+  }
+  if (header === 'Scenario' && sourceIndex.Tag !== undefined) {
+    return sourceIndex.Tag;
+  }
+  return undefined;
 }
 
 function headersEquivalent_(existingHeaders, targetHeaders) {
@@ -509,15 +525,15 @@ function setupReferenceLayout_(spreadsheet, sheet) {
   sheet.getRange('A2').setValue('Forecast Start');
   sheet.getRange('A3').setValue('Forecast End');
   sheet.getRange('A5').setValue('Last Run Mode');
-  sheet.getRange('A6').setValue('Last Run Scenario');
+  sheet.getRange('A6').setValue('Last Run Tag');
   sheet.getRange('A7').setValue('Last Run At');
   sheet.getRange('A8').setValue('Run Status');
   sheet.getRange('D1').setValue('Expense Type');
   sheet.getRange('F1').setValue('Income Type');
-  sheet.getRange('H1').setValue('Scenario');
+  sheet.getRange('H1').setValue('Tag');
   sheet.getRange('J1').setValue('Run At');
   sheet.getRange('K1').setValue('Mode');
-  sheet.getRange('L1').setValue('Scenario');
+  sheet.getRange('L1').setValue('Tag');
   sheet.getRange('M1').setValue('Status');
   sheet.getRange('N1').setValue('Notes');
 
@@ -1064,4 +1080,151 @@ function isActivityThemeRule_(
   });
 
   return isInactiveRule || isExpiredRule || isLegacyInactiveRule || isLegacyExpiredRule;
+}
+
+function runSetupAudit() {
+  var ss = SpreadsheetApp.getActive();
+  var defined = Object.keys(Config.SHEETS).map(function (key) {
+    return Config.SHEETS[key];
+  }).concat([Config.LISTS_SHEET]);
+  var existingNames = ss.getSheets().map(function (sheet) {
+    return sheet.getName();
+  });
+  var existingLookup = {};
+  existingNames.forEach(function (name) {
+    existingLookup[name] = true;
+  });
+
+  var missing = defined.filter(function (name) {
+    return !existingLookup[name];
+  });
+
+  var requiredRanges = [
+    Config.NAMED_RANGES.FORECAST_START,
+    Config.NAMED_RANGES.FORECAST_END,
+    Config.NAMED_RANGES.ACCOUNT_NAMES,
+    Config.NAMED_RANGES.CATEGORIES,
+    Config.NAMED_RANGES.INCOME_TYPES,
+    Config.NAMED_RANGES.SCENARIOS,
+  ];
+  var missingRanges = requiredRanges.filter(function (name) {
+    return !ss.getRangeByName(name);
+  });
+
+  var setupSheets = [
+    Config.SHEETS.ACCOUNTS,
+    Config.SHEETS.INCOME,
+    Config.SHEETS.TRANSFERS,
+    Config.SHEETS.GOALS,
+    Config.SHEETS.POLICIES,
+    Config.SHEETS.EXPENSE,
+    Config.SHEETS.JOURNAL,
+  ];
+  var headerIssues = setupSheets.filter(function (name) {
+    var sheet = ss.getSheetByName(name);
+    return !sheet || !hasHeaderRow_(sheet);
+  });
+
+  var orderIssue = false;
+  if (typeof getPreferredSheetOrder_ === 'function') {
+    var preferred = getPreferredSheetOrder_();
+    var orderIndexes = preferred
+      .filter(function (name) { return existingLookup[name]; })
+      .map(function (name) { return existingNames.indexOf(name); });
+    for (var i = 1; i < orderIndexes.length; i += 1) {
+      if (orderIndexes[i] < orderIndexes[i - 1]) {
+        orderIssue = true;
+        break;
+      }
+    }
+  }
+
+  var items = [
+    {
+      title: 'Spreadsheets',
+      ok: missing.length === 0,
+      details: missing.length ? ('bad [' + missing.join(', ') + ']') : 'good [all]',
+    },
+    {
+      title: 'Headers',
+      ok: headerIssues.length === 0,
+      details: headerIssues.length ? ('bad [' + headerIssues.join(', ') + ']') : 'good [all]',
+    },
+    {
+      title: 'Named Ranges',
+      ok: missingRanges.length === 0,
+      details: missingRanges.length ? ('bad [' + missingRanges.join(', ') + ']') : 'good [all]',
+    },
+    {
+      title: 'Tab Order',
+      ok: !orderIssue,
+      details: orderIssue ? 'bad [out of order]' : 'good [all]',
+    },
+  ];
+
+  return {
+    okCount: items.filter(function (item) { return item.ok; }).length,
+    total: items.length,
+    items: items,
+  };
+}
+
+function runSetupActions(actions) {
+  if (!actions || !actions.length) {
+    return 'No actions selected.';
+  }
+
+  var ss = SpreadsheetApp.getActive();
+  var messages = [];
+  var selected = {};
+  actions.forEach(function (action) {
+    selected[action] = true;
+  });
+
+  var orderedActions = ['structure', 'validation', 'theme', 'reorder', 'defaults', 'categories'];
+  orderedActions.forEach(function (action) {
+    if (!selected[action]) {
+      return;
+    }
+    switch (action) {
+      case 'structure':
+        setupStageStructure_();
+        messages.push('Structure complete');
+        break;
+      case 'validation':
+        setupStageValidationAndSettings_();
+        messages.push('Validation + settings complete');
+        break;
+      case 'theme':
+        setupStageTheme_();
+        messages.push('Theme complete');
+        break;
+      case 'reorder':
+        if (typeof enforcePreferredSheetOrder_ === 'function') {
+          enforcePreferredSheetOrder_(ss);
+          messages.push('Tab order enforced');
+        } else {
+          messages.push('Tab order helper unavailable');
+        }
+        break;
+      case 'defaults':
+        var result = loadDefaultData();
+        messages.push(result && result.message ? result.message : 'Default data loaded.');
+        break;
+      case 'categories':
+        // Backward compatibility: category stage has moved into validation setup.
+        if (!selected.validation) {
+          setupStageValidationAndSettings_();
+          messages.push('Validation + settings complete');
+        }
+        break;
+      default:
+        messages.push('Unknown action: ' + action);
+    }
+  });
+  if (typeof enforcePreferredSheetOrder_ === 'function') {
+    enforcePreferredSheetOrder_(ss);
+  }
+
+  return messages.join(' | ');
 }

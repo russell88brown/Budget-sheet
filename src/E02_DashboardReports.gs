@@ -463,7 +463,7 @@ function runDashboardReportHarness_() {
   validateDashboardReportDefinitions_(definitions);
 
   var dashboard = {
-    metrics: [['Scenario', 'Base']],
+    metrics: [['Tag', 'Base']],
     comparison: [],
     explainability: [['EXP:RENT', 120, 2]],
     accountStats: [{ name: 'Checking', end: 100, min: 10, max: 150, netChange: 20 }],
@@ -511,3 +511,4 @@ function runDashboardReportHarness_() {
 
   return 'Dashboard report harness passed';
 }
+

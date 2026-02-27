@@ -1,26 +1,47 @@
-# `src/` Quick Map (Flat Layout)
+# `src/` Technical Map
 
-All source files now live directly under `src/` and are grouped by numeric prefix.
+## Section A: Setup (Operational)
+- `A01_Setup.gs`: setup stages, validations, named ranges, setup audit/actions.
+- `A02_DefaultData.gs`: default seed data and default tag catalog.
+- `A03_SetupDialog.html`: setup audit/fix dialog.
 
-- `01-03`: config + shared helpers (`01_Config.gs`, `02_Schema.gs`, `03_Utils.gs`)
-- `10-19`: core engine (`10_Recurrence.gs`, `11_EventSort.gs`, `12_CoreModel.gs`, `13_Events.gs`, `14_CoreCompile.gs`, `15_CoreApply.gs`, `16_Readers.gs`, `17_RunModel.gs`, `18_RunExtensions.gs`, `19_Engine.gs`)
-- `20-22`: output layers (`20_Writers.gs`, `21_Summary.gs`, `22_DashboardReports.gs`)
-- `30-33`: UI menu/dialog files (`30_Menu.gs`, `31_ExportDialog.html`, `32_ScenarioRunDialog.html`, `33_SetupDialog.html`)
-- `40-42`: admin/setup/export (`40_Setup.gs`, `41_DefaultData.gs`, `42_Export.gs`)
-- `90`: deterministic fixture tests (`90_FixtureTests.gs`)
-- `appsscript.json`: Apps Script manifest
+## Section B: Utilities/Foundation (Utility)
+- `B01_Config.gs`: constants, enums, sheet and range IDs.
+- `B02_Schema.gs`: canonical sheet schema metadata.
+- `B03_Utils.gs`: shared helper utilities + HTML template compatibility wrappers.
+- `B04_Recurrence.gs`: recurrence expansion/date window helpers.
+- `B05_EventSort.gs`: deterministic event precedence and tie-break ordering.
+- `B06_CoreModel.gs`: shared normalization for core event model.
 
-Determinism guarantees (core paths):
-- Event sorting uses one canonical same-day order list plus stable tie-breakers.
-- Account summaries use the same transfer totals object that powers Transfers `Monthly Total` writes.
-- Fixture runners in `src/90_FixtureTests.gs` validate stable ordering and balance outcomes.
-- Journal writer preserves generated row order (no post-write re-sort), so Daily/Monthly closings stay stable.
-- Multi-scenario Daily/Monthly outputs include a `Scenario` column to avoid same-day scenario collisions.
+## Section C: Inputs + Run Model (Operational)
+- `C01_Readers.gs`: reads and normalizes input rows.
+- `C02_RunModel.gs`: builds run model for selected tag scope.
+- `C03_RunExtensions.gs`: extension wiring (policies/goals).
 
-Core API shape:
-- `buildRunModel_()` / `buildRunModelWithExtensions_()` in `17_RunModel.gs`
-- `buildRunExtensions_()` in `18_RunExtensions.gs`
-- `CoreCompileRules.buildSortedEvents()` in `14_CoreCompile.gs`
-- `CoreApplyEvents.applyEventsToJournal()` in `15_CoreApply.gs`
-- Compatibility wrapper remains: `Engine.runJournalForScenarioModel` in `19_Engine.gs`
+## Section D: Journal Pipeline (Operational)
+- `D01_Events.gs`: convert rules into normalized events.
+- `D02_CoreCompile.gs`: compile and sort event stream.
+- `D03_CoreApply.gs`: apply events to balances and journal rows.
+- `D04_JournalEngine.gs`: orchestration, validation, preprocessing, account summaries, run metadata.
+- `D05_Writers.gs`: journal sheet write/migration/formatting.
 
+## Section E: Other Summaries + Dashboard (Operational)
+- `E01_Summary.gs`: daily/monthly builders and reconciliation checks.
+- `E02_DashboardReports.gs`: dashboard report registry + rendering/layout.
+
+## Section F: Menu/UI/Export (Operational)
+- `F01_Menu.gs`: menu entrypoints and run orchestration.
+- `F02_RunDialog.html`: action + tag run dialog.
+- `F03_Export.gs`: export operations and payload build.
+- `F04_ExportDialog.html`: export dialog UI.
+
+## Section Z: Tests
+- `Z01_FixtureTests.gs`: deterministic fixture test suite.
+
+## Other
+- `appsscript.json`: Apps Script manifest.
+
+## Notes
+- Tag-first user model is active.
+- Legacy `Scenario` column compatibility remains in readers/engine paths.
+- Setup handlers (`runSetupAudit`, `runSetupActions`) are located in setup module (`A01_Setup.gs`).

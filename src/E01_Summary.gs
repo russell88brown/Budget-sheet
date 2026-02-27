@@ -1,12 +1,12 @@
-﻿// Summary builders for Daily, Monthly, and Dashboard sheets.
+// Summary builders for Daily, Monthly, and Dashboard sheets.
 function runSummary() {
-  runSummaryForScenario(Config.SCENARIOS.DEFAULT);
+  runSummaryForTag(Config.SCENARIOS.DEFAULT);
 }
 
 var SUMMARY_RECON_TOLERANCE_ = 0.01;
 
-function runSummaryForScenario(scenarioId) {
-  var activeScenarioId = normalizeScenario_(scenarioId);
+function runSummaryForTag(tagId) {
+  var activeScenarioId = normalizeScenario_(tagId);
   startRunProgress_('Summaries (' + activeScenarioId + ')', 7);
   try {
     assertJournalRowsAvailableForScenarioSet_(activeScenarioId);
@@ -37,8 +37,8 @@ function runSummaryForScenario(scenarioId) {
   }
 }
 
-function buildDailySummary_(scenarioId) {
-  var scenarioIds = Array.isArray(scenarioId) ? scenarioId : [scenarioId];
+function buildDailySummary_(tagId) {
+  var scenarioIds = Array.isArray(tagId) ? tagId : [tagId];
   var scenarioLookup = {};
   scenarioIds.forEach(function (value) {
     scenarioLookup[normalizeScenario_(value)] = true;
@@ -56,7 +56,7 @@ function buildDailySummary_(scenarioId) {
   }
 
   var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
-  var scenarioIndex = headerRow.indexOf('Scenario');
+  var scenarioIndex = getTagColumnIndex_(headerRow);
   var alertsIndex = headerRow.indexOf('Alerts');
   if (alertsIndex === -1) {
     return { headers: [], rows: [], accountNames: [], accountTypes: {} };
@@ -122,7 +122,7 @@ function buildDailySummary_(scenarioId) {
   });
 
   var headers = includeScenarioColumn
-    ? ['Date', 'Scenario', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames)
+    ? ['Date', 'Tag', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames)
     : ['Date', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames);
   return {
     headers: headers,
@@ -134,7 +134,7 @@ function buildDailySummary_(scenarioId) {
 }
 
 function normalizeScenarioSet_(scenarioId) {
-  var values = Array.isArray(scenarioId) ? scenarioId : [scenarioId];
+  var values = Array.isArray(tagId) ? tagId : [tagId];
   var normalized = values
     .map(function (value) { return normalizeScenario_(value); })
     .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
@@ -160,7 +160,7 @@ function buildJournalContextForScenarioSet_(scenarioId) {
   }
 
   var headerRow = journal.getRange(1, 1, 1, lastCol).getValues()[0];
-  var scenarioIndex = headerRow.indexOf('Scenario');
+  var scenarioIndex = getTagColumnIndex_(headerRow);
   var alertsIndex = headerRow.indexOf('Alerts');
   var amountIndex = headerRow.indexOf('Amount');
   var sourceRuleIdIndex = headerRow.indexOf('Source Rule ID');
@@ -200,7 +200,7 @@ function assertJournalRowsAvailableForScenarioSet_(scenarioId) {
     return context;
   }
   throw new Error(
-    'No Journal rows found for scenario selection [' +
+    'No Journal rows found for tag selection [' +
       context.scenarioSet.join(', ') +
       ']. Run Generate journal first.'
   );
@@ -216,7 +216,7 @@ function valuesWithinTolerance_(left, right, tolerance) {
 function assertDailyReconcilesWithJournal_(daily, scenarioId) {
   var context = assertJournalRowsAvailableForScenarioSet_(scenarioId);
   if (!daily || !daily.rows || !daily.rows.length) {
-    throw new Error('Daily summary has no rows for selected scenario set.');
+    throw new Error('Daily summary has no rows for selected tag set.');
   }
   if ((daily.accountNames || []).join('|') !== (context.accountNames || []).join('|')) {
     throw new Error('Daily reconciliation failed: account columns do not match Journal headers.');
@@ -266,7 +266,7 @@ function assertDailyReconcilesWithJournal_(daily, scenarioId) {
 
 function assertMonthlyReconcilesWithDaily_(monthly, daily) {
   if (!monthly || !monthly.rows || !monthly.rows.length) {
-    throw new Error('Monthly summary has no rows for selected scenario set.');
+    throw new Error('Monthly summary has no rows for selected tag set.');
   }
   if (!daily || !daily.rows || !daily.rows.length) {
     throw new Error('Monthly reconciliation failed: Daily summary has no rows.');
@@ -529,7 +529,7 @@ function buildMonthlySummary_(daily) {
   });
 
   var headers = includeScenarioColumn
-    ? ['Month', 'Scenario', 'Total Cash', 'Total Debt', 'Net Position']
+    ? ['Month', 'Tag', 'Total Cash', 'Total Debt', 'Net Position']
     : ['Month', 'Total Cash', 'Total Debt', 'Net Position'];
   daily.accountNames.forEach(function () {
     headers.push('Min');
@@ -623,7 +623,7 @@ function buildDashboardData_(daily, scenarioId) {
     : normalizeScenario_(scenarioId);
 
   var metrics = [
-    ['Scenario', scenarioLabel],
+    ['Tag', scenarioLabel],
     ['Forecast Start', startDate],
     ['Forecast End', endDate],
     ['Ending Cash', cashStats.end],
@@ -814,3 +814,5 @@ function formatValueWithDate_(value, date) {
   var dateText = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM-dd');
   return value + ' (' + dateText + ')';
 }
+
+
