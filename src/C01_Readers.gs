@@ -2,6 +2,10 @@
 const Readers = {
   readAccounts: function () {
     var rows = readSheetRows_(Config.SHEETS.ACCOUNTS);
+    var typed = mapAccountReaderRowsTyped_(rows);
+    if (typed) {
+      return typed;
+    }
     return rows
       .filter(function (row) {
         return row['Account Name'];

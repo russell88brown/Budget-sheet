@@ -36,6 +36,7 @@ Target architecture agreed for implementation:
 - [x] Extract duplicate-account error message formatter helper to typed core (`ts/core/accountDuplicateError.ts`) and keep GAS fallback wiring.
 - [x] Extract `C01_Readers.gs` sheet-row object mapping/filter helper to typed core (`ts/core/sheetRows.ts`) and keep GAS fallback wiring.
 - [x] Extract `C01_Readers.gs` scenario-catalog builder helper to typed core (`ts/core/scenarioCatalog.ts`) and keep GAS fallback wiring.
+- [x] Extract `C01_Readers.gs` account-row reader mapping helper to typed core (`ts/core/accountReaderRows.ts`) and keep GAS fallback wiring.
 
 ## PR Review Against Code
 - [x] PR notes match implemented code changes.
@@ -105,6 +106,9 @@ Target architecture agreed for implementation:
 | 2026-02-28 | Added `tests/sheetRows.test.ts` and expanded typed API surface checks for `mapSheetRows`. | Guard reader row-mapping helper extraction and keep typed runtime contract explicit. | Export and behavior regressions for sheet-row mapping/filtering are caught earlier in Node tests. |
 | 2026-02-28 | Extracted `C01_Readers.gs` scenario-catalog builder helper into `ts/core/scenarioCatalog.ts`, exported via typed runtime, and wired `readTags` to typed-first execution with fallback. | Continue reducing `C01` normalization/uniquing logic in GAS readers while preserving runtime boundaries. | Scenario catalog normalization/uniquing is now testable TS logic and reduces inline set-building in GAS readers. |
 | 2026-02-28 | Added `tests/scenarioCatalog.test.ts` and expanded typed API surface checks for `buildScenarioCatalog`. | Guard scenario-catalog helper extraction and keep typed runtime contract explicit. | Export and behavior regressions for scenario-catalog normalization are caught earlier in Node tests. |
+| 2026-02-28 | Reworked `migration-matrix.md` into a high-level matrix with explicit denominator-based views for total maintained source and migration-eligible source. | Make migration stats unambiguous by separating runtime-bound scope from migratable scope. | Reviewers can quickly see migrated, remaining, and intentionally GAS-only percentages without inferring formulas. |
+| 2026-02-28 | Extracted `C01_Readers.gs` account-row reader mapping helper into `ts/core/accountReaderRows.ts`, exported via typed runtime, and wired `readAccounts` to typed-first execution with fallback. | Continue reducing `C01` row normalization/mapping logic in GAS readers while preserving sheet-read boundaries. | Account reader row mapping is now unit-testable TS logic and removes additional inline mapping complexity from `C01_Readers.gs`. |
+| 2026-02-28 | Added `tests/accountReaderRows.test.ts` and expanded typed API surface checks for `mapAccountReaderRows`. | Guard account-reader mapping extraction and keep typed runtime contract explicit. | Export and behavior regressions for account-reader mapping are caught earlier in Node tests. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 
@@ -129,6 +133,8 @@ Target architecture agreed for implementation:
 | Unit | `npm test` | Pass | Includes `tests/journalRowValidation.test.ts` coverage for typed income/transfer/expense row-validator callbacks. |
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `validateIncomeRowReasons`, `validateTransferRowReasons`, and `validateExpenseRowReasons` exports and adapter wiring. |
 | Unit | `npm.cmd test` | Fail | Blocked by environment cache policy (`ENOTCACHED` fetching `tsx` from npm registry). |
+| Typecheck | `npm.cmd run typecheck` | Fail | `tsc` not found in current environment (`'tsc' is not recognized as an internal or external command`). |
+| Build | `npm.cmd run build:typed` | Fail | `esbuild` package unavailable in current environment (`ERR_MODULE_NOT_FOUND`). |
 | Validation | Updated `codex/README.md` prompt catalog to match `codex/SKILL.md` phase model | Pass | Prompt set now explicitly maps to required sprint phases and sprint artifacts. |
 | Validation | `node scripts/sprint-tools.mjs check` | Pass | Passed with current marker stored at `codex/current-sprint.md`. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
@@ -143,6 +149,6 @@ Target architecture agreed for implementation:
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Next implementation target: begin `D04_JournalEngine.gs` extraction of pure decision logic to `ts/core`.
-- Continue `D04_JournalEngine.gs` extraction for remaining pure decision logic and non-I/O transforms still embedded in GAS wrappers.
+- Next implementation target: extract `C01_Readers.gs` policy-row mapping helper to `ts/core` and wire typed-first fallback-safe adapter coverage.
+- Continue `C01_Readers.gs`/`D04_JournalEngine.gs` extraction for remaining pure decision logic and non-I/O transforms still embedded in GAS wrappers.
 

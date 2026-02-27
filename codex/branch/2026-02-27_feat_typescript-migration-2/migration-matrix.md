@@ -1,56 +1,82 @@
-# File-By-File TypeScript Migration Matrix
+# TypeScript Migration Matrix (High-Level)
 
-Date: 2026-02-27  
+Date: 2026-02-28  
 Scope: `src/*.gs` (23 files)
 
-## Estimation Summary
-- `src/*.gs` total: **11,362 LOC**
+## Progress Stats
+- `src/*.gs` total: **11,817 LOC**
 - Generated bundle `src/B08_TypedBudget.generated.gs`: **2,576 LOC**
-- `src` without generated bundle: **8,786 LOC**
-- `ts/**/*.ts` total: **3,629 LOC**
-- Estimated migrated to TypeScript (by maintained source LOC): **~41.3%** (`3,629 / 8,786`)
-- Percent migrated: **~41.3%**
-- Percent to migrate: **~58.7%**
+- Maintained GAS source (`src` minus generated bundle): **9,241 LOC**
+- Typed source (`ts/**/*.ts`): **4,444 LOC**
 
-Notes:
-- "Runtime-bound" means not a good fit for pure `ts/core`; it can still be authored in TS and transpiled for Apps Script.
-- GAS API-hit counts (`SpreadsheetApp`, `HtmlService`, `Utilities`, etc.) are directional, not exact partitioning.
+## Migration Numbers (Explicit Denominators)
+### View A: Entire Maintained `src` Base (9,241 LOC = 100%)
+- Migrated to TS: **4,444 LOC (48.1%)**
+- Will stay in GAS (runtime-bound): **2,390 LOC (25.9%)**
+- Remaining migratable: **2,407 LOC (26.0%)**
 
-## Matrix
-| File | LOC | GAS API hits | Current State | Recommendation | Next Action |
-|---|---:|---:|---|---|---|
-| `A01_Setup.gs` | 1104 | 28 | Runtime setup/UI + sheet formatting | Runtime-bound | Keep in GAS runtime; optionally extract pure table/spec builders to `ts/core` later. |
-| `A02_DefaultData.gs` | 464 | 5 | Mostly default seed data + sheet write paths | Split | Move pure seed/default object construction to `ts/core`; keep sheet write path in GAS. |
-| `B01_Config.gs` | 14 | 0 | Thin wrapper to typed `Config` export | Split (mostly migrated) | Completed wrapper-thin step; keep only typed export resolution and remove legacy fallback if no longer needed. |
-| `B02_Schema.gs` | 14 | 0 | Thin wrapper to typed `Schema` export | Split (mostly migrated) | Completed wrapper-thin step; keep only typed export resolution and remove legacy fallback if no longer needed. |
-| `B03_Utils.gs` | 47 | 2 | HtmlService helper wrappers | Runtime-bound | Keep in GAS runtime. |
-| `B04_Recurrence.gs` | 136 | 1 | Wrapper over recurrence logic | Split (mostly migrated) | Continue shrinking fallback code; keep only runtime/date/timezone boundary helpers. |
-| `B05_EventSort.gs` | 61 | 0 | Wrapper over typed sort functions | Split (mostly migrated) | Keep thin wrapper only; remove legacy branch once typed path is mandatory. |
-| `B06_CoreModel.gs` | 44 | 0 | Core normalization wrappers | Split (mostly migrated) | Keep minimal wrapper, prefer typed-only path. |
-| `B07_TypedAdapters.gs` | 1306 | 0 | Transitional bridge/fallback layer | Transitional | Reduce adapter surface over time; remove legacy fallback sections after parity confidence. |
-| `B08_TypedBudget.generated.gs` | 2576 | 0 | Generated typed runtime bundle | Migrated/generated | Keep generated; do not hand-edit. |
-| `C01_Readers.gs` | 251 | 2 | Sheet read + normalization mix | Split | Keep sheet extraction in GAS; move remaining normalization/row mapping logic fully to TS. |
-| `C02_RunModel.gs` | 79 | 0 | Wrapper to typed run-model assembly | Split (mostly migrated) | Completed 2026-02-27: keep GAS wrapper boundary only. |
-| `C03_RunExtensions.gs` | 27 | 0 | Wrapper to typed run-extension shaping | Split (mostly migrated) | Completed 2026-02-27: keep GAS wrapper boundary only. |
-| `D01_Events.gs` | 172 | 0 | Event builders and mapping wrappers | Split (mostly migrated) | Keep wrapper boundary; remove duplicated legacy event construction when safe. |
-| `D02_CoreCompile.gs` | 72 | 0 | Compile/sort orchestration wrappers | Split (mostly migrated) | Keep thin wrapper; lean on typed compile path. |
-| `D03_CoreApply.gs` | 451 | 0 | Core apply pipeline with typed hooks | Split | Continue extracting pure algorithms to `ts/core/journal*`; keep runtime state/integration in GAS. |
-| `D04_JournalEngine.gs` | 2108 | 25 | Large mixed engine (I/O + core logic), partially extracted | Split (high priority) | Continue with remaining pure selection/normalization/orchestration transforms; keep sheet I/O in GAS (transfer/recurrence/account row normalization, shared row-deactivation, monthly income/expense totals, transfer monthly totals, transfer monthly worksheet calculations, income/expense monthly worksheet calculations, and shared account-balance map helper also extracted to TS by 2026-02-28). |
-| `D05_Writers.gs` | 202 | 5 | Journal write/formatting | Runtime-bound | Keep as GAS writer module. |
-| `E01_Summary.gs` | 733 | 13 | Mixed summary compute + output formatting | Split | Move pure summary calculations to `ts/core`; keep rendering/writes/formatting in GAS. |
-| `E02_DashboardReports.gs` | 476 | 11 | Dashboard pivot/report rendering | Runtime-bound | Keep as GAS reporting/UI writer. |
-| `F01_Menu.gs` | 231 | 3 | Menu and dialog orchestration | Runtime-bound | Keep as GAS UI module. |
-| `F03_Export.gs` | 330 | 17 | Export UI + blob/zip + date formatting | Runtime-bound | Keep GAS boundary; optional TS helper for pure shaping/metadata. |
-| `Z01_FixtureTests.gs` | 464 | 0 | Apps Script deterministic fixtures | Split | Keep smoke fixtures in GAS; prefer behavior contracts in Node `tests/*.test.ts`. |
+Check:
+- `4,444 + 2,390 + 2,407 = 9,241`
+- `48.1% + 25.9% + 26.0% = 100%`
 
-## Reconciliation Notes
-- `B01_Config.gs` and `B02_Schema.gs` are now thin typed wrappers (not pending candidates).
-- `C02_RunModel.gs` and `C03_RunExtensions.gs` remain wrapper-bound with typed-first implementation complete.
-- `D04_JournalEngine.gs` has extracted modules for rule IDs, scenario disable, account lookup/validation, policy/goal row validation, income/transfer/expense row validation callbacks, transfer-row normalization, recurrence-row normalization, account-row normalization, shared row deactivation, monthly income/expense rule totals, transfer monthly rule totals, transfer monthly worksheet calculations, income/expense monthly worksheet calculations, and shared account-balance map construction.
+### View B: Eligible Migration Base Only (6,851 LOC = 100%)
+- Already migrated: **4,444 LOC (64.9%)**
+- Still to migrate: **2,407 LOC (35.1%)**
 
-## Next Actions
-1. Continue `D04_JournalEngine.gs` decomposition by extracting remaining pure pre-processing/orchestration transforms into `ts/core` modules, then keep GAS as sheet/runtime boundary only.
-2. Reduce `B07_TypedAdapters.gs` fallback surface by deleting dead fallback paths that are now covered by typed exports and tests.
-3. Split `C01_Readers.gs` so only sheet I/O stays in GAS and all normalization/mapping is typed and unit-tested.
-4. Start `E01_Summary.gs` extraction by moving pure daily/monthly summary calculations into `ts/core`, keeping report rendering and write paths in GAS.
-5. Expand typed API surface tests for each new extraction before removing matching GAS fallback branches.
+Definitions:
+- Eligible migration base = `maintained src - runtime-bound src` = `9,241 - 2,390 = 6,851`.
+- Runtime-bound files are intentionally excluded from “still to migrate.”
+
+## Status Buckets
+### Migrated (or mostly migrated)
+- `B01_Config.gs`, `B02_Schema.gs`, `B04_Recurrence.gs`, `B05_EventSort.gs`, `B06_CoreModel.gs`
+- `B08_TypedBudget.generated.gs` (generated output)
+- `C02_RunModel.gs`, `C03_RunExtensions.gs`, `D01_Events.gs`, `D02_CoreCompile.gs`
+- Parts of `D04_JournalEngine.gs` already extracted to `ts/core/*`
+
+### Yet To Be Migrated (next extraction targets)
+- `D04_JournalEngine.gs` remaining pure orchestration/selection logic
+- `D03_CoreApply.gs` remaining pure algorithm paths
+- `C01_Readers.gs` normalization/mapping paths
+- `E01_Summary.gs` pure summary compute logic
+- `A02_DefaultData.gs` pure seed-data construction logic
+- `Z01_FixtureTests.gs` behavior-contract coverage migration to Node tests
+
+### Will Stay The Same (GAS runtime-bound)
+- `A01_Setup.gs`, `B03_Utils.gs`, `D05_Writers.gs`, `E02_DashboardReports.gs`, `F01_Menu.gs`, `F03_Export.gs`
+
+Rationale:
+- These are UI/sheet/runtime integration boundaries and should remain Apps Script entry/write/orchestration layers.
+
+## File Matrix
+| File | Status | Plan |
+|---|---|---|
+| `A01_Setup.gs` | Stay in GAS | Keep runtime setup/UI + formatting in GAS. |
+| `A02_DefaultData.gs` | To migrate (partial) | Move pure default-data construction to TS; keep sheet writes in GAS. |
+| `B01_Config.gs` | Migrated (mostly) | Keep as thin wrapper over typed export. |
+| `B02_Schema.gs` | Migrated (mostly) | Keep as thin wrapper over typed export. |
+| `B03_Utils.gs` | Stay in GAS | Keep HtmlService/runtime helpers in GAS. |
+| `B04_Recurrence.gs` | Migrated (mostly) | Keep wrapper boundary; trim fallback over time. |
+| `B05_EventSort.gs` | Migrated (mostly) | Keep wrapper boundary; trim fallback over time. |
+| `B06_CoreModel.gs` | Migrated (mostly) | Keep wrapper boundary; prefer typed path. |
+| `B07_TypedAdapters.gs` | To migrate (reduce) | Reduce adapter/fallback surface as parity confidence increases. |
+| `B08_TypedBudget.generated.gs` | Migrated (generated) | Keep generated; do not hand-edit. |
+| `C01_Readers.gs` | To migrate (partial) | Move normalization/mapping to TS; keep sheet reads in GAS. |
+| `C02_RunModel.gs` | Migrated (mostly) | Keep as typed wrapper boundary. |
+| `C03_RunExtensions.gs` | Migrated (mostly) | Keep as typed wrapper boundary. |
+| `D01_Events.gs` | Migrated (mostly) | Keep wrapper boundary; continue legacy removal. |
+| `D02_CoreCompile.gs` | Migrated (mostly) | Keep wrapper boundary; continue legacy removal. |
+| `D03_CoreApply.gs` | To migrate (partial) | Continue extracting pure algorithms into `ts/core`. |
+| `D04_JournalEngine.gs` | To migrate (high priority, partial done) | Continue extracting remaining pure logic; keep sheet I/O in GAS. |
+| `D05_Writers.gs` | Stay in GAS | Keep writer/formatting runtime boundary in GAS. |
+| `E01_Summary.gs` | To migrate (partial) | Move pure summary calculations to TS; keep writes/rendering in GAS. |
+| `E02_DashboardReports.gs` | Stay in GAS | Keep dashboard/report rendering in GAS. |
+| `F01_Menu.gs` | Stay in GAS | Keep menu/dialog orchestration in GAS. |
+| `F03_Export.gs` | Stay in GAS | Keep export runtime + blob/zip integrations in GAS. |
+| `Z01_FixtureTests.gs` | To migrate (partial) | Keep smoke fixtures in GAS; move behavior contracts to Node tests. |
+
+## Immediate Next Actions
+1. Continue `D04_JournalEngine.gs` extraction of remaining pure orchestration logic.
+2. Reduce `B07_TypedAdapters.gs` fallback branches now covered by tests.
+3. Continue `C01_Readers.gs` normalization extraction to typed modules.
+4. Start `E01_Summary.gs` compute extraction to typed core.

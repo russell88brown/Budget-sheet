@@ -190,6 +190,7 @@ import { isRowInActiveScenario } from "../core/scenarioRow";
 import { formatDuplicateAccountErrorMessage } from "../core/accountDuplicateError";
 import { mapSheetRows } from "../core/sheetRows";
 import { buildScenarioCatalog } from "../core/scenarioCatalog";
+import { mapAccountReaderRows } from "../core/accountReaderRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -228,6 +229,7 @@ export const TypedBudget = {
   formatDuplicateAccountErrorMessage,
   mapSheetRows,
   buildScenarioCatalog,
+  mapAccountReaderRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

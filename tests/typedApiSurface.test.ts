@@ -46,6 +46,7 @@ const required = [
   "formatDuplicateAccountErrorMessage",
   "mapSheetRows",
   "buildScenarioCatalog",
+  "mapAccountReaderRows",
 ];
 
 for (const key of required) {
