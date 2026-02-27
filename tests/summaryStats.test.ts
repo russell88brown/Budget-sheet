@@ -8,6 +8,8 @@ import {
 
 assert.equal(valuesWithinTolerance(10, 10.005, 0.01), true);
 assert.equal(valuesWithinTolerance(10, 10.02, 0.01), false);
+assert.equal(valuesWithinTolerance(1.0, 1.009, 0.01), true);
+assert.equal(valuesWithinTolerance(1.0, 1.02, 0.01), false);
 
 const rows = [
   [new Date(2026, 0, 1), 100, -20],
@@ -17,6 +19,14 @@ const rows = [
 
 assert.equal(countDaysBelow(rows, 1, 90), 1);
 assert.equal(countDaysBelow(rows, 2, 0), 3);
+
+const mixedRows = [
+  [new Date(2026, 0, 1), "10"],
+  [new Date(2026, 0, 2), 5],
+  [new Date(2026, 0, 3), "-2"],
+  [new Date(2026, 0, 4), "foo"],
+];
+assert.equal(countDaysBelow(mixedRows, 1, 6), 2);
 
 const stats = computeSeriesStats(rows, 1, (value: unknown) => Math.round(Number(value || 0) * 100) / 100);
 assert.equal(stats.min, 80);

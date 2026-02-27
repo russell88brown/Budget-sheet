@@ -27,6 +27,38 @@ assert.equal(
   ),
   false
 );
+assert.equal(
+  isPolicyActiveOnDate(
+    { startDate: "2026-01-10", endDate: "2026-01-31" },
+    "2026-01-10",
+    normalizeDate
+  ),
+  true
+);
+assert.equal(
+  isPolicyActiveOnDate(
+    { startDate: "2026-01-10", endDate: "2026-01-31" },
+    "2026-01-31",
+    normalizeDate
+  ),
+  true
+);
+assert.equal(
+  isPolicyActiveOnDate(
+    { startDate: "2026-01-10", endDate: "2026-01-31" },
+    "2026-01-09",
+    normalizeDate
+  ),
+  false
+);
+assert.equal(
+  isPolicyActiveOnDate(
+    { startDate: "2026-01-10", endDate: "2026-01-31" },
+    "2026-02-01",
+    normalizeDate
+  ),
+  false
+);
 
 const policies = getApplicableAutoDeficitPolicies(
   [
@@ -45,6 +77,31 @@ const policies = getApplicableAutoDeficitPolicies(
       priority: 10,
       name: "Sooner",
       startDate: "2026-01-01",
+    },
+    {
+      ruleId: "p4",
+      type: "Auto Deficit Cover",
+      triggerAccount: " cash ",
+      priority: 10,
+      name: "Alpha",
+      startDate: "2026-01-01",
+      endDate: "2026-01-31",
+    },
+    {
+      ruleId: "p5",
+      type: "Auto Deficit Cover",
+      triggerAccount: "Savings",
+      priority: 1,
+      name: "Wrong account",
+      startDate: "2026-01-01",
+    },
+    {
+      ruleId: "p6",
+      type: "Auto Deficit Cover",
+      triggerAccount: "Cash",
+      priority: 1,
+      name: "Out of range",
+      startDate: "2026-02-01",
     },
     {
       ruleId: "p3",
@@ -70,6 +127,8 @@ const policies = getApplicableAutoDeficitPolicies(
   }
 );
 
-assert.equal(policies.length, 2);
-assert.equal(policies[0].ruleId, "p2");
-assert.equal(policies[1].ruleId, "p1");
+assert.equal(policies.length, 3);
+assert.deepEqual(
+  policies.map((policy) => policy.ruleId),
+  ["p4", "p2", "p1"]
+);

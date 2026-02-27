@@ -11,6 +11,7 @@ import {
 assert.deepEqual(normalizeScenarioSet("Stress"), ["Stress"]);
 assert.deepEqual(normalizeScenarioSet(["Stress", "Base", "Stress"]), ["Stress", "Base"]);
 assert.deepEqual(normalizeScenarioSet([]), ["Base"]);
+assert.deepEqual(normalizeScenarioSet(null), ["Base"]);
 
 const rows = [
   { scenarioId: "Base", id: 1 },
@@ -36,4 +37,5 @@ assert.equal(lookup.Base, true);
 
 assert.equal(shouldIncludeScenarioColumn(2, ["Base"]), false);
 assert.equal(shouldIncludeScenarioColumn(2, ["Base", "Stress"]), true);
+assert.equal(shouldIncludeScenarioColumn(2, ["Base", "Base"]), false);
 assert.equal(shouldIncludeScenarioColumn(-1, ["Base", "Stress"]), false);

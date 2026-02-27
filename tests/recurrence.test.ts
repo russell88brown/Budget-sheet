@@ -19,6 +19,13 @@ const frequencies = {
   YEARLY: "Yearly",
 };
 
+function toYmd(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 assert.equal(normalizeRepeatEvery(undefined), 1);
 assert.equal(normalizeRepeatEvery(0), 1);
 assert.equal(normalizeRepeatEvery(2.9), 2);
@@ -52,6 +59,26 @@ const aligned = alignToWindow(
 assert.ok(aligned);
 assert.equal(aligned?.getTime(), new Date(2026, 1, 15).getTime());
 
+const alignedWeekly = alignToWindow(
+  new Date(2026, 0, 1),
+  frequencies.WEEKLY,
+  1,
+  new Date(2026, 0, 10),
+  { frequencies, addDays, addMonthsClamped }
+);
+assert.ok(alignedWeekly);
+assert.equal(alignedWeekly?.getTime(), new Date(2026, 0, 15).getTime());
+
+const alignedMonthlyFromPast = alignToWindow(
+  new Date(2026, 0, 31),
+  frequencies.MONTHLY,
+  1,
+  new Date(2026, 3, 1),
+  { frequencies, addDays, addMonthsClamped }
+);
+assert.ok(alignedMonthlyFromPast);
+assert.equal(alignedMonthlyFromPast?.getTime(), new Date(2026, 3, 30).getTime());
+
 const expandedDaily = expandRecurrence(
   {
     startDate: new Date(2026, 0, 1),
@@ -71,6 +98,27 @@ const expandedDaily = expandRecurrence(
 assert.equal(expandedDaily.length, 3);
 assert.equal(expandedDaily[0].getTime(), normalizeDate(new Date(2026, 0, 1)).getTime());
 assert.equal(expandedDaily[2].getTime(), normalizeDate(new Date(2026, 0, 3)).getTime());
+
+const expandedMonthlyClamp = expandRecurrence(
+  {
+    startDate: new Date(2026, 0, 31),
+    frequency: frequencies.MONTHLY,
+    repeatEvery: 1,
+    endDate: new Date(2026, 3, 30),
+  },
+  {
+    frequencies,
+    normalizeDate,
+    addDays,
+    addMonthsClamped,
+    window: { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) },
+    today: new Date(2026, 0, 1),
+  }
+);
+assert.deepEqual(
+  expandedMonthlyClamp.map((date) => toYmd(date)),
+  ["2026-01-31", "2026-02-28", "2026-03-28", "2026-04-28"]
+);
 
 const expandedOncePast = expandRecurrence(
   {

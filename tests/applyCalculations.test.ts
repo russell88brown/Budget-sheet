@@ -45,6 +45,14 @@ assert.equal(
   ),
   0
 );
+assert.equal(
+  estimateTransferOutgoingAmount(
+    { cash: 250 },
+    { transferBehavior: transferTypes.TRANSFER_EVERYTHING_EXCEPT, from: "Cash", amount: 100 },
+    ctx
+  ),
+  0
+);
 
 const resolvedEverythingExcept = resolveTransferAmount(
   { cash: 1000 },
@@ -54,6 +62,17 @@ const resolvedEverythingExcept = resolveTransferAmount(
 );
 assert.equal(resolvedEverythingExcept.skip, false);
 assert.equal(resolvedEverythingExcept.amount, 800);
+assert.equal(resolvedEverythingExcept.creditPaidOff, false);
+
+const resolvedEverythingExceptSkip = resolveTransferAmount(
+  { cash: 80 },
+  { transferBehavior: transferTypes.TRANSFER_EVERYTHING_EXCEPT, from: "Cash" },
+  100,
+  ctx
+);
+assert.equal(resolvedEverythingExceptSkip.skip, true);
+assert.equal(resolvedEverythingExceptSkip.amount, 0);
+assert.equal(resolvedEverythingExceptSkip.creditPaidOff, false);
 
 const resolvedPaidOff = resolveTransferAmount(
   { card: 0 },
@@ -64,6 +83,16 @@ const resolvedPaidOff = resolveTransferAmount(
 assert.equal(resolvedPaidOff.skip, true);
 assert.equal(resolvedPaidOff.creditPaidOff, true);
 
+const resolvedRepayAll = resolveTransferAmount(
+  { card: -275.55 },
+  { transferBehavior: transferTypes.REPAYMENT_ALL, to: "Card" },
+  10,
+  ctx
+);
+assert.equal(resolvedRepayAll.skip, false);
+assert.equal(resolvedRepayAll.amount, 275.55);
+assert.equal(resolvedRepayAll.creditPaidOff, false);
+
 const resolvedCapped = resolveTransferAmount(
   { card: -80 },
   { transferBehavior: transferTypes.REPAYMENT_AMOUNT, to: "Card" },
@@ -72,6 +101,15 @@ const resolvedCapped = resolveTransferAmount(
 );
 assert.equal(resolvedCapped.skip, false);
 assert.equal(resolvedCapped.amount, 80);
+
+const resolvedRepayAmountZero = resolveTransferAmount(
+  { card: -80 },
+  { transferBehavior: transferTypes.REPAYMENT_AMOUNT, to: "Card" },
+  0,
+  ctx
+);
+assert.equal(resolvedRepayAmountZero.skip, true);
+assert.equal(resolvedRepayAmountZero.creditPaidOff, false);
 
 const fee = computeInterestFeePerPosting(
   { monthlyFee: 10, frequency: "Monthly", repeatEvery: 1 },

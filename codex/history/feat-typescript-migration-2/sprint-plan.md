@@ -1,0 +1,47 @@
+# Sprint Plan: feat-typescript-migration-2
+
+## Metadata
+- Sprint ID: `feat-typescript-migration-2`
+- Start date (YYYY-MM-DD): 2026-02-27
+- End date (YYYY-MM-DD): 2026-02-27
+- Owner: Codex + User
+- Branch: `codex/feat-fixtures-branch`
+
+## Objective
+Produce a file-by-file migration matrix for `src/*.gs` that estimates current TypeScript migration coverage and identifies what should move to `ts/core`, what should remain Apps Script runtime, and what should be split.
+
+## Scope In
+- Inventory all `src/*.gs` files with line counts.
+- Classify each file into one of: `Already migrated/generated`, `Split (core + runtime)`, `Runtime-bound`.
+- Provide explicit per-file recommendation and next action.
+- Record migration estimate totals and boundaries.
+
+## Scope Out
+- No behavior/code refactors in production runtime files.
+- No immediate module moves in this sprint; planning/documentation only.
+
+## Task Checklist
+- [x] Collect source inventory and baseline counts.
+- [x] Build per-file migration matrix with target track and rationale.
+- [x] Summarize migrated vs remaining/runtme-bound estimates.
+- [x] Capture results in sprint PR notes.
+
+## Acceptance Criteria
+- Every `src/*.gs` file is represented exactly once in the matrix.
+- Matrix includes recommendation and concrete next action per file.
+- Totals for `src` LOC and `ts` LOC are included with an explicit estimation method.
+
+## Constraints
+- Keep recommendations pragmatic for the current architecture (`B07` adapters + generated `B08`).
+- Distinguish “cannot move to pure `ts/core`” from “can still be authored in TypeScript and transpiled for GAS”.
+
+## Definition Of Done
+- [x] Planned scope implemented
+- [x] Validation/test evidence recorded
+- [x] `PR.md` updated with evidence
+
+## Risks And Mitigations
+- Risk: Simple API-hit counting overestimates runtime-bound code.
+  Mitigation: Mark counts as directional and provide qualitative split recommendations.
+- Risk: Naming overlap may imply migration when only wrappers changed.
+  Mitigation: Include per-file “next action” to clarify exact migration intent.

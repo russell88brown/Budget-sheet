@@ -35,3 +35,19 @@ assert.ok(compareCompiledEvents(a, b, ctx) < 0);
 
 const c = normalizeCompiledEvent({ id: "c", date: "2026-01-01", kind: "Expense" }, 3, ctx);
 assert.ok(compareCompiledEvents(a, c, ctx) < 0);
+
+const sameDay = [
+  { id: "evt_b", date: "2026-01-10", kind: "Income", sourceRuleId: "r1", name: "Bravo" },
+  { id: "evt_c", date: "2026-01-10", kind: "Income", sourceRuleId: "r1", name: "Alpha" },
+  { id: "evt_d", date: "2026-01-10", kind: "Income", sourceRuleId: "r0", name: "Zulu" },
+  { id: "evt_a", date: "2026-01-10", kind: "Income", sourceRuleId: "r1", name: "Alpha" },
+  { date: "2026-01-10", kind: "Income", sourceRuleId: "r1", name: "Alpha" },
+].map((event, index) => normalizeCompiledEvent(event, index + 1, ctx));
+
+assert.equal(sameDay[4].id, "evt_5");
+
+const sorted = [...sameDay].sort((left, right) => compareCompiledEvents(left, right, ctx));
+assert.deepEqual(
+  sorted.map((event) => event.id),
+  ["evt_d", "evt_5", "evt_a", "evt_c", "evt_b"]
+);
