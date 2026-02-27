@@ -1674,18 +1674,24 @@ function normalizeTransferRows_() {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
-  values.forEach(function (row) {
-    var amount = toNumber_(row[amountIdx]);
-    var canonicalType = normalizeTransferType_(row[typeIdx], amount);
-    if (canonicalType && canonicalType !== row[typeIdx]) {
-      row[typeIdx] = canonicalType;
-      updated = true;
-    }
-    if (canonicalType === Config.TRANSFER_TYPES.REPAYMENT_ALL && amount !== 0) {
-      row[amountIdx] = 0;
-      updated = true;
-    }
-  });
+  var typed = normalizeTransferRowsTyped_(values, typeIdx, amountIdx);
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'boolean') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      var amount = toNumber_(row[amountIdx]);
+      var canonicalType = normalizeTransferType_(row[typeIdx], amount);
+      if (canonicalType && canonicalType !== row[typeIdx]) {
+        row[typeIdx] = canonicalType;
+        updated = true;
+      }
+      if (canonicalType === Config.TRANSFER_TYPES.REPAYMENT_ALL && amount !== 0) {
+        row[amountIdx] = 0;
+        updated = true;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);

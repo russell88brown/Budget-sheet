@@ -41,6 +41,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Extract `D04_JournalEngine.gs` goal-row validation transform to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` income/transfer/expense row validation callbacks to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` policy-row validation transform to typed core and keep GAS fallback.
+- [x] Extract `D04_JournalEngine.gs` transfer-row normalization transform to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

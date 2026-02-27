@@ -171,6 +171,7 @@ import {
   validateIncomeRowReasons,
   validateTransferRowReasons,
 } from "../core/journalRowValidation";
+import { normalizeTransferRows } from "../core/transferRowNormalization";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -189,6 +190,7 @@ export const TypedBudget = {
   validateIncomeRowReasons,
   validateTransferRowReasons,
   validateExpenseRowReasons,
+  normalizeTransferRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

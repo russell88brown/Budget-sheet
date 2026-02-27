@@ -26,6 +26,7 @@ const required = [
   "validateIncomeRowReasons",
   "validateTransferRowReasons",
   "validateExpenseRowReasons",
+  "normalizeTransferRows",
 ];
 
 for (const key of required) {

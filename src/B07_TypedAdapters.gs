@@ -600,6 +600,21 @@ function validateExpenseRowReasonsTyped_(row, indexes, validAccounts) {
   return null;
 }
 
+function normalizeTransferRowsTyped_(rows, typeIdx, amountIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeTransferRows === 'function') {
+    return api.normalizeTransferRows(
+      Array.isArray(rows) ? rows : [],
+      typeIdx,
+      amountIdx,
+      normalizeTransferType_,
+      toNumber_,
+      Config.TRANSFER_TYPES.REPAYMENT_ALL
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
