@@ -89,7 +89,7 @@ function runDeterministicFixtureTestsPhase2_RunAllWithReport() {
 }
 
 function showRunBudgetDialog() {
-  var template = createTemplateFromFileCompat_('ScenarioRunDialog', 'ui');
+  var template = createTemplateFromFileCompat_('32_ScenarioRunDialog');
   var available = (Readers && Readers.readScenarios ? Readers.readScenarios() : [Config.SCENARIOS.DEFAULT])
     .map(function (value) {
       return normalizeScenario_(value);
@@ -177,17 +177,21 @@ function runBudgetSelections(actions, scenarioMode, scenarioIds) {
   try {
     if (selectedActions.indexOf('summarise_accounts') !== -1) {
       selectedScenarios.forEach(function (scenarioId) {
-        runAccountSummariesOnly_(buildScenarioModel_(scenarioId));
+        runAccountSummariesOnly_(buildRunModel_(scenarioId));
       });
     }
 
     if (selectedActions.indexOf('journal') !== -1) {
-      if (selectedScenarios.length > 1 && typeof runJournalForScenarioIds_ === 'function') {
+      if (selectedScenarios.length > 1 && typeof runJournalForIds_ === 'function') {
+        runJournalForIds_(selectedScenarios);
+      } else if (selectedScenarios.length > 1 && typeof runJournalForScenarioIds_ === 'function') {
         runJournalForScenarioIds_(selectedScenarios);
       } else {
         var singleScenarioId = selectedScenarios[0];
-        var scenarioModel = buildScenarioModel_(singleScenarioId);
-        if (Engine && Engine.runJournalForScenarioModel) {
+        var scenarioModel = buildRunModelWithExtensions_(singleScenarioId);
+        if (Engine && Engine.runJournalForRunModel) {
+          Engine.runJournalForRunModel(scenarioModel);
+        } else if (Engine && Engine.runJournalForScenarioModel) {
           Engine.runJournalForScenarioModel(scenarioModel);
         } else if (Engine && Engine.runJournalForScenario) {
           Engine.runJournalForScenario(singleScenarioId);
@@ -259,7 +263,7 @@ function runAccountSummariesOnly_(scenarioModel) {
   startRunProgress_('Account Summaries (' + activeScenarioId + ')', 3);
   try {
     toastStep_('Refreshing account summary values...');
-    refreshAccountSummariesForScenarioModel_(scenarioModel || buildScenarioModel_(activeScenarioId));
+    refreshAccountSummariesForRunModel_(scenarioModel || buildRunModel_(activeScenarioId));
     recordLastRunMetadata_('Account Summaries', activeScenarioId, 'Success');
     toastStep_('Account summaries complete.');
   } catch (err) {
@@ -271,7 +275,7 @@ function runAccountSummariesOnly_(scenarioModel) {
 }
 
 function summariseAccounts() {
-  runAccountSummariesOnly_(buildScenarioModel_(Config.SCENARIOS.DEFAULT));
+  runAccountSummariesOnly_(buildRunModel_(Config.SCENARIOS.DEFAULT));
 }
 
 function validateTransfersExpenses() {
@@ -279,7 +283,7 @@ function validateTransfersExpenses() {
 }
 
 function showSetupDialog() {
-  var html = createHtmlOutputFromFileCompat_('SetupDialog', 'ui')
+  var html = createHtmlOutputFromFileCompat_('33_SetupDialog')
     .setWidth(560)
     .setHeight(460);
   SpreadsheetApp.getUi().showModalDialog(html, 'Setup Options');

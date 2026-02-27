@@ -64,6 +64,16 @@ Notes:
 - When multiple scenarios are selected for Daily/Monthly, output includes a `Scenario` column.
 - Journal rows keep generated order to preserve deterministic same-day closing snapshots.
 
+## Run Modes And Guarantees
+
+| Mode | What it validates before build | Deterministic guarantees | User-data dependent |
+|---|---|---|---|
+| Forecast | Full preprocess: normalization, rule-id fill, scenario/account validation, core row validation | Stable event sort precedence, stable journal row order, reproducible balances from same inputs | Missing/incorrect user inputs can be auto-disabled from Include rows |
+| Journal only | Core integrity gate: scenario/account validation + Income/Transfer/Expense required-field/account checks | Same event ordering and balance math as Forecast mode for same valid rules | Invalid included rows are disabled before compile; resulting journal depends on remaining valid rules |
+| Daily/Monthly/Dashboard | Requires existing Journal rows for selected scenario set; reconciliation checks run | Daily snapshots and monthly closings reconcile to journal within tolerance | Output depends on journal content and selected scenario set |
+
+Deterministic means identical validated inputs produce identical outputs.
+
 ## Scenario Case Studies
 
 | Scenario | User Story | Implementation | Output |
@@ -104,3 +114,4 @@ For deterministic checks after engine changes, run script editor functions:
 2. `runDeterministicFixtureTestsPhase2_RunAllWithReport`
 
 These validate stable event ordering, journal balances, and summary assumptions used by Accounts + Monthly totals.
+

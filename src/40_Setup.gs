@@ -122,6 +122,7 @@ function setupStageValidationAndSettings_() {
   });
 
   applyAccountsFormatting_(ss);
+  applyCoreInputIntegrityTheme_(ss);
   formatReferenceSheet_(ss);
   enforcePreferredSheetOrder_(ss);
 }
@@ -138,6 +139,7 @@ function setupStageTheme_() {
   applyAccountsFormatting_(ss);
   applyMonthlyTotalHeaderTheme_(ss);
   applyInputActivityTheme_(ss);
+  applyCoreInputIntegrityTheme_(ss);
   themedSheets.forEach(function (sheetName) {
     applySchemaFormatsForSheet_(sheetName);
   });
@@ -204,6 +206,7 @@ function ensureInputSheetFormatting_() {
     applyColumnRules_(ss, sheet, spec.columns);
   });
   applyAccountsFormatting_(ss);
+  applyCoreInputIntegrityTheme_(ss);
 }
 
 function setupStageSeedCategories_() {
@@ -818,6 +821,119 @@ function applyInputActivityTheme_(spreadsheet) {
   [Config.SHEETS.POLICIES, Config.SHEETS.GOALS, Config.SHEETS.INCOME, Config.SHEETS.TRANSFERS, Config.SHEETS.EXPENSE].forEach(function (sheetName) {
     applySheetActivityRules_(spreadsheet, sheetName);
   });
+}
+
+function applyCoreInputIntegrityTheme_(spreadsheet) {
+  applyIntegrityRulesForSheet_(spreadsheet, Config.SHEETS.ACCOUNTS, {
+    required: ['Account Name', 'Type', 'Balance'],
+    numeric: ['Balance'],
+  });
+  applyIntegrityRulesForSheet_(spreadsheet, Config.SHEETS.INCOME, {
+    required: ['Name', 'Amount', 'Frequency', 'Start Date', 'To Account'],
+    numeric: ['Amount'],
+    date: ['Start Date'],
+  });
+  applyIntegrityRulesForSheet_(spreadsheet, Config.SHEETS.TRANSFERS, {
+    required: ['Type', 'Name', 'Amount', 'Frequency', 'Start Date', 'From Account', 'To Account'],
+    numeric: ['Amount'],
+    date: ['Start Date'],
+  });
+  applyIntegrityRulesForSheet_(spreadsheet, Config.SHEETS.EXPENSE, {
+    required: ['Type', 'Name', 'Amount', 'Frequency', 'Start Date', 'From Account'],
+    numeric: ['Amount'],
+    date: ['Start Date'],
+  });
+}
+
+function applyIntegrityRulesForSheet_(spreadsheet, sheetName, spec) {
+  var sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var includeIdx = headers.indexOf('Include');
+  if (includeIdx === -1) {
+    return;
+  }
+
+  var required = Array.isArray(spec && spec.required) ? spec.required : [];
+  var numeric = Array.isArray(spec && spec.numeric) ? spec.numeric : [];
+  var date = Array.isArray(spec && spec.date) ? spec.date : [];
+  var checks = [];
+
+  required.forEach(function (name) {
+    var idx = headers.indexOf(name);
+    if (idx === -1) {
+      return;
+    }
+    var col = columnToLetter_(idx + 1);
+    checks.push('$' + col + '2=""');
+  });
+
+  numeric.forEach(function (name) {
+    var idx = headers.indexOf(name);
+    if (idx === -1) {
+      return;
+    }
+    var col = columnToLetter_(idx + 1);
+    checks.push('AND($' + col + '2<>"",NOT(ISNUMBER($' + col + '2)))');
+  });
+
+  date.forEach(function (name) {
+    var idx = headers.indexOf(name);
+    if (idx === -1) {
+      return;
+    }
+    var col = columnToLetter_(idx + 1);
+    checks.push('AND($' + col + '2<>"",NOT(ISNUMBER($' + col + '2)))');
+  });
+
+  if (!checks.length) {
+    return;
+  }
+
+  var rowStart = 2;
+  var rowCount = Math.max(1, sheet.getMaxRows() - 1);
+  var includeCol = columnToLetter_(includeIdx + 1);
+  var includeIsTrue = 'OR($' + includeCol + '2=TRUE,$' + includeCol + '2="TRUE",$' + includeCol + '2=1)';
+  var formula = '=AND(' + includeIsTrue + ',OR(' + checks.join(',') + '),N("BF_INTEGRITY_REQ")=0)';
+  var fullDataRange = sheet.getRange(rowStart, 1, rowCount, lastCol);
+
+  var rules = sheet.getConditionalFormatRules() || [];
+  var filtered = rules.filter(function (rule) {
+    return !isCoreIntegrityRule_(rule, sheetName);
+  });
+  var integrityRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(formula)
+    .setBackground('#fdecea')
+    .setFontColor('#9c1b1b')
+    .setRanges([fullDataRange])
+    .build();
+
+  sheet.setConditionalFormatRules(filtered.concat([integrityRule]));
+}
+
+function isCoreIntegrityRule_(rule, sheetName) {
+  var ranges = rule.getRanges() || [];
+  var hasSheetRange = ranges.some(function (range) {
+    return range.getSheet().getName() === sheetName;
+  });
+  if (!hasSheetRange) {
+    return false;
+  }
+  var boolCondition = rule.getBooleanCondition ? rule.getBooleanCondition() : null;
+  if (!boolCondition) {
+    return false;
+  }
+  var values = boolCondition.getCriteriaValues() || [];
+  if (!values.length || values[0] === null || values[0] === undefined) {
+    return false;
+  }
+  return String(values[0]).indexOf('BF_INTEGRITY_REQ') !== -1;
 }
 
 function applySheetActivityRules_(spreadsheet, sheetName) {

@@ -1,7 +1,7 @@
-// Domain core: compile scenario rules into a single sorted event stream.
+// Domain core: compile run-model rules into a single sorted event stream.
 const CoreCompileRules = {
-  buildEventsForScenarioModel: function (scenarioModel) {
-    var model = scenarioModel || {};
+  buildEventsForRunModel: function (runModel) {
+    var model = runModel || {};
     var accounts = model.accounts || [];
     var incomeRules = model.incomeRules || [];
     var transferRules = model.transferRules || [];
@@ -23,11 +23,12 @@ const CoreCompileRules = {
     return list;
   },
 
-  buildSortedEventsForScenarioModel: function (scenarioModel) {
+  buildSortedEvents: function (runModel) {
     return CoreCompileRules.sortEvents(
-      CoreCompileRules.buildEventsForScenarioModel(scenarioModel)
+      CoreCompileRules.buildEventsForRunModel(runModel)
     );
   },
+
 };
 
 function compareCompiledEvents_(a, b) {

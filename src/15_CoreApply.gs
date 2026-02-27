@@ -1,6 +1,6 @@
 // Domain core: apply sorted events into balances and journal rows.
 const CoreApplyEvents = {
-  buildJournalRows: function (options) {
+  applyEventsToJournal: function (options) {
     options = options || {};
     var accounts = options.accounts || [];
     var events = options.events || [];

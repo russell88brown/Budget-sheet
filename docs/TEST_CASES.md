@@ -19,6 +19,8 @@ Run this quick sequence after housekeeping or setup changes:
 2. Journal
 - Run `Run Budget...` with `Generate journal` only.
 - Expected: journal rows generate for the selected scenario.
+- Expected: included core rows missing required accounts/fields are auto-disabled before journal build.
+- Expected: run log note includes disabled invalid core row count when applicable.
 
 3. Daily
 - Run `Run Budget...` with `Generate daily` only.
@@ -313,3 +315,4 @@ Script editor runners (automated):
 - Expected:
   - Behavior matches Base default path.
   - No validation failures due solely to blank scenario.
+

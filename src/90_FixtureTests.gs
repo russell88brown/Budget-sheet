@@ -8,6 +8,8 @@ function getDeterministicFixtureTestsPhase2Specs_() {
     { name: 'Fixture E', handler: 'runDeterministicFixtureTestsPhase2_FixtureE', run: runDeterministicFixtureTestsPhase2_FixtureE },
     { name: 'Fixture F', handler: 'runDeterministicFixtureTestsPhase2_FixtureF', run: runDeterministicFixtureTestsPhase2_FixtureF },
     { name: 'Fixture G', handler: 'runDeterministicFixtureTestsPhase2_FixtureG', run: runDeterministicFixtureTestsPhase2_FixtureG },
+    { name: 'Fixture H', handler: 'runDeterministicFixtureTestsPhase2_FixtureH', run: runDeterministicFixtureTestsPhase2_FixtureH },
+    { name: 'Fixture I', handler: 'runDeterministicFixtureTestsPhase2_FixtureI', run: runDeterministicFixtureTestsPhase2_FixtureI },
   ];
 }
 
@@ -73,9 +75,9 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     policies: [],
   };
 
-  var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
+  var events = CoreCompileRules.buildSortedEvents(model);
   assertFixtureEqual_('Fixture A event count', 3, events.length);
-  var journal = CoreApplyEvents.buildJournalRows({
+  var journal = CoreApplyEvents.applyEventsToJournal({
     accounts: model.accounts,
     events: events,
     policies: model.policies,
@@ -126,7 +128,7 @@ function runDeterministicFixtureTestsPhase2_FixtureB() {
     transferRules: [],
     policies: [],
   };
-  var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
+  var events = CoreCompileRules.buildSortedEvents(model);
   assertFixtureEqual_('Fixture B event count', 2, events.length);
   assertFixtureEqual_('Fixture B first event name', 'Gift', events[0].name);
   assertFixtureEqual_('Fixture B second event name', 'Bonus', events[1].name);
@@ -152,7 +154,7 @@ function runDeterministicFixtureTestsPhase2_FixtureC() {
       amount: 200,
     },
   ];
-  var journal = CoreApplyEvents.buildJournalRows({
+  var journal = CoreApplyEvents.applyEventsToJournal({
     accounts: accounts,
     events: events,
     policies: [],
@@ -181,7 +183,7 @@ function runDeterministicFixtureTestsPhase2_FixtureD() {
       amount: 0,
     },
   ];
-  var journal = CoreApplyEvents.buildJournalRows({
+  var journal = CoreApplyEvents.applyEventsToJournal({
     accounts: accounts,
     events: events,
     policies: [],
@@ -221,7 +223,7 @@ function runDeterministicFixtureTestsPhase2_FixtureE() {
       endDate: addDays_(anchor, 1),
     },
   ];
-  var journal = CoreApplyEvents.buildJournalRows({
+  var journal = CoreApplyEvents.applyEventsToJournal({
     accounts: accounts,
     events: events,
     policies: policies,
@@ -298,6 +300,112 @@ function runDeterministicFixtureTestsPhase2_FixtureG() {
   assertFixtureEqual_('Fixture G tie-break #2', 'INC:Z', tieSorted[1].sourceRuleId);
 
   return 'Fixture G passed';
+}
+
+function runDeterministicFixtureTestsPhase2_FixtureH() {
+  resetFixtureRunState_();
+  var anchor = fixtureAnchorDate_();
+  var model = {
+    scenarioId: Config.SCENARIOS.DEFAULT,
+    accounts: [{ name: 'Cash', balance: 200, type: Config.ACCOUNT_TYPES.CASH, forecast: true }],
+    incomeRules: [],
+    expenseRules: [
+      {
+        scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'EXP_FIX_H_INVALID_FROM',
+        type: 'Bills',
+        name: 'Invalid Expense',
+        amount: 100,
+        frequency: Config.FREQUENCIES.ONCE,
+        repeatEvery: 1,
+        startDate: anchor,
+        endDate: anchor,
+        paidFrom: '',
+      },
+    ],
+    transferRules: [],
+    policies: [],
+  };
+  var events = CoreCompileRules.buildSortedEvents(model);
+  assertFixtureEqual_('Fixture H event count', 0, events.length);
+  var journal = CoreApplyEvents.applyEventsToJournal({
+    accounts: model.accounts,
+    events: events,
+    policies: model.policies,
+    scenarioId: model.scenarioId,
+  });
+  assertFixtureEqual_('Fixture H row count', 1, journal.rows.length);
+  assertFixtureBalances_(journal, { Cash: 200 });
+  return 'Fixture H passed';
+}
+
+function runDeterministicFixtureTestsPhase2_FixtureI() {
+  resetFixtureRunState_();
+  var anchor = fixtureAnchorDate_();
+  var model = {
+    scenarioId: Config.SCENARIOS.DEFAULT,
+    accounts: [
+      { name: 'Operating', balance: 0, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
+      { name: 'Sink', balance: 0, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
+      { name: 'Card', balance: -1000, type: Config.ACCOUNT_TYPES.CREDIT, forecast: true },
+    ],
+    incomeRules: [
+      {
+        scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'INC_FIX_I_PAY',
+        type: 'Salary',
+        name: 'Pay',
+        amount: 1000,
+        frequency: Config.FREQUENCIES.MONTHLY,
+        repeatEvery: 1,
+        startDate: anchor,
+        endDate: addDays_(anchor, 59),
+        paidTo: 'Operating',
+      },
+    ],
+    expenseRules: [],
+    transferRules: [
+      {
+        scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'TRN_FIX_I_SWEEP',
+        type: Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
+        behavior: Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
+        name: 'Sweep',
+        amount: 100,
+        frequency: Config.FREQUENCIES.MONTHLY,
+        repeatEvery: 1,
+        startDate: anchor,
+        endDate: addDays_(anchor, 59),
+        paidFrom: 'Operating',
+        paidTo: 'Sink',
+      },
+      {
+        scenarioId: Config.SCENARIOS.DEFAULT,
+        ruleId: 'TRN_FIX_I_REPAY',
+        type: Config.TRANSFER_TYPES.REPAYMENT_ALL,
+        behavior: Config.TRANSFER_TYPES.REPAYMENT_ALL,
+        name: 'Repay Card',
+        amount: 0,
+        frequency: Config.FREQUENCIES.MONTHLY,
+        repeatEvery: 1,
+        startDate: anchor,
+        endDate: addDays_(anchor, 59),
+        paidFrom: 'Sink',
+        paidTo: 'Card',
+      },
+    ],
+    policies: [],
+  };
+
+  var events = CoreCompileRules.buildSortedEvents(model);
+  var journal = CoreApplyEvents.applyEventsToJournal({
+    accounts: model.accounts,
+    events: events,
+    policies: [],
+    scenarioId: model.scenarioId,
+  });
+  assertFixtureBalances_(journal, { Operating: 100, Sink: 900, Card: 0 });
+  return 'Fixture I passed';
 }
 
 function fixtureAnchorDate_() {
