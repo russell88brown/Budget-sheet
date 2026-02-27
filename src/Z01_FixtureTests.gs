@@ -1,16 +1,8 @@
 // Deterministic fixture tests for the domain-core compile/apply flow.
 function getDeterministicFixtureTestSpecs_() {
-  return [
-    { name: 'Fixture A', handler: 'runDeterministicFixtureTests_FixtureA', run: runDeterministicFixtureTests_FixtureA },
-    { name: 'Fixture B', handler: 'runDeterministicFixtureTests_FixtureB', run: runDeterministicFixtureTests_FixtureB },
-    { name: 'Fixture C', handler: 'runDeterministicFixtureTests_FixtureC', run: runDeterministicFixtureTests_FixtureC },
-    { name: 'Fixture D', handler: 'runDeterministicFixtureTests_FixtureD', run: runDeterministicFixtureTests_FixtureD },
-    { name: 'Fixture E', handler: 'runDeterministicFixtureTests_FixtureE', run: runDeterministicFixtureTests_FixtureE },
-    { name: 'Fixture F', handler: 'runDeterministicFixtureTests_FixtureF', run: runDeterministicFixtureTests_FixtureF },
-    { name: 'Fixture G', handler: 'runDeterministicFixtureTests_FixtureG', run: runDeterministicFixtureTests_FixtureG },
-    { name: 'Fixture H', handler: 'runDeterministicFixtureTests_FixtureH', run: runDeterministicFixtureTests_FixtureH },
-    { name: 'Fixture I', handler: 'runDeterministicFixtureTests_FixtureI', run: runDeterministicFixtureTests_FixtureI },
-  ];
+  return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(function (id) {
+    return fixtureSpecById_(id);
+  });
 }
 
 function runDeterministicFixtureTests_All() {
@@ -27,11 +19,10 @@ function runDeterministicFixtureTests_GoldenScenario() {
 function runDeterministicFixtureTests_FixtureA() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
-  var model = {
-    scenarioId: Config.SCENARIOS.DEFAULT,
+  var model = fixtureModel_({
     accounts: [
-      { name: 'Operating', balance: 1000, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
-      { name: 'Card', balance: -500, type: Config.ACCOUNT_TYPES.CREDIT, forecast: true },
+      fixtureAccount_('Operating', 1000, Config.ACCOUNT_TYPES.CASH),
+      fixtureAccount_('Card', -500, Config.ACCOUNT_TYPES.CREDIT),
     ],
     incomeRules: [
       {
@@ -77,17 +68,11 @@ function runDeterministicFixtureTests_FixtureA() {
         paidTo: 'Card',
       },
     ],
-    policies: [],
-  };
-
-  var events = CoreCompileRules.buildSortedEvents(model);
-  assertFixtureEqual_('Fixture A event count', 3, events.length);
-  var journal = CoreApplyEvents.applyEventsToJournal({
-    accounts: model.accounts,
-    events: events,
-    policies: model.policies,
-    scenarioId: model.scenarioId,
   });
+  var compiled = compileAndApplyFixtureModel_(model);
+  var events = compiled.events;
+  var journal = compiled.journal;
+  assertFixtureEqual_('Fixture A event count', 3, events.length);
   assertFixtureEqual_('Fixture A row count', 6, journal.rows.length);
   assertFixtureBalances_(journal, { Operating: 1300, Card: -300 });
   assertJournalSourceRuleIdsPresent_(journal, [
@@ -102,9 +87,8 @@ function runDeterministicFixtureTests_FixtureB() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var nextDay = addDays_(anchor, 1);
-  var model = {
-    scenarioId: Config.SCENARIOS.DEFAULT,
-    accounts: [{ name: 'Wallet', balance: 0, type: Config.ACCOUNT_TYPES.CASH, forecast: true }],
+  var model = fixtureModel_({
+    accounts: [fixtureAccount_('Wallet', 0, Config.ACCOUNT_TYPES.CASH)],
     incomeRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
@@ -129,11 +113,8 @@ function runDeterministicFixtureTests_FixtureB() {
         paidTo: 'Wallet',
       },
     ],
-    expenseRules: [],
-    transferRules: [],
-    policies: [],
-  };
-  var events = CoreCompileRules.buildSortedEvents(model);
+  });
+  var events = compileAndApplyFixtureModel_(model).events;
   assertFixtureEqual_('Fixture B event count', 2, events.length);
   assertFixtureEqual_('Fixture B first event name', 'Gift', events[0].name);
   assertFixtureEqual_('Fixture B second event name', 'Bonus', events[1].name);
@@ -144,8 +125,8 @@ function runDeterministicFixtureTests_FixtureC() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var accounts = [
-    { name: 'Checking', balance: 1000, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
-    { name: 'Vault', balance: 0, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
+    fixtureAccount_('Checking', 1000, Config.ACCOUNT_TYPES.CASH),
+    fixtureAccount_('Vault', 0, Config.ACCOUNT_TYPES.CASH),
   ];
   var events = [
     {
@@ -159,12 +140,7 @@ function runDeterministicFixtureTests_FixtureC() {
       amount: 200,
     },
   ];
-  var journal = CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts,
-    events: events,
-    policies: [],
-    scenarioId: Config.SCENARIOS.DEFAULT,
-  });
+  var journal = applyFixtureEvents_(accounts, events, [], Config.SCENARIOS.DEFAULT);
   assertFixtureBalances_(journal, { Checking: 200, Vault: 800 });
   return 'Fixture C passed';
 }
@@ -173,8 +149,8 @@ function runDeterministicFixtureTests_FixtureD() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var accounts = [
-    { name: 'Operating', balance: 500, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
-    { name: 'Card', balance: -150, type: Config.ACCOUNT_TYPES.CREDIT, forecast: true },
+    fixtureAccount_('Operating', 500, Config.ACCOUNT_TYPES.CASH),
+    fixtureAccount_('Card', -150, Config.ACCOUNT_TYPES.CREDIT),
   ];
   var events = [
     {
@@ -188,12 +164,7 @@ function runDeterministicFixtureTests_FixtureD() {
       amount: 0,
     },
   ];
-  var journal = CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts,
-    events: events,
-    policies: [],
-    scenarioId: Config.SCENARIOS.DEFAULT,
-  });
+  var journal = applyFixtureEvents_(accounts, events, [], Config.SCENARIOS.DEFAULT);
   assertFixtureBalances_(journal, { Operating: 350, Card: 0 });
   return 'Fixture D passed';
 }
@@ -202,8 +173,8 @@ function runDeterministicFixtureTests_FixtureE() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var accounts = [
-    { name: 'Cash', balance: 100, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
-    { name: 'Savings', balance: 300, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
+    fixtureAccount_('Cash', 100, Config.ACCOUNT_TYPES.CASH),
+    fixtureAccount_('Savings', 300, Config.ACCOUNT_TYPES.CASH),
   ];
   var events = [
     {
@@ -228,12 +199,7 @@ function runDeterministicFixtureTests_FixtureE() {
       endDate: addDays_(anchor, 1),
     },
   ];
-  var journal = CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts,
-    events: events,
-    policies: policies,
-    scenarioId: Config.SCENARIOS.DEFAULT,
-  });
+  var journal = applyFixtureEvents_(accounts, events, policies, Config.SCENARIOS.DEFAULT);
   assertFixtureBalances_(journal, { Cash: 0, Savings: 250 });
   var hasAutoCover = journal.rows.some(function (row) {
     return String(row[7] || '').indexOf('AUTO_DEFICIT_COVER') !== -1;
@@ -287,14 +253,11 @@ function runDeterministicFixtureTests_FixtureG() {
   var order = sorted.map(function (event) {
     return String(event.sourceRuleId || '');
   });
-  assertFixtureEqual_('Fixture G #1', 'INC:SALARY', order[0]);
-  assertFixtureEqual_('Fixture G #2', 'TRN:TRANSFER_AMOUNT', order[1]);
-  assertFixtureEqual_('Fixture G #3', 'TRN:REPAY_AMOUNT', order[2]);
-  assertFixtureEqual_('Fixture G #4', 'TRN:REPAY_ALL', order[3]);
-  assertFixtureEqual_('Fixture G #5', 'EXP:RENT', order[4]);
-  assertFixtureEqual_('Fixture G #6', 'INT:ACCRUAL', order[5]);
-  assertFixtureEqual_('Fixture G #7', 'INT:POST', order[6]);
-  assertFixtureEqual_('Fixture G #8', 'TRN:SWEEP', order[7]);
+  assertFixtureSequenceEqual_(
+    'Fixture G order',
+    ['INC:SALARY', 'TRN:TRANSFER_AMOUNT', 'TRN:REPAY_AMOUNT', 'TRN:REPAY_ALL', 'EXP:RENT', 'INT:ACCRUAL', 'INT:POST', 'TRN:SWEEP'],
+    order
+  );
 
   var tieBreakEvents = [
     { date: anchor, kind: 'Income', behavior: 'Salary', name: 'Paycheck', sourceRuleId: 'INC:Z', amount: 100 },
@@ -310,10 +273,8 @@ function runDeterministicFixtureTests_FixtureG() {
 function runDeterministicFixtureTests_FixtureH() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
-  var model = {
-    scenarioId: Config.SCENARIOS.DEFAULT,
-    accounts: [{ name: 'Cash', balance: 200, type: Config.ACCOUNT_TYPES.CASH, forecast: true }],
-    incomeRules: [],
+  var model = fixtureModel_({
+    accounts: [fixtureAccount_('Cash', 200, Config.ACCOUNT_TYPES.CASH)],
     expenseRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
@@ -328,17 +289,11 @@ function runDeterministicFixtureTests_FixtureH() {
         paidFrom: '',
       },
     ],
-    transferRules: [],
-    policies: [],
-  };
-  var events = CoreCompileRules.buildSortedEvents(model);
-  assertFixtureEqual_('Fixture H event count', 0, events.length);
-  var journal = CoreApplyEvents.applyEventsToJournal({
-    accounts: model.accounts,
-    events: events,
-    policies: model.policies,
-    scenarioId: model.scenarioId,
   });
+  var compiled = compileAndApplyFixtureModel_(model);
+  var events = compiled.events;
+  var journal = compiled.journal;
+  assertFixtureEqual_('Fixture H event count', 0, events.length);
   assertFixtureEqual_('Fixture H row count', 1, journal.rows.length);
   assertFixtureBalances_(journal, { Cash: 200 });
   return 'Fixture H passed';
@@ -347,12 +302,11 @@ function runDeterministicFixtureTests_FixtureH() {
 function runDeterministicFixtureTests_FixtureI() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
-  var model = {
-    scenarioId: Config.SCENARIOS.DEFAULT,
+  var model = fixtureModel_({
     accounts: [
-      { name: 'Operating', balance: 0, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
-      { name: 'Sink', balance: 0, type: Config.ACCOUNT_TYPES.CASH, forecast: true },
-      { name: 'Card', balance: -1000, type: Config.ACCOUNT_TYPES.CREDIT, forecast: true },
+      fixtureAccount_('Operating', 0, Config.ACCOUNT_TYPES.CASH),
+      fixtureAccount_('Sink', 0, Config.ACCOUNT_TYPES.CASH),
+      fixtureAccount_('Card', -1000, Config.ACCOUNT_TYPES.CREDIT),
     ],
     incomeRules: [
       {
@@ -368,7 +322,6 @@ function runDeterministicFixtureTests_FixtureI() {
         paidTo: 'Operating',
       },
     ],
-    expenseRules: [],
     transferRules: [
       {
         scenarioId: Config.SCENARIOS.DEFAULT,
@@ -399,18 +352,61 @@ function runDeterministicFixtureTests_FixtureI() {
         paidTo: 'Card',
       },
     ],
-    policies: [],
-  };
-
-  var events = CoreCompileRules.buildSortedEvents(model);
-  var journal = CoreApplyEvents.applyEventsToJournal({
-    accounts: model.accounts,
-    events: events,
-    policies: [],
-    scenarioId: model.scenarioId,
   });
+  var journal = compileAndApplyFixtureModel_(model).journal;
   assertFixtureBalances_(journal, { Operating: 100, Sink: 900, Card: 0 });
   return 'Fixture I passed';
+}
+
+function fixtureSpecById_(id) {
+  var handler = 'runDeterministicFixtureTests_Fixture' + id;
+  var run = globalThis[handler];
+  if (typeof run !== 'function') {
+    throw new Error('Fixture handler missing: ' + handler);
+  }
+  return { name: 'Fixture ' + id, handler: handler, run: run };
+}
+
+function fixtureAccount_(name, balance, type) {
+  return { name: name, balance: balance, type: type, forecast: true };
+}
+
+function fixtureModel_(overrides) {
+  var base = {
+    scenarioId: Config.SCENARIOS.DEFAULT,
+    accounts: [],
+    incomeRules: [],
+    expenseRules: [],
+    transferRules: [],
+    policies: [],
+  };
+  var patch = overrides || {};
+  return {
+    scenarioId: patch.scenarioId || base.scenarioId,
+    accounts: patch.accounts || base.accounts,
+    incomeRules: patch.incomeRules || base.incomeRules,
+    expenseRules: patch.expenseRules || base.expenseRules,
+    transferRules: patch.transferRules || base.transferRules,
+    policies: patch.policies || base.policies,
+  };
+}
+
+function applyFixtureEvents_(accounts, events, policies, scenarioId) {
+  return CoreApplyEvents.applyEventsToJournal({
+    accounts: accounts || [],
+    events: events || [],
+    policies: policies || [],
+    scenarioId: scenarioId || Config.SCENARIOS.DEFAULT,
+  });
+}
+
+function compileAndApplyFixtureModel_(model) {
+  var active = fixtureModel_(model);
+  var events = CoreCompileRules.buildSortedEvents(active);
+  return {
+    events: events,
+    journal: applyFixtureEvents_(active.accounts, events, active.policies, active.scenarioId),
+  };
 }
 
 function fixtureAnchorDate_() {
@@ -450,6 +446,15 @@ function assertFixtureEqual_(label, expected, actual) {
   if (expected !== actual) {
     throw new Error(label + ' expected "' + expected + '" but got "' + actual + '".');
   }
+}
+
+function assertFixtureSequenceEqual_(label, expected, actual) {
+  var expectedList = Array.isArray(expected) ? expected : [];
+  var actualList = Array.isArray(actual) ? actual : [];
+  assertFixtureEqual_(label + ' length', expectedList.length, actualList.length);
+  expectedList.forEach(function (item, idx) {
+    assertFixtureEqual_(label + ' #' + (idx + 1), item, actualList[idx]);
+  });
 }
 
 function assertJournalSourceRuleIdsPresent_(journal, expectedRuleIds) {

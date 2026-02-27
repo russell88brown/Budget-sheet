@@ -14,6 +14,7 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 - [x] Fixture slice 3: recurrence month-end and window-alignment boundary fixtures.
 - [x] Fixture slice 4: policy boundaries, scenario scope, and summary stats fixtures.
 - [x] Full validation completed (`npm run sprint:check`, `npm run typecheck`, `npm test`).
+- [x] Reduced fixture-harness duplication in `src/Z01_FixtureTests.gs` with shared helpers and generated fixture registration.
 
 ## Change Log
 | Date | Change | Reason | Impact |
@@ -28,6 +29,7 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 | 2026-02-27 | Expanded `tagScope.test.ts` for `null` scenario normalization to Base and scenario-column inclusion behavior with normalized duplicate tags. | Lock scenario scoping semantics that affect filtered outputs. | Base-default and column-visibility behavior is explicitly covered. |
 | 2026-02-27 | Expanded `summaryStats.test.ts` with requested tolerance examples and mixed numeric/string threshold counting behavior. | Guard reconciliation/stat logic against input-shape drift. | Tolerance and mixed-value counting behavior is now documented by fixtures. |
 | 2026-02-27 | Set `codex/current-sprint` to `feat-fixtures-branch` and completed final validation (`sprint:check`, `typecheck`, `test`). | Satisfy sprint-loop quality gate and record completion evidence. | Sprint documentation status is now checkable and complete for handoff. |
+| 2026-02-27 | Refactored `src/Z01_FixtureTests.gs` to generate fixture specs from ids and reuse shared helpers (`fixtureModel_`, `fixtureAccount_`, `compileAndApplyFixtureModel_`, `applyFixtureEvents_`, sequence assertion helper). | Reduce fixture LOC/duplication while preserving deterministic behavior during migration. | Fixture harness is shorter and easier to extend without changing fixture semantics. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
@@ -36,6 +38,8 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 | Unit | `npm exec tsx -- tests/eventSort.test.ts` + `npm exec tsx -- tests/compiledEvent.test.ts` | Fail | Windows ESM path issue when invoking single files directly from this shell; using `npm test` runner for authoritative validation. |
 | Unit | `npm test` | Pass | Passed after final fixture and doc completion. |
 | Typecheck | `npm run typecheck` | Pass | No TS errors after fixture updates. |
+| Unit | `npm test` | Pass | Passed after `Z01_FixtureTests.gs` refactor and helper extraction. |
+| Typecheck | `npm run typecheck` | Pass | Passed after fixture harness refactor. |
 | Manual | Sprint doc review | Pass | `sprint-plan.md` now reflects requested 10-fixture scope. |
 
 ## Risks
