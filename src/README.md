@@ -1,47 +1,47 @@
-# `src/` Technical Map
+# Budget Sheet Source Guide
 
-## Section A: Setup (Operational)
-- `A01_Setup.gs`: setup stages, validations, named ranges, setup audit/actions.
-- `A02_DefaultData.gs`: default seed data and default tag catalog.
-- `A03_SetupDialog.html`: setup audit/fix dialog.
+This folder contains the Apps Script runtime for setup, inputs, journal generation, summaries, and dashboard output.
 
-## Section B: Utilities/Foundation (Utility)
-- `B01_Config.gs`: constants, enums, sheet and range IDs.
-- `B02_Schema.gs`: canonical sheet schema metadata.
-- `B03_Utils.gs`: shared helper utilities + HTML template compatibility wrappers.
-- `B04_Recurrence.gs`: recurrence expansion/date window helpers.
-- `B05_EventSort.gs`: deterministic event precedence and tie-break ordering.
-- `B06_CoreModel.gs`: shared normalization for core event model.
+## How The App Flows
 
-## Section C: Inputs + Run Model (Operational)
-- `C01_Readers.gs`: reads and normalizes input rows.
-- `C02_RunModel.gs`: builds run model for selected tag scope.
-- `C03_RunExtensions.gs`: extension wiring (policies/goals).
+1. Setup builds sheets, rules, and defaults.
+2. Inputs are read and scoped by tag.
+3. Journal rows are generated from events.
+4. Daily/Monthly summaries and dashboard are derived from Journal.
+5. Menu/UI orchestrates runs and exports.
 
-## Section D: Journal Pipeline (Operational)
-- `D01_Events.gs`: convert rules into normalized events.
-- `D02_CoreCompile.gs`: compile and sort event stream.
-- `D03_CoreApply.gs`: apply events to balances and journal rows.
-- `D04_JournalEngine.gs`: orchestration, validation, preprocessing, account summaries, run metadata.
-- `D05_Writers.gs`: journal sheet write/migration/formatting.
+## Source Layout
 
-## Section E: Other Summaries + Dashboard (Operational)
-- `E01_Summary.gs`: daily/monthly builders and reconciliation checks.
-- `E02_DashboardReports.gs`: dashboard report registry + rendering/layout.
+| Section | Purpose | Files |
+|---|---|---|
+| `A` | Setup (operational) | `A01`-`A03` |
+| `B` | Utilities/foundation (utility) | `B01`-`B08` |
+| `C` | Inputs + run model (operational) | `C01`-`C03` |
+| `D` | Journal pipeline (operational) | `D01`-`D05` |
+| `E` | Other summaries + dashboard (operational) | `E01`-`E02` |
+| `F` | Menu/UI/export (operational) | `F01`-`F04` |
+| `Z` | Deterministic fixture tests | `Z01` |
 
-## Section F: Menu/UI/Export (Operational)
-- `F01_Menu.gs`: menu entrypoints and run orchestration.
-- `F02_RunDialog.html`: action + tag run dialog.
-- `F03_Export.gs`: export operations and payload build.
-- `F04_ExportDialog.html`: export dialog UI.
+## Tag Model
 
-## Section Z: Tests
-- `Z01_FixtureTests.gs`: deterministic fixture test suite.
+- User-facing key is `Tag`.
+- `Base` is always included in run selections.
+- Legacy `Scenario` header aliases are removed; inputs must use `Tag`.
 
-## Other
-- `appsscript.json`: Apps Script manifest.
+## Typed Migration
 
-## Notes
-- Tag-first user model is active.
-- Legacy `Scenario` column compatibility remains in readers/engine paths.
-- Setup handlers (`runSetupAudit`, `runSetupActions`) are located in setup module (`A01_Setup.gs`).
+- Typed source: `ts/`
+- Node tests: `tests/`
+- Typecheck: `npm run typecheck`
+- Typed adapter bridge: `src/B07_TypedAdapters.gs`
+- Generated runtime bundle: `src/B08_TypedBudget.generated.gs`
+
+## Docs
+
+| Doc | Purpose |
+|---|---|
+| `docs/TECHNICAL.md` | Detailed architecture, runtime flow, and module responsibilities. |
+| `docs/SCENARIOS.md` | Tag behavior and run selection rules. |
+| `docs/TEST_CASES.md` | Manual regression checklist. |
+| `docs/tooling/CI.md` | CI workflows and required secrets. |
+| `docs/tooling/CLASP.md` | Apps Script sync setup and local push/pull workflow. |

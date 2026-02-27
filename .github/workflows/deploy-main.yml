@@ -33,6 +33,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Verify typed build and tests
+        run: npm run verify
+
       - name: Install clasp
         run: npm install -g @google/clasp
 

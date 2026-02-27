@@ -275,28 +275,12 @@ function remapSheetDataByHeaders_(sheet, rows, sourceHeaders, targetHeaders) {
     return targetHeaders.map(function (header) {
       var idx = sourceIndex[header];
       if (idx === undefined) {
-        idx = resolveHeaderAliasIndex_(sourceIndex, header);
-      }
-      if (idx === undefined) {
         return '';
       }
       return row[idx];
     });
   });
   sheet.getRange(2, 1, remapped.length, targetHeaders.length).setValues(remapped);
-}
-
-function resolveHeaderAliasIndex_(sourceIndex, header) {
-  if (!sourceIndex) {
-    return undefined;
-  }
-  if (header === 'Tag' && sourceIndex.Scenario !== undefined) {
-    return sourceIndex.Scenario;
-  }
-  if (header === 'Scenario' && sourceIndex.Tag !== undefined) {
-    return sourceIndex.Tag;
-  }
-  return undefined;
 }
 
 function headersEquivalent_(existingHeaders, targetHeaders) {

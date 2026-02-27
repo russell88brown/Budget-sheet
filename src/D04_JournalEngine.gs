@@ -76,31 +76,14 @@ function runJournalPipeline_(options) {
     }
 
     toastStep_('Reading input sheets...');
-    if (!runModel) {
-      runModel = buildRunModelWithExtensions_(scenarioId);
+    var execution = executeJournalPipelineCoreTyped_(scenarioId, runModel, refreshSummaries);
+    if (!execution) {
+      throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
     }
-    var accounts = runModel.accounts || [];
-    assertUniqueScenarioAccountNames_(runModel.scenarioId, accounts);
-    var accountTypes = buildAccountTypeMap_(accounts);
-    var runExtensions = buildRunExtensions_(runModel);
-    var policies = runExtensions.policies || [];
-
-    if (refreshSummaries) {
-      refreshAccountSummariesForRunModel_(runModel);
-    }
-
-    toastStep_('Building events...');
-    var events = CoreCompileRules.buildSortedEvents(runModel);
-
     toastStep_('Building journal...');
-    var journalData = CoreApplyEvents.applyEventsToJournal({
-      accounts: accounts,
-      events: events,
-      policies: policies,
-      scenarioId: scenarioId,
-    });
+    var journalData = execution.journalData;
     toastStep_('Writing journal...');
-    Writers.writeJournal(journalData.rows, journalData.forecastAccounts, accountTypes);
+    Writers.writeJournal(journalData.rows, journalData.forecastAccounts, journalData.accountTypes);
     recordLastRunMetadata_(modeLabel, scenarioId, 'Success', preprocessReport);
     toastStep_(options.completionToast || 'Run complete.');
   } catch (err) {
@@ -139,18 +122,15 @@ function enforceCoreInputIntegrityForRun_() {
 }
 
 function resolveScenarioId_(scenarioId) {
+  var typed = resolveJournalScenarioIdTyped_(scenarioId);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
   return normalizeScenario_(scenarioId);
 }
 
 function getTagColumnIndex_(headers) {
-  if (!headers || !headers.length) {
-    return -1;
-  }
-  var tagIdx = headers.indexOf('Tag');
-  if (tagIdx !== -1) {
-    return tagIdx;
-  }
-  return headers.indexOf('Scenario');
+  return getTagColumnIndexTyped_(headers);
 }
 
 function readTagCatalog_() {
@@ -161,29 +141,11 @@ function readTagCatalog_() {
 }
 
 function filterByScenario_(rows, scenarioId) {
-  if (!Array.isArray(rows) || !rows.length) {
-    return [];
-  }
-  var activeScenarioId = resolveScenarioId_(scenarioId);
-  return rows.filter(function (row) {
-    var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
-    return rowScenarioId === activeScenarioId;
-  });
+  return filterByScenarioTyped_(rows, scenarioId);
 }
 
 function filterByScenarioSet_(rows, scenarioIds) {
-  if (!Array.isArray(rows) || !rows.length) {
-    return [];
-  }
-  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
-  var lookup = {};
-  ids.forEach(function (scenarioId) {
-    lookup[resolveScenarioId_(scenarioId)] = true;
-  });
-  return rows.filter(function (row) {
-    var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
-    return !!lookup[rowScenarioId];
-  });
+  return filterByScenarioSetTyped_(rows, scenarioIds);
 }
 
 function preprocessInputSheets_() {
@@ -320,12 +282,7 @@ function reviewAndCleanupInputSheets_() {
 
 function buildScenarioLookup_() {
   var tags = readTagCatalog_();
-  var lookup = {};
-  (tags || []).forEach(function (scenarioId) {
-    lookup[resolveScenarioId_(scenarioId)] = true;
-  });
-  lookup[Config.SCENARIOS.DEFAULT] = true;
-  return lookup;
+  return buildScenarioLookupTyped_(tags);
 }
 
 function validateScenariosAcrossInputs_(validScenarios) {
@@ -1316,6 +1273,19 @@ function updateTransferMonthlyTotalsForRunModel_(
 }
 
 function shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fromKey, toKey, behavior, amount) {
+  var typed = shouldCalculateTransferMonthlyTotalTyped_(
+    include,
+    recurring,
+    recurrence,
+    fromKey,
+    toKey,
+    behavior,
+    amount
+  );
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (!include || !recurring || !recurrence || !recurrence.frequency || !fromKey || !toKey) {
     return false;
   }
@@ -1326,6 +1296,11 @@ function shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fr
 }
 
 function isTransferAmountRequiredForMonthlyTotal_(behavior) {
+  var typed = isTransferAmountRequiredForMonthlyTotalTyped_(behavior);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   return (
     behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
     behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT ||
@@ -1334,6 +1309,11 @@ function isTransferAmountRequiredForMonthlyTotal_(behavior) {
 }
 
 function resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances, toKey) {
+  var typed = resolveTransferMonthlyTotalTyped_(behavior, amount, factor, accountBalances, toKey);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (
     behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
     behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT
@@ -1704,6 +1684,11 @@ function normalizeRecurrenceRowsForSheet_(sheetName) {
 }
 
 function mapLegacyFrequency_(frequencyValue, repeatEveryValue, startDateValue, endDateValue) {
+  var typed = mapLegacyFrequencyTyped_(frequencyValue, repeatEveryValue, startDateValue, endDateValue);
+  if (typed) {
+    return typed;
+  }
+
   var frequency = frequencyValue;
   var repeatEvery = repeatEveryValue;
   var endDate = endDateValue;
@@ -1854,6 +1839,11 @@ function normalizeAccountRows_() {
 }
 
 function normalizeInterestMethod_(value) {
+  var typed = normalizeInterestMethodTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return '';
   }
@@ -1868,6 +1858,11 @@ function normalizeInterestMethod_(value) {
 }
 
 function normalizeInterestFrequency_(value) {
+  var typed = normalizeInterestFrequencyTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return '';
   }
@@ -1888,6 +1883,11 @@ function normalizeInterestFrequency_(value) {
 }
 
 function normalizeAccountType_(value) {
+  var typed = normalizeAccountTypeTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var lower = String(value).trim().toLowerCase();
   if (lower === String(Config.ACCOUNT_TYPES.CASH).toLowerCase()) {
     return Config.ACCOUNT_TYPES.CASH;
@@ -1899,6 +1899,11 @@ function normalizeAccountType_(value) {
 }
 
 function isValidNumberOrBlank_(value) {
+  var typed = isValidNumberOrBlankTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return true;
   }
@@ -1906,6 +1911,11 @@ function isValidNumberOrBlank_(value) {
 }
 
 function isValidAccountSummaryNumber_(value) {
+  var typed = isValidAccountSummaryNumberTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return true;
   }
@@ -1929,6 +1939,11 @@ function updateAccountMonthlyFlowAverages_(incomeTotalsByAccount, transferTotals
 }
 
 function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {
+  var typed = computeEstimatedMonthlyInterestTyped_(balance, ratePercent, method);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var annualRate = ratePercent / 100;
   var monthlyRate = annualRate / 12;
   if (method === Config.INTEREST_METHODS.APY_COMPOUND) {
@@ -1962,6 +1977,11 @@ function updateTransferMonthlyTotals_(incomeTotalsByAccount, expenseTotalsByAcco
 }
 
 function normalizeAccountTotalsKeys_(totalsByAccount) {
+  var typed = normalizeAccountTotalsKeysTyped_(totalsByAccount);
+  if (typed) {
+    return typed;
+  }
+
   var normalized = {};
   if (!totalsByAccount) {
     return normalized;
@@ -1981,6 +2001,20 @@ function normalizeAccountTotalsKeys_(totalsByAccount) {
 }
 
 function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
+  var typedDuplicates = findDuplicateAccountNamesTyped_(accounts);
+  if (typedDuplicates && typedDuplicates.length) {
+    throw new Error(
+      'Duplicate account names in tag "' +
+        normalizeScenario_(scenarioId) +
+        '": ' +
+        typedDuplicates.join(', ') +
+        '.'
+    );
+  }
+  if (typedDuplicates && !typedDuplicates.length) {
+    return;
+  }
+
   var seen = {};
   var duplicates = [];
   (accounts || []).forEach(function (account) {
@@ -2013,6 +2047,11 @@ function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
 }
 
 function normalizeTransferTotalsKeys_(transferTotals) {
+  var typed = normalizeTransferTotalsKeysTyped_(transferTotals);
+  if (typed) {
+    return typed;
+  }
+
   return {
     credits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.credits),
     debits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.debits),
@@ -2020,6 +2059,11 @@ function normalizeTransferTotalsKeys_(transferTotals) {
 }
 
 function getAccountSummaryHeaderIndexes_(headers) {
+  var typed = getAccountSummaryHeaderIndexesTyped_(headers);
+  if (typed) {
+    return typed;
+  }
+
   return {
     credits: headers.indexOf('Money In / Month'),
     debits: headers.indexOf('Money Out / Month'),
@@ -2037,6 +2081,11 @@ function isRecurringExpense_(startDateValue, endDateValue) {
 }
 
 function isRecurringForMonthlyAverage_(rule) {
+  var typed = isRecurringForMonthlyAverageTyped_(rule);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (rule && rule.isSingleOccurrence) {
     return false;
   }
@@ -2051,6 +2100,11 @@ function isRecurringForMonthlyAverage_(rule) {
 }
 
 function monthlyFactorForRecurrence_(frequency, repeatEvery) {
+  var typed = monthlyFactorForRecurrenceTyped_(frequency, repeatEvery);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var periodsPerYear = Recurrence.periodsPerYear(frequency, repeatEvery);
   if (!periodsPerYear) {
     return 0;
@@ -2060,91 +2114,42 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
 
 function buildJournalArtifactsForRunModel_(runModel) {
   var model = runModel || buildRunModelWithExtensions_(Config.SCENARIOS.DEFAULT);
-  var activeScenarioId = resolveScenarioId_(model.scenarioId);
-  var accounts = model.accounts || [];
-  assertUniqueScenarioAccountNames_(activeScenarioId, accounts);
-  var accountTypes = buildAccountTypeMap_(accounts);
-  var runExtensions = buildRunExtensions_(model);
-  var policies = runExtensions.policies || [];
-  var events = CoreCompileRules.buildSortedEvents(model);
-  var journalData = CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts,
-    events: events,
-    policies: policies,
-    scenarioId: activeScenarioId,
-  });
-  return {
-    rows: journalData.rows || [],
-    forecastAccounts: journalData.forecastAccounts || [],
-    accountTypes: accountTypes,
-    scenarioId: activeScenarioId,
-  };
+  var typed = buildJournalArtifactsForRunModelTyped_(model);
+  if (!typed) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
+  }
+  return typed;
 }
 
 function runJournalForIds_(scenarioIds) {
-  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
-  ids = ids
-    .map(function (value) { return resolveScenarioId_(value); })
-    .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
-  if (!ids.length) {
-    ids = [Config.SCENARIOS.DEFAULT];
+  var ids = normalizeJournalRunIdsTyped_(scenarioIds);
+  if (!ids) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-  if (ids.length === 1) {
-    if (Engine && Engine.runJournalForScenario) {
-      Engine.runJournalForScenario(ids[0]);
-      return;
-    }
+  var useEngineDirect = shouldUseEngineDirectTyped_(
+    ids,
+    !!(Engine && Engine.runJournalForScenario)
+  );
+  if (useEngineDirect === null || useEngineDirect === undefined) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
+  }
+  if (useEngineDirect) {
+    Engine.runJournalForScenario(ids[0]);
+    return;
   }
 
   startRunProgress_('Journal (' + ids.join(', ') + ')', ids.length + 2);
   try {
     toastStep_('Reading input sheets...');
-    var artifacts = ids.map(function (scenarioId) {
-      return buildJournalArtifactsForRunModel_(buildRunModelWithExtensions_(scenarioId));
-    });
-
     toastStep_('Combining journal rows...');
-    var forecastLookup = {};
-    var globalForecastAccounts = [];
-    var accountTypes = {};
-    artifacts.forEach(function (artifact) {
-      (artifact.forecastAccounts || []).forEach(function (name) {
-        if (forecastLookup[name]) {
-          return;
-        }
-        forecastLookup[name] = true;
-        globalForecastAccounts.push(name);
-      });
-      Object.keys(artifact.accountTypes || {}).forEach(function (name) {
-        if (!accountTypes[name]) {
-          accountTypes[name] = artifact.accountTypes[name];
-        }
-      });
-    });
-
-    var combinedRows = [];
     var baseColumnCount = getJournalBaseColumnCount_();
-    artifacts.forEach(function (artifact) {
-      var localIndex = {};
-      (artifact.forecastAccounts || []).forEach(function (name, idx) {
-        localIndex[name] = idx;
-      });
-      (artifact.rows || []).forEach(function (row) {
-        var base = row.slice(0, baseColumnCount);
-        var localSnapshot = row.slice(baseColumnCount);
-        var aligned = globalForecastAccounts.map(function (name) {
-          var idx = localIndex[name];
-          if (idx === undefined) {
-            return '';
-          }
-          return idx < localSnapshot.length ? localSnapshot[idx] : '';
-        });
-        combinedRows.push(base.concat(aligned));
-      });
-    });
+    var payload = buildMultiRunJournalPayloadTyped_(ids, baseColumnCount);
+    if (!payload) {
+      throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
+    }
 
     toastStep_('Writing journal...');
-    Writers.writeJournal(combinedRows, globalForecastAccounts, accountTypes);
+    Writers.writeJournal(payload.combinedRows, payload.forecastAccounts, payload.accountTypes);
     recordLastRunMetadata_('Journal', ids.join(', '), 'Success');
     toastStep_('Journal run complete.');
   } catch (err) {
@@ -2156,6 +2161,15 @@ function runJournalForIds_(scenarioIds) {
 }
 
 function getJournalBaseColumnCount_() {
+  var typed = getJournalBaseColumnCountTyped_(
+    typeof Schema !== 'undefined' && Schema ? Schema.outputs : null,
+    Config.SHEETS.JOURNAL,
+    8
+  );
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (typeof Schema !== 'undefined' && Schema && Array.isArray(Schema.outputs)) {
     var journalSpec = Schema.outputs.filter(function (spec) {
       return spec && spec.name === Config.SHEETS.JOURNAL;
@@ -2167,16 +2181,12 @@ function getJournalBaseColumnCount_() {
   return 8;
 }
 
-function buildJournalRows_(accounts, events, policies, scenarioId) {
-  return CoreApplyEvents.applyEventsToJournal({
-    accounts: accounts || [],
-    events: events || [],
-    policies: policies || [],
-    scenarioId: scenarioId || Config.SCENARIOS.DEFAULT,
-  });
-}
-
 function buildAccountTypeMap_(accounts) {
+  var typed = buildAccountTypeMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
@@ -2185,6 +2195,11 @@ function buildAccountTypeMap_(accounts) {
 }
 
 function deriveJournalTransactionType_(event) {
+  var typed = deriveJournalTransactionTypeTyped_(event);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (!event || !event.kind) {
     return '';
   }

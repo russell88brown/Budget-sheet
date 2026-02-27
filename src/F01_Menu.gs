@@ -113,42 +113,8 @@ function runBudgetSelections(actions, tagIds) {
     .filter(function (value, idx, arr) {
       return value && arr.indexOf(value) === idx;
     });
-  var selectedActions = Array.isArray(actions)
-    ? actions.map(function (value) { return String(value || '').toLowerCase(); })
-    : [];
-  selectedActions = selectedActions.filter(function (value, idx, arr) {
-    return value && arr.indexOf(value) === idx;
-  });
-  if (!selectedActions.length) {
-    throw new Error('Select at least one action.');
-  }
-  selectedActions.forEach(function (actionType) {
-    if (
-      actionType !== 'summarise_accounts' &&
-      actionType !== 'journal' &&
-      actionType !== 'daily' &&
-      actionType !== 'monthly' &&
-      actionType !== 'dashboard'
-    ) {
-      throw new Error('Unknown action type.');
-    }
-  });
-
-  var selectedTags = Array.isArray(tagIds)
-    ? tagIds.map(function (value) { return normalizeScenario_(value); })
-    : [];
-  selectedTags.push(Config.SCENARIOS.DEFAULT);
-  selectedTags = selectedTags.filter(function (value, idx, arr) {
-    return value && arr.indexOf(value) === idx;
-  });
-  if (!selectedTags.length) {
-    throw new Error('Select at least one tag.');
-  }
-  selectedTags.forEach(function (tagId) {
-    if (available.indexOf(tagId) === -1) {
-      throw new Error('Unknown tag "' + tagId + '".');
-    }
-  });
+  var selectedActions = normalizeActionsTyped_(actions);
+  var selectedTags = selectRunTagsTyped_(available, tagIds);
 
   var actionLabel = selectedActions
     .map(function (value) {

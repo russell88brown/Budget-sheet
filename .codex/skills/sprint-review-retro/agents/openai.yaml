@@ -1,0 +1,5 @@
+version: 1
+display_name: Sprint Review Retro
+short_description: Review sprint delivery quality and produce a retrospective with corrective actions.
+default_prompt: Review sprint PR outcomes against the plan and update `.codex/sprints/<sprint-id>/retro.md` with findings and next actions.
+

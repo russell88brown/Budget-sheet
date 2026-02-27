@@ -19,6 +19,11 @@ function runDeterministicFixtureTests_All() {
   });
 }
 
+// Golden parity fixture pinned for migration merge gating.
+function runDeterministicFixtureTests_GoldenScenario() {
+  return runDeterministicFixtureTests_FixtureI();
+}
+
 function runDeterministicFixtureTests_FixtureA() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();

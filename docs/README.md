@@ -1,17 +1,17 @@
 # Documentation Index
 
-## App Docs
+## App Documentation
 
 | Document | Purpose |
 |---|---|
-| `TECHNICAL.md` | Canonical technical reference. Starts with source architecture map. |
-| `SCENARIOS.md` | Tag modeling and run-selection behavior. |
-| `TEST_CASES.md` | Manual regression checklist. |
+| `TECHNICAL.md` | Detailed architecture and runtime responsibilities. |
 
-## Tooling / Contributor Docs
+## Tooling / Contributor Documentation
 
 | Document | Purpose |
 |---|---|
-| `tooling/CLASP.md` | Apps Script sync setup (`clasp`). |
 | `tooling/CI.md` | CI and PR automation workflows/secrets. |
-| `tooling/CODEX.md` | Local Codex contributor setup notes. |
+| `tooling/CLASP.md` | Apps Script sync setup (`clasp`). |
+| `tooling/CODEX.md` | Local Codex contributor setup plus sprint planning/execution/review workflow. |
+| `tooling/clasp.json` | Local docs copy of clasp config template for tooling examples. |
+| `.clasp.example.json` | Root-level clasp template for local setup. |
