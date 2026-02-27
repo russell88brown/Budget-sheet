@@ -5,14 +5,12 @@ const CoreApplyEvents = {
     var accounts = options.accounts || [];
     var events = options.events || [];
     var policies = options.policies || [];
-    var riskSettings = options.riskSettings || [];
     var scenarioId = options.scenarioId || Config.SCENARIOS.DEFAULT;
 
     var balances = coreBuildBalanceMap_(accounts);
     var forecastable = coreBuildForecastableMap_(accounts);
     var accountTypes = buildAccountTypeMap_(accounts);
     var policyRules = policies || [];
-    var riskContext = coreResolveRiskContext_(riskSettings || []);
     var forecastAccounts = accounts
       .filter(function (account) {
         return forecastable[account.name];
@@ -32,7 +30,6 @@ const CoreApplyEvents = {
           event,
           accountTypes,
           policyRules,
-          riskContext,
           forecastAccounts,
           scenarioId
         )
@@ -246,7 +243,6 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
   event,
   accountTypes,
   policyRules,
-  riskContext,
   forecastAccounts,
   scenarioId
 ) {
@@ -280,10 +276,6 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
       continue;
     }
     var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
-    var reservedBuffer = coreGetReservedEmergencyBufferForSource_(riskContext, sourceAccount);
-    if (reservedBuffer > 0) {
-      available = roundUpCents_(Math.max(0, available - reservedBuffer));
-    }
     if (available <= 0) {
       continue;
     }
@@ -352,31 +344,6 @@ function coreGetApplicableAutoDeficitPolicies_(policyRules, event) {
       var nb = b.name || '';
       return na < nb ? -1 : na > nb ? 1 : 0;
     });
-}
-
-function coreResolveRiskContext_(riskSettings) {
-  if (!Array.isArray(riskSettings) || !riskSettings.length) {
-    return null;
-  }
-  return riskSettings[0];
-}
-
-function coreGetReservedEmergencyBufferForSource_(riskContext, sourceAccount) {
-  if (!riskContext || !sourceAccount) {
-    return 0;
-  }
-  var bufferAccount = (riskContext.emergencyBufferAccount || '').toString().trim();
-  if (!bufferAccount) {
-    return 0;
-  }
-  if (normalizeAccountLookupKey_(bufferAccount) !== normalizeAccountLookupKey_(sourceAccount)) {
-    return 0;
-  }
-  var minValue = toNumber_(riskContext.emergencyBufferMinimum);
-  if (minValue === null || minValue <= 0) {
-    return 0;
-  }
-  return roundUpCents_(minValue);
 }
 
 function coreIsPolicyActiveOnDate_(policy, date) {

@@ -14,7 +14,6 @@ const ScenarioModel = {
       expenseRules: filterScenarioRowsForModel_(Readers.readExpenses(), activeScenarioId),
       policies: filterScenarioRowsForModel_(Readers.readPolicies(), activeScenarioId),
       goals: filterScenarioRowsForModel_(Readers.readGoals(), activeScenarioId),
-      riskSettings: filterScenarioRowsForModel_(Readers.readRiskSettings(), activeScenarioId),
     };
   },
 };

@@ -53,10 +53,6 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - Columns: Include, Scenario, Rule ID, Goal Name, Target Amount, Target Date, Priority, Funding Account, Funding Policy, Amount Per Month, Percent Of Inflow, Notes
 - Goals are validated and read, but not yet applied in the forecast output.
 
-#### Risk
-- Columns: Include, Scenario, Rule ID, Scenario Name, Emergency Buffer Account, Emergency Buffer Minimum, Income Shock Percent, Expense Shock Percent, Notes
-- Emergency buffer settings are used by auto deficit cover to keep a minimum balance.
-
 ### Outputs
 
 #### Journal
@@ -103,7 +99,6 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `Readers.readTransfers()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
 - `Readers.readPolicies()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
 - `Readers.readGoals()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
-- `Readers.readRiskSettings()` ([src/engine/10_Readers.gs](../src/engine/10_Readers.gs))
 
 ### c) Refresh account summaries (optional)
 - `refreshAccountSummaries_()` ([src/engine/40_Engine.gs](../src/engine/40_Engine.gs)) updates monthly averages on the Accounts sheet.
@@ -122,7 +117,6 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - If a credit balance is already >= 0, repayment transfers are skipped once per name.
 - `Transfer - Everything Except` keeps the specified amount in the source account and moves any excess.
 - Auto deficit cover policies insert transfers to prevent cash accounts from dropping below a threshold.
-- Emergency buffer settings can reserve a minimum balance from deficit coverage.
 - Journal rows carry `Source Rule ID` for rule-level traceability.
 
 ### f) Write outputs
@@ -173,7 +167,7 @@ Supported frequencies:
 ### Sheet ordering
 All major flows call a single ordering routine to ensure consistent tab order:
 
-Accounts -> Income -> Transfers -> Expense -> Journal -> Daily -> Monthly -> Dashboard -> Export -> Settings
+Dashboard -> Accounts -> Income -> Transfers -> Goals -> Policies -> Expense -> Journal -> Daily -> Monthly -> Settings
 
 ### Daily formatting
 - Date column formatted as `yyyy-mm-dd`
@@ -192,9 +186,8 @@ Accounts -> Income -> Transfers -> Expense -> Journal -> Daily -> Monthly -> Das
 ## 7) Export Behavior
 
 - Export dialog allows selecting which core sheets to export.
-- Output is written into the **Export** sheet.
-- Format is compact TSV (tab-separated), one row per sheet or per Journal month.
-- Output is chunked if a cell exceeds length limits.
+- Output is delivered as a downloaded `.zip` of JSON files (one per selected sheet, with Journal split options).
+- Journal export modes: full single file, split by entry count, or date-range file.
 
 ---
 
@@ -324,7 +317,7 @@ Canonical schema source is `src/config/02_Schema.gs` (`Schema.inputs`, `Schema.o
 
 `Expense` and `Transfers` use the same recurrence pattern and include `Scenario` and `Monthly Total`.
 
-`Policies`, `Goals`, `Risk`:
+`Policies`, `Goals`:
 - Include `Scenario` as optional selector for scenario-specific rules.
 - Are validated and filtered by scenario before journal build.
 
@@ -385,7 +378,6 @@ Menu/UI entrypoints (`src/ui/01_Menu.gs`):
 Export entrypoints (`src/admin/07_Export.gs`):
 - `showExportDialog`
 - `runExportWithSelection`
-- `exportAllSheetsToJson`
 
 Summary entrypoints (`src/reports/60_Summary.gs`):
 - `runSummary`
@@ -393,6 +385,6 @@ Summary entrypoints (`src/reports/60_Summary.gs`):
 
 Core module APIs:
 - `Engine.runForecast`, `Engine.runForecastForScenario`, `Engine.runJournalOnly`, `Engine.runJournalForScenario` (`src/engine/40_Engine.gs`)
-- `Readers.readAccounts`, `Readers.readIncome`, `Readers.readExpenses`, `Readers.readTransfers`, `Readers.readPolicies`, `Readers.readGoals`, `Readers.readRiskSettings`, `Readers.readScenarios` (`src/engine/10_Readers.gs`)
+- `Readers.readAccounts`, `Readers.readIncome`, `Readers.readExpenses`, `Readers.readTransfers`, `Readers.readPolicies`, `Readers.readGoals`, `Readers.readScenarios` (`src/engine/10_Readers.gs`)
 - `Writers.writeJournal` (`src/reports/50_Writers.gs`)
 - `Recurrence.expand`, `Recurrence.stepForward`, `Recurrence.periodsPerYear` (`src/engine/30_Recurrence.gs`)

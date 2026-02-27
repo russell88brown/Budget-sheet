@@ -9,12 +9,11 @@ function loadDefaultData() {
   var accountsSheet = ss.getSheetByName(Config.SHEETS.ACCOUNTS);
   var policiesSheet = ss.getSheetByName(Config.SHEETS.POLICIES);
   var goalsSheet = ss.getSheetByName(Config.SHEETS.GOALS);
-  var riskSheet = ss.getSheetByName(Config.SHEETS.RISK);
   var transfersSheet = ss.getSheetByName(Config.SHEETS.TRANSFERS);
   var incomeSheet = ss.getSheetByName(Config.SHEETS.INCOME);
   var expenseSheet = ss.getSheetByName(Config.SHEETS.EXPENSE);
 
-  if (!accountsSheet || !policiesSheet || !goalsSheet || !riskSheet || !incomeSheet || !expenseSheet || !transfersSheet) {
+  if (!accountsSheet || !policiesSheet || !goalsSheet || !incomeSheet || !expenseSheet || !transfersSheet) {
     var missingMsg = 'Default data not loaded: required sheets missing.';
     return { ok: false, message: missingMsg };
   }
@@ -23,7 +22,6 @@ function loadDefaultData() {
     !isSheetEmpty_(accountsSheet) ||
     !isSheetEmpty_(policiesSheet) ||
     !isSheetEmpty_(goalsSheet) ||
-    !isSheetEmpty_(riskSheet) ||
     !isSheetEmpty_(incomeSheet) ||
     !isSheetEmpty_(expenseSheet) ||
     !isSheetEmpty_(transfersSheet)
@@ -35,7 +33,6 @@ function loadDefaultData() {
   clearInputSheet_(accountsSheet);
   clearInputSheet_(policiesSheet);
   clearInputSheet_(goalsSheet);
-  clearInputSheet_(riskSheet);
   clearInputSheet_(transfersSheet);
   clearInputSheet_(incomeSheet);
   clearInputSheet_(expenseSheet);
@@ -171,27 +168,6 @@ function loadDefaultData() {
       'Amount Per Month': '',
       'Percent Of Inflow': '',
       Notes: 'Leftover policy example',
-    },
-  ];
-
-  var riskRows = [
-    {
-      Include: true,
-      'Scenario Name': 'Base',
-      'Emergency Buffer Account': 'Savings',
-      'Emergency Buffer Minimum': 1000,
-      'Income Shock Percent': 0,
-      'Expense Shock Percent': 0,
-      Notes: 'Active baseline risk profile',
-    },
-    {
-      Include: false,
-      'Scenario Name': 'Stress',
-      'Emergency Buffer Account': 'Savings',
-      'Emergency Buffer Minimum': 2000,
-      'Income Shock Percent': 20,
-      'Expense Shock Percent': 15,
-      Notes: 'Disabled by default; enable to test stress assumptions',
     },
   ];
 
@@ -389,7 +365,6 @@ function loadDefaultData() {
   writeRowsByHeader_(accountsSheet, accounts);
   writeRowsByHeader_(policiesSheet, policies);
   writeRowsByHeader_(goalsSheet, goals);
-  writeRowsByHeader_(riskSheet, riskRows);
   writeRowsByHeader_(incomeSheet, income);
   writeRowsByHeader_(expenseSheet, expenses);
   writeRowsByHeader_(transfersSheet, transfers);

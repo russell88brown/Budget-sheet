@@ -152,20 +152,6 @@ const Schema = {
       ],
     },
     {
-      name: Config.SHEETS.RISK,
-      columns: [
-        { name: 'Include', type: 'boolean', required: true, description: 'Enable this risk profile row' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
-        { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
-        { name: 'Scenario Name', type: 'string', required: true, description: 'Scenario label' },
-        { name: 'Emergency Buffer Account', type: 'ref', required: false, description: 'Account to preserve buffer in' },
-        { name: 'Emergency Buffer Minimum', type: 'number', required: false, description: 'Minimum balance floor', format: '0.00' },
-        { name: 'Income Shock Percent', type: 'number', required: false, description: 'Downside haircut percent', format: '0.00' },
-        { name: 'Expense Shock Percent', type: 'number', required: false, description: 'Upside increase percent', format: '0.00' },
-        { name: 'Notes', type: 'string', required: false, description: 'Optional' },
-      ],
-    },
-    {
       name: Config.SHEETS.INCOME,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },

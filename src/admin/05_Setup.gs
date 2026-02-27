@@ -26,7 +26,6 @@ function getPreferredSheetOrder_() {
     Config.SHEETS.INCOME,
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.GOALS,
-    Config.SHEETS.RISK,
     Config.SHEETS.POLICIES,
     Config.SHEETS.EXPENSE,
     Config.SHEETS.JOURNAL,

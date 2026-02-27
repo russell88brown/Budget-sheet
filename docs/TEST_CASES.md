@@ -154,18 +154,23 @@ Run this quick sequence after housekeeping or setup changes:
   - Account summary columns (`Money In / Month`, `Money Out / Month`, `Net Interest / Month`, `Net Change / Month`) are recalculated for each selected scenario.
   - Running one scenario does not clear summary values on rows belonging to the other scenario.
 
-5. Export grouping by scenario + month
-- Ensure Journal has at least two months and two scenarios.
-- Run `Export` including `Journal`.
+5. Export journal modes
+- Ensure Journal has data for at least one scenario.
+- Run `Export` including `Journal` and test:
+  - `Full Journal in one file`
+  - `Split by N entries per file`
+  - `Date range`
 - Expected:
-  - Journal export files/rows are partitioned by `Scenario + Month`.
-  - JSON payload includes `scenario`.
+  - Export starts a `.zip` download.
+  - Journal JSON shape includes `headers` and `rows`.
+  - Entry-split mode creates multiple `journal-part-*` files when row count exceeds N.
+  - Date-range mode includes only rows with `Date` inside the selected range.
 
 5a. Export includes summary sheets
 - Run `Export` including `Daily`, `Monthly`, and `Dashboard`.
 - Expected:
-  - Export output includes all selected sheets.
-  - Dashboard export contains the `Scenario Delta` block when dashboard was built for a non-Base scenario.
+  - Zip output includes all selected sheets as individual JSON files.
+  - Dashboard JSON contains the current dashboard grid values.
 
 6. Unknown scenario validation
 - Put `Scenario=BadScenario` on an included input row.
@@ -225,7 +230,7 @@ Script editor runners (automated):
 1. Fixture A: single-month baseline
 - Set named range `ForecastStartDate` to `2030-01-01`.
 - Set named range `ForecastEndDate` to `2030-01-31`.
-- Clear data rows (keep headers) in `Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`.
+- Clear data rows (keep headers) in `Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`.
 - Add exactly these `Accounts` rows:
   - `Operating | 1000 | Cash | TRUE | Base`
   - `Card | -500 | Credit | TRUE | Base`

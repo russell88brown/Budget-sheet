@@ -70,7 +70,6 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
       },
     ],
     policies: [],
-    riskSettings: [],
   };
 
   var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
@@ -79,7 +78,6 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
     accounts: model.accounts,
     events: events,
     policies: model.policies,
-    riskSettings: model.riskSettings,
     scenarioId: model.scenarioId,
   });
   assertFixtureEqual_('Fixture A row count', 6, journal.rows.length);
@@ -126,7 +124,6 @@ function runDeterministicFixtureTestsPhase2_FixtureB() {
     expenseRules: [],
     transferRules: [],
     policies: [],
-    riskSettings: [],
   };
   var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
   assertFixtureEqual_('Fixture B event count', 2, events.length);
@@ -158,7 +155,6 @@ function runDeterministicFixtureTestsPhase2_FixtureC() {
     accounts: accounts,
     events: events,
     policies: [],
-    riskSettings: [],
     scenarioId: Config.SCENARIOS.DEFAULT,
   });
   assertFixtureBalances_(journal, { Checking: 200, Vault: 800 });
@@ -188,7 +184,6 @@ function runDeterministicFixtureTestsPhase2_FixtureD() {
     accounts: accounts,
     events: events,
     policies: [],
-    riskSettings: [],
     scenarioId: Config.SCENARIOS.DEFAULT,
   });
   assertFixtureBalances_(journal, { Operating: 350, Card: 0 });
@@ -229,7 +224,6 @@ function runDeterministicFixtureTestsPhase2_FixtureE() {
     accounts: accounts,
     events: events,
     policies: policies,
-    riskSettings: [],
     scenarioId: Config.SCENARIOS.DEFAULT,
   });
   assertFixtureBalances_(journal, { Cash: 0, Savings: 250 });

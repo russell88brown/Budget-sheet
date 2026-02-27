@@ -74,7 +74,6 @@ function runJournalPipeline_(options) {
     assertUniqueScenarioAccountNames_(scenarioModel.scenarioId, accounts);
     var accountTypes = buildAccountTypeMap_(accounts);
     var policies = scenarioModel.policies || [];
-    var riskSettings = scenarioModel.riskSettings || [];
 
     if (refreshSummaries) {
       refreshAccountSummariesForScenarioModel_(scenarioModel);
@@ -88,7 +87,6 @@ function runJournalPipeline_(options) {
       accounts: accounts,
       events: events,
       policies: policies,
-      riskSettings: riskSettings,
       scenarioId: scenarioId,
     });
     toastStep_('Writing journal...');
@@ -161,7 +159,6 @@ function assignMissingRuleIds_() {
   prefixesBySheet[Config.SHEETS.TRANSFERS] = 'TRN';
   prefixesBySheet[Config.SHEETS.POLICIES] = 'POL';
   prefixesBySheet[Config.SHEETS.GOALS] = 'GOL';
-  prefixesBySheet[Config.SHEETS.RISK] = 'RSK';
 
   var totalAssigned = 0;
   Object.keys(prefixesBySheet).forEach(function (sheetName) {
@@ -259,7 +256,6 @@ function reviewAndCleanupInputSheets_() {
   var validAccounts = validateAccountsSheet_();
   validatePoliciesSheet_(validAccounts);
   validateGoalsSheet_(validAccounts);
-  validateRiskSheet_(validAccounts);
   validateIncomeSheet_(validAccounts);
   validateTransferSheet_(validAccounts);
   validateExpenseSheet_(validAccounts);
@@ -283,7 +279,6 @@ function validateScenariosAcrossInputs_(validScenarios) {
     Config.SHEETS.ACCOUNTS,
     Config.SHEETS.POLICIES,
     Config.SHEETS.GOALS,
-    Config.SHEETS.RISK,
     Config.SHEETS.INCOME,
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.EXPENSE,
@@ -650,71 +645,6 @@ function validateGoalsSheet_(validAccounts) {
       (percentOfInflow === null || percentOfInflow <= 0)
     ) {
       reasons.push('percent of inflow must be > 0 for percent policy');
-    }
-
-    if (!reasons.length) {
-      return;
-    }
-    row[idx.include] = false;
-    updated += 1;
-  });
-
-  if (updated > 0) {
-    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
-  }
-}
-
-function validateRiskSheet_(validAccounts) {
-  var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.RISK);
-  if (!sheet) {
-    return;
-  }
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) {
-    return;
-  }
-
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var idx = {
-    include: headers.indexOf('Include'),
-    scenario: headers.indexOf('Scenario Name'),
-    bufferAccount: headers.indexOf('Emergency Buffer Account'),
-    bufferMinimum: headers.indexOf('Emergency Buffer Minimum'),
-    incomeShock: headers.indexOf('Income Shock Percent'),
-    expenseShock: headers.indexOf('Expense Shock Percent'),
-  };
-  if (idx.include === -1 || idx.scenario === -1) {
-    return;
-  }
-
-  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var updated = 0;
-  values.forEach(function (row, rowIndex) {
-    if (!toBoolean_(row[idx.include])) {
-      return;
-    }
-    var reasons = [];
-    var scenario = row[idx.scenario] ? String(row[idx.scenario]).trim() : '';
-    var bufferAccount = idx.bufferAccount === -1 ? '' : normalizeAccountLookupKey_(row[idx.bufferAccount]);
-    var bufferMinimum = idx.bufferMinimum === -1 ? null : toNumber_(row[idx.bufferMinimum]);
-    var incomeShock = idx.incomeShock === -1 ? null : toNumber_(row[idx.incomeShock]);
-    var expenseShock = idx.expenseShock === -1 ? null : toNumber_(row[idx.expenseShock]);
-
-    if (!scenario) {
-      reasons.push('missing scenario name');
-    }
-    if (bufferAccount && !validAccounts[bufferAccount]) {
-      reasons.push('unknown emergency buffer account');
-    }
-    if (bufferMinimum !== null && bufferMinimum < 0) {
-      reasons.push('emergency buffer minimum must be >= 0');
-    }
-    if (incomeShock !== null && incomeShock < 0) {
-      reasons.push('income shock percent must be >= 0');
-    }
-    if (expenseShock !== null && expenseShock < 0) {
-      reasons.push('expense shock percent must be >= 0');
     }
 
     if (!reasons.length) {
@@ -2062,13 +1992,11 @@ function buildJournalArtifactsForScenarioModel_(scenarioModel) {
   assertUniqueScenarioAccountNames_(activeScenarioId, accounts);
   var accountTypes = buildAccountTypeMap_(accounts);
   var policies = model.policies || [];
-  var riskSettings = model.riskSettings || [];
   var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
   var journalData = CoreApplyEvents.buildJournalRows({
     accounts: accounts,
     events: events,
     policies: policies,
-    riskSettings: riskSettings,
     scenarioId: activeScenarioId,
   });
   return {
@@ -2165,12 +2093,11 @@ function getJournalBaseColumnCount_() {
   return 8;
 }
 
-function buildJournalRows_(accounts, events, policies, riskSettings, scenarioId) {
+function buildJournalRows_(accounts, events, policies, scenarioId) {
   return CoreApplyEvents.buildJournalRows({
     accounts: accounts || [],
     events: events || [],
     policies: policies || [],
-    riskSettings: riskSettings || [],
     scenarioId: scenarioId || Config.SCENARIOS.DEFAULT,
   });
 }
