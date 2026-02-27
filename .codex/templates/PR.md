@@ -25,5 +25,8 @@ TODO: What changed and why.
 ## Risks
 - TODO
 
+## Definition of done
+checklist for done
+
 ## Follow-Ups
-- TODO
+- things that are out of scope but may be useful for future
