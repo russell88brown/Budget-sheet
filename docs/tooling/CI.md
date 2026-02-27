@@ -6,10 +6,10 @@ This project includes GitHub Actions for Apps Script deployment and PR validatio
 
 - `.github/workflows/deploy-main.yml`
   - Trigger: push to `main` (and manual dispatch)
-  - Action: push local `src/` to production Apps Script project
+  - Action: run `npm run verify`, then push local `src/` to production Apps Script project
 - `.github/workflows/pr-test.yml`
   - Trigger: pull requests targeting `main` (and manual dispatch)
-  - Action: push local `src/` to test Apps Script project and run deterministic fixture tests
+  - Action: run `npm run verify`, then push local `src/` to test Apps Script project and run deterministic fixture tests
 
 Both workflows use `scripts/pr-tools.mjs`.
 
@@ -25,9 +25,12 @@ Both workflows use `scripts/pr-tools.mjs`.
 ## Local commands (same flow as CI)
 
 ```powershell
+npm run verify
 npm run pr:deploy-main
 npm run pr:test-branch
 ```
+
+`npm run verify` currently runs TypeScript typecheck, typed-node tests, and typed bundle generation.
 
 Environment variables:
 

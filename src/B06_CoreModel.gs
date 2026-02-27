@@ -9,6 +9,16 @@ const CoreModel = {
   },
 
   normalizeCompiledEvent: function (event, index) {
+    var typed = normalizeCompiledEventTyped_(event, index, {
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+      normalizeDate: function (value) { return normalizeDate_(value || new Date()); },
+      normalizeTag: function (value) { return normalizeScenario_(value); },
+      eventSortPriority: function (item) { return eventSortPriority_(item); },
+    });
+    if (typed) {
+      return typed;
+    }
+
     var source = event || {};
     var normalized = {};
     Object.keys(source).forEach(function (key) {

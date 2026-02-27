@@ -1,0 +1,104 @@
+import {
+  getTagColumnIndex,
+  normalizeActions,
+  normalizeAvailableTags,
+  normalizeTag,
+  selectRunTags,
+} from "../engine/runSelections";
+import { addDays, addMonthsClamped, normalizeDate } from "../core/dateMath";
+import {
+  eventSortPriority,
+  getEventSortKey,
+  getEventSortOrder,
+  type EventSortConfig,
+} from "../core/eventSort";
+import {
+  compareCompiledEvents,
+  normalizeCompiledEvent,
+  type CompiledEventContext,
+} from "../core/compiledEvent";
+import {
+  normalizeFrequency,
+  normalizePolicyType,
+  normalizeRecurrence,
+  normalizeTransferType,
+  toBoolean,
+  toDate,
+  toNumber,
+  toPositiveInt,
+  type ReaderFrequencyConfig,
+  type ReaderPolicyConfig,
+  type ReaderTransferConfig,
+} from "../core/readerNormalization";
+import {
+  buildExpenseEvents,
+  buildIncomeEvents,
+  buildInterestEvents,
+  buildSourceRuleId,
+  buildTransferEvents,
+  type EventBuilderContext,
+  type RecurrenceOptions,
+} from "../core/eventBuilders";
+import {
+  alignToWindow,
+  expandRecurrence,
+  getStepDays,
+  getStepMonths,
+  normalizeRepeatEvery,
+  periodsPerYear,
+  stepForward,
+  type ExpandRecurrenceOptions,
+  type RecurrenceContext,
+  type RecurrenceFrequencies,
+  type RecurrenceStepContext,
+} from "../core/recurrence";
+
+export const TypedBudget = {
+  DEFAULT_TAG: "Base",
+  normalizeTag,
+  normalizeAvailableTags,
+  normalizeActions,
+  selectRunTags,
+  getTagColumnIndex,
+  normalizeDate,
+  addDays,
+  addMonthsClamped,
+  getEventSortOrder,
+  getEventSortKey,
+  eventSortPriority,
+  normalizeRepeatEvery,
+  getStepMonths,
+  getStepDays,
+  periodsPerYear,
+  stepForward,
+  alignToWindow,
+  expandRecurrence,
+  normalizeCompiledEvent,
+  compareCompiledEvents,
+  toBoolean,
+  toNumber,
+  toDate,
+  toPositiveInt,
+  normalizeFrequency,
+  normalizeRecurrence,
+  normalizeTransferType,
+  normalizePolicyType,
+  buildSourceRuleId,
+  buildIncomeEvents,
+  buildExpenseEvents,
+  buildTransferEvents,
+  buildInterestEvents,
+};
+
+export type TypedBudgetApi = typeof TypedBudget;
+export type { EventSortConfig };
+export type { CompiledEventContext };
+export type { RecurrenceFrequencies };
+export type { RecurrenceStepContext };
+export type { RecurrenceContext };
+export type { ExpandRecurrenceOptions };
+export type { ReaderFrequencyConfig };
+export type { ReaderTransferConfig };
+export type { ReaderPolicyConfig };
+export type { EventBuilderContext };
+export type { RecurrenceOptions };

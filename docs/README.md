@@ -1,17 +1,23 @@
 # Documentation Index
 
-## App Docs
+## App Documentation
 
 | Document | Purpose |
 |---|---|
-| `TECHNICAL.md` | Canonical technical reference. Starts with source architecture map. |
-| `SCENARIOS.md` | Tag modeling and run-selection behavior. |
+| `TECHNICAL.md` | Detailed architecture and runtime responsibilities. |
+| `SCENARIOS.md` | Tag behavior and compatibility rules. |
 | `TEST_CASES.md` | Manual regression checklist. |
 
-## Tooling / Contributor Docs
+## Tooling / Contributor Documentation
 
 | Document | Purpose |
 |---|---|
-| `tooling/CLASP.md` | Apps Script sync setup (`clasp`). |
 | `tooling/CI.md` | CI and PR automation workflows/secrets. |
+| `tooling/CLASP.md` | Apps Script sync setup (`clasp`). |
 | `tooling/CODEX.md` | Local Codex contributor setup notes. |
+
+## Temporary / PR Support
+
+| Document | Purpose |
+|---|---|
+| `PR_NOTE.md` | Current migration PR summary/checklist. Remove after merge if no longer needed. |

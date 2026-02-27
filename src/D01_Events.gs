@@ -1,6 +1,10 @@
 // Build normalized events from input rules.
 const Events = {
   buildIncomeEvents: function (incomeRules) {
+    var typed = buildIncomeEventsTyped_(incomeRules);
+    if (typed) {
+      return typed;
+    }
     return incomeRules.flatMap(function (rule) {
       if (!rule || !rule.paidTo) {
         return [];
@@ -29,6 +33,10 @@ const Events = {
   },
 
   buildExpenseEvents: function (expenseRules) {
+    var typed = buildExpenseEventsTyped_(expenseRules);
+    if (typed) {
+      return typed;
+    }
     return expenseRules.flatMap(function (rule) {
       if (!rule || !rule.paidFrom) {
         return [];
@@ -66,6 +74,10 @@ const Events = {
   },
 
   buildTransferEvents: function (transferRules) {
+    var typed = buildTransferEventsTyped_(transferRules);
+    if (typed) {
+      return typed;
+    }
     return transferRules.flatMap(function (rule) {
       if (!rule || !rule.paidFrom || !rule.paidTo) {
         return [];
@@ -95,6 +107,10 @@ const Events = {
   },
 
   buildInterestEvents: function (accounts) {
+    var typed = buildInterestEventsTyped_(accounts);
+    if (typed) {
+      return typed;
+    }
     return accounts.flatMap(function (account) {
       if (!account) {
         return [];
@@ -157,14 +173,6 @@ const Events = {
 };
 
 function buildSourceRuleId_(prefix, source, fallbackName) {
-  var explicit = source && source.ruleId ? String(source.ruleId).trim() : '';
-  if (explicit) {
-    return explicit;
-  }
-  var name = fallbackName ? String(fallbackName).trim() : '';
-  if (!name) {
-    return prefix + ':UNKNOWN';
-  }
-  return prefix + ':' + name.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  return buildSourceRuleIdTyped_(prefix, source, fallbackName);
 }
 

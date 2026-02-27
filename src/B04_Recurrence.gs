@@ -1,50 +1,19 @@
 // Recurrence expansion based on start and end dates.
 const Recurrence = {
   normalizeRepeatEvery: function (repeatEvery) {
-    var raw = Number(repeatEvery);
-    if (!isFinite(raw) || raw < 1) {
-      return 1;
-    }
-    return Math.floor(raw);
+    return normalizeRepeatEveryTyped_(repeatEvery);
   },
 
   getStepMonths: function (frequency, repeatEvery) {
-    var every = Recurrence.normalizeRepeatEvery(repeatEvery);
-    if (frequency === Config.FREQUENCIES.MONTHLY) {
-      return every;
-    }
-    if (frequency === Config.FREQUENCIES.YEARLY) {
-      return every * 12;
-    }
-    return null;
+    return getStepMonthsTyped_(frequency, repeatEvery);
   },
 
   getStepDays: function (frequency, repeatEvery) {
-    if (frequency === Config.FREQUENCIES.DAILY) {
-      return Recurrence.normalizeRepeatEvery(repeatEvery);
-    }
-    if (frequency === Config.FREQUENCIES.WEEKLY) {
-      return Recurrence.normalizeRepeatEvery(repeatEvery) * 7;
-    }
-    return null;
+    return getStepDaysTyped_(frequency, repeatEvery);
   },
 
   periodsPerYear: function (frequency, repeatEvery) {
-    var every = Recurrence.normalizeRepeatEvery(repeatEvery);
-    switch (frequency) {
-      case Config.FREQUENCIES.ONCE:
-        return 0;
-      case Config.FREQUENCIES.DAILY:
-        return 365 / every;
-      case Config.FREQUENCIES.WEEKLY:
-        return (365 / 7) / every;
-      case Config.FREQUENCIES.MONTHLY:
-        return 12 / every;
-      case Config.FREQUENCIES.YEARLY:
-        return 1 / every;
-      default:
-        return 0;
-    }
+    return periodsPerYearTyped_(frequency, repeatEvery);
   },
 
   expand: function (options) {
@@ -58,6 +27,21 @@ const Recurrence = {
     }
 
     var window = getForecastWindow_();
+    var typedDates = expandRecurrenceTyped_(
+      {
+        startDate: startDate,
+        frequency: frequency,
+        repeatEvery: repeatEvery,
+        endDate: endDate,
+      },
+      { window: window, today: new Date() }
+    );
+    if (typedDates) {
+      return typedDates.map(function (date) {
+        return new Date(date.getTime());
+      });
+    }
+
     var anchor = normalizeDate_(startDate);
     var end = endDate ? normalizeDate_(endDate) : window.end;
     var today = normalizeDate_(new Date());
@@ -107,17 +91,7 @@ const Recurrence = {
   },
 
   stepForward: function (date, frequency, repeatEvery) {
-    var stepDays = Recurrence.getStepDays(frequency, repeatEvery);
-    if (stepDays) {
-      return addDays_(date, stepDays);
-    }
-
-    var stepMonths = Recurrence.getStepMonths(frequency, repeatEvery);
-    if (stepMonths) {
-      return addMonthsClamped_(date, stepMonths);
-    }
-
-    return null;
+    return stepForwardTyped_(date, frequency, repeatEvery);
   },
 };
 
@@ -166,61 +140,17 @@ function getForecastWindow_() {
 }
 
 function normalizeDate_(value) {
-  var date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return normalizeDateTyped_(value);
 }
 
 function addDays_(date, days) {
-  var next = new Date(date.getTime());
-  next.setDate(next.getDate() + days);
-  return next;
+  return addDaysTyped_(date, days);
 }
 
 function addMonthsClamped_(date, months) {
-  var year = date.getFullYear();
-  var monthIndex = date.getMonth() + months;
-  var day = date.getDate();
-  var targetYear = year + Math.floor(monthIndex / 12);
-  var targetMonth = monthIndex % 12;
-  if (targetMonth < 0) {
-    targetMonth += 12;
-    targetYear -= 1;
-  }
-
-  var lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
-  var clampedDay = Math.min(day, lastDay);
-  return new Date(targetYear, targetMonth, clampedDay);
+  return addMonthsClampedTyped_(date, months);
 }
 
 function alignToWindow_(anchor, frequency, repeatEvery, windowStart) {
-  if (anchor > windowStart) {
-    return anchor;
-  }
-
-  var stepDays = Recurrence.getStepDays(frequency, repeatEvery);
-  if (stepDays) {
-    var daysDiff = Math.floor((windowStart.getTime() - anchor.getTime()) / 86400000);
-    var steps = Math.floor(daysDiff / stepDays);
-    var candidate = addDays_(anchor, steps * stepDays);
-    if (candidate < windowStart) {
-      candidate = addDays_(candidate, stepDays);
-    }
-    return candidate;
-  }
-
-  var stepMonths = Recurrence.getStepMonths(frequency, repeatEvery);
-  if (!stepMonths) {
-    return null;
-  }
-
-  var monthsDiff =
-    (windowStart.getFullYear() - anchor.getFullYear()) * 12 +
-    (windowStart.getMonth() - anchor.getMonth());
-  var stepsMonths = Math.floor(monthsDiff / stepMonths);
-  var candidate = addMonthsClamped_(anchor, stepsMonths * stepMonths);
-  if (candidate < windowStart) {
-    candidate = addMonthsClamped_(candidate, stepMonths);
-  }
-  return candidate;
+  return alignToWindowTyped_(anchor, frequency, repeatEvery, windowStart);
 }

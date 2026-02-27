@@ -1,20 +1,19 @@
-# Tag Modeling Guide
+# Tag Behavior Guide
 
-This guide describes how tag-based planning works in the app.
+`Tag` is the user-facing planning scope key.
 
-## Core Model
+## Run Selection Rules
 
-- User-facing selector uses `Tag`.
-- `Base` is always included in run selections.
-- Optional additional tags can be selected with multi-select.
-- Legacy `Scenario` input headers are still accepted for compatibility.
+- `Base` is always included.
+- Users can add one or more extra tags from the run dialog multi-select.
+- Unknown tag values in included rows are auto-disabled during integrity checks.
 
-## Where Tags Live
+## Storage
 
-- Settings catalog: `Settings!H2:H`
-- Named range: `ScenarioList` (legacy name retained for compatibility)
+- Tag catalog values are stored in `Settings!H2:H`.
+- Named range is still `ScenarioList` for backward compatibility.
 
-## Tag-Aware Input Sheets
+## Input Sheets Using Tag Scope
 
 - `Accounts`
 - `Income`
@@ -23,20 +22,9 @@ This guide describes how tag-based planning works in the app.
 - `Policies`
 - `Goals`
 
-Rows without an explicit tag default to `Base` behavior.
+Rows with blank tag values run as `Base`.
 
-## Run Behavior
+## Compatibility Notes
 
-- `Run Budget...` accepts one or more selected tags.
-- Engine always includes `Base` and then any selected additional tags.
-- Unknown tag values on included rows are auto-disabled during integrity checks.
-
-## Metadata + Run Log
-
-- `Settings!B5:B8`: last run mode/tag/time/status
-- `Settings!J:N`: append-only run log (`Run At`, `Mode`, `Tag`, `Status`, `Notes`)
-
-## Notes
-
-- Internally, some function names still use `scenario` for backward compatibility.
-- Output headers are tag-oriented where user-facing (`Tag`).
+- Legacy `Scenario` column headers are still accepted.
+- Internal helper names may still use `scenario` for compatibility, while UI/output labels remain tag-oriented.

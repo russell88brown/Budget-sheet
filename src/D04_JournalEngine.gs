@@ -143,14 +143,7 @@ function resolveScenarioId_(scenarioId) {
 }
 
 function getTagColumnIndex_(headers) {
-  if (!headers || !headers.length) {
-    return -1;
-  }
-  var tagIdx = headers.indexOf('Tag');
-  if (tagIdx !== -1) {
-    return tagIdx;
-  }
-  return headers.indexOf('Scenario');
+  return getTagColumnIndexTyped_(headers);
 }
 
 function readTagCatalog_() {
