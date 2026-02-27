@@ -32,6 +32,7 @@ const required = [
   "deactivateRowsByValidator",
   "buildIncomeMonthlyTotals",
   "buildExpenseMonthlyTotals",
+  "buildTransferMonthlyTotals",
 ];
 
 for (const key of required) {

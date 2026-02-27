@@ -1016,6 +1016,15 @@ function buildTransferMonthlyTotalsForRunModel_(
   incomeTotalsByAccount,
   expenseTotalsByAccount
 ) {
+  var typed = buildTransferMonthlyTotalsTyped_(
+    transferRules || [],
+    accounts || [],
+    incomeTotalsByAccount || {},
+    expenseTotalsByAccount || {}
+  );
+  if (typed) {
+    return typed;
+  }
   var credits = {};
   var debits = {};
   var accountBalances = {};

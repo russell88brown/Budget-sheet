@@ -692,6 +692,28 @@ function buildExpenseMonthlyTotalsTyped_(expenseRules) {
   return null;
 }
 
+function buildTransferMonthlyTotalsTyped_(transferRules, accounts, incomeTotalsByAccount, expenseTotalsByAccount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildTransferMonthlyTotals === 'function') {
+    return api.buildTransferMonthlyTotals(
+      transferRules || [],
+      accounts || [],
+      incomeTotalsByAccount || {},
+      expenseTotalsByAccount || {},
+      {
+        normalizeAccountLookupKey: normalizeAccountLookupKey_,
+        toNumber: toNumber_,
+        normalizeTransferType: normalizeTransferType_,
+        monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+        isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+        roundMoney: roundUpCents_,
+        transferTypes: Config.TRANSFER_TYPES,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
