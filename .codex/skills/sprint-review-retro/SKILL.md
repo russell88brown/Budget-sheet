@@ -1,11 +1,13 @@
 ---
 name: sprint-review-retro
-description: Use when reviewing sprint PR output for gaps/risks and producing .codex/sprints/<sprint-id>/retro.md with wins, issues, root causes, and actions.
+description: Use when the user asks to review a sprint PR, identify delivery/test/documentation gaps, and write or refine .codex/sprints/<sprint-id>/retro.md with wins, issues, root causes, and action items.
 ---
 
 # Sprint Review Retro
 
 Review delivery quality, then write a concrete sprint retrospective.
+
+If needed, load [references/review-retro-checklist.md](references/review-retro-checklist.md).
 
 ## Workflow
 
@@ -28,4 +30,3 @@ Review delivery quality, then write a concrete sprint retrospective.
 - Retro actions must be specific and assignable.
 - Root causes should target process/system, not individuals.
 - Include at least one preventive action for repeated issues.
-
