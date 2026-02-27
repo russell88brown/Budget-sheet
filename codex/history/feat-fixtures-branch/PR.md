@@ -15,6 +15,7 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 - [x] Fixture slice 4: policy boundaries, scenario scope, and summary stats fixtures.
 - [x] Full validation completed (`npm run sprint:check`, `npm run typecheck`, `npm test`).
 - [x] Reduced fixture-harness duplication in `src/Z01_FixtureTests.gs` with shared helpers and generated fixture registration.
+- [x] Added typed API surface smoke fixture to catch `ts/apps-script/entry.ts` export drift before generated bundle rollout.
 
 ## Change Log
 | Date | Change | Reason | Impact |
@@ -30,6 +31,7 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 | 2026-02-27 | Expanded `summaryStats.test.ts` with requested tolerance examples and mixed numeric/string threshold counting behavior. | Guard reconciliation/stat logic against input-shape drift. | Tolerance and mixed-value counting behavior is now documented by fixtures. |
 | 2026-02-27 | Set `codex/current-sprint` to `feat-fixtures-branch` and completed final validation (`sprint:check`, `typecheck`, `test`). | Satisfy sprint-loop quality gate and record completion evidence. | Sprint documentation status is now checkable and complete for handoff. |
 | 2026-02-27 | Refactored `src/Z01_FixtureTests.gs` to generate fixture specs from ids and reuse shared helpers (`fixtureModel_`, `fixtureAccount_`, `compileAndApplyFixtureModel_`, `applyFixtureEvents_`, sequence assertion helper). | Reduce fixture LOC/duplication while preserving deterministic behavior during migration. | Fixture harness is shorter and easier to extend without changing fixture semantics. |
+| 2026-02-27 | Added `tests/typedApiSurface.test.ts` to assert required exported functions on `TypedBudget` from `ts/apps-script/entry.ts`. | Quick migration guardrail for `src` -> generated TypeScript API surface parity. | Missing/miswired core exports now fail fast in Node test runs. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
@@ -40,6 +42,7 @@ Build deterministic fixture coverage for high-risk typed-core contracts during m
 | Typecheck | `npm run typecheck` | Pass | No TS errors after fixture updates. |
 | Unit | `npm test` | Pass | Passed after `Z01_FixtureTests.gs` refactor and helper extraction. |
 | Typecheck | `npm run typecheck` | Pass | Passed after fixture harness refactor. |
+| Unit | `npm test` | Pass | Includes `typedApiSurface.test.ts` export surface smoke coverage. |
 | Manual | Sprint doc review | Pass | `sprint-plan.md` now reflects requested 10-fixture scope. |
 
 ## Risks
