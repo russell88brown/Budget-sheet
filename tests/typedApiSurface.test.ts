@@ -47,6 +47,7 @@ const required = [
   "mapSheetRows",
   "buildScenarioCatalog",
   "mapAccountReaderRows",
+  "mapPolicyReaderRows",
 ];
 
 for (const key of required) {

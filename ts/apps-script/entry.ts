@@ -191,6 +191,7 @@ import { formatDuplicateAccountErrorMessage } from "../core/accountDuplicateErro
 import { mapSheetRows } from "../core/sheetRows";
 import { buildScenarioCatalog } from "../core/scenarioCatalog";
 import { mapAccountReaderRows } from "../core/accountReaderRows";
+import { mapPolicyReaderRows } from "../core/policyReaderRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -230,6 +231,7 @@ export const TypedBudget = {
   mapSheetRows,
   buildScenarioCatalog,
   mapAccountReaderRows,
+  mapPolicyReaderRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

@@ -36,6 +36,10 @@ const Readers = {
 
   readPolicies: function () {
     var rows = readSheetRows_(Config.SHEETS.POLICIES);
+    var typed = mapPolicyReaderRowsTyped_(rows);
+    if (typed) {
+      return typed;
+    }
     return rows
       .filter(function (row) {
         return toBoolean_(row['Include']);

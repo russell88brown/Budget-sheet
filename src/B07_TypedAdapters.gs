@@ -867,6 +867,25 @@ function mapAccountReaderRowsTyped_(rows) {
   return null;
 }
 
+function mapPolicyReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapPolicyReaderRows === 'function') {
+    return api.mapPolicyReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizePolicyType: normalizePolicyType_,
+        toPositiveInt: toPositiveInt_,
+        toDate: toDate_,
+        toNumber: toNumber_,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
