@@ -55,6 +55,11 @@ const CoreApplyEvents = {
 };
 
 function coreBuildOpeningRows_(accounts, date, forecastAccounts, balances, scenarioId) {
+  var typed = buildOpeningRowsTyped_(accounts, date, forecastAccounts, balances, scenarioId);
+  if (typed) {
+    return typed;
+  }
+
   return accounts.map(function (account) {
     var balanceSnapshot = coreBuildForecastBalanceCells_(balances, forecastAccounts);
     return [
@@ -123,6 +128,18 @@ function coreBuildJournalEventRows_(
   accountTypesByKey,
   scenarioId
 ) {
+  var typed = buildJournalEventRowsTyped_(
+    event,
+    balancesAfterFrom,
+    balancesAfterTo,
+    forecastAccounts,
+    accountTypesByKey,
+    scenarioId
+  );
+  if (typed) {
+    return typed;
+  }
+
   var balanceSnapshotFrom = coreBuildForecastBalanceCells_(balancesAfterFrom, forecastAccounts);
   var balanceSnapshotTo = coreBuildForecastBalanceCells_(balancesAfterTo, forecastAccounts);
   var transactionType = deriveJournalTransactionType_(event);

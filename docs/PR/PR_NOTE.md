@@ -3,7 +3,7 @@
 ## Summary
 - Introduces TypeScript migration foundation with low-risk adapter wiring.
 - Keeps Apps Script runtime stable with typed-first + JS fallback behavior.
-- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, and journal-apply-helper utilities with tests.
+- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, journal-apply-helper, and journal-row utilities with tests.
 
 ## Implemented
 - TS build/test foundation (`tsconfig`, scripts, typed modules, tests).
@@ -30,6 +30,7 @@
   - monthly-vs-daily reconciliation helper (`E01` routes through typed adapters)
   - journal artifact merge + transaction-type/account-type helpers (`D04` and `D03` route through typed adapters)
   - journal apply balance/forecast/alerts helpers (`D03` routes through typed adapters)
+  - journal opening/event row construction helpers (`D03` routes through typed adapters)
 
 ## Local Validation Steps
 1. `npm install`

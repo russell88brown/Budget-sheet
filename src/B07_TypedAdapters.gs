@@ -681,6 +681,59 @@ function buildAlertsTyped_(cashNegative, creditPaidOff, explicitAlert) {
   return null;
 }
 
+function buildOpeningRowsTyped_(accounts, date, forecastAccounts, balances, scenarioId) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildOpeningRows === 'function') {
+    return api.buildOpeningRows(accounts || [], date, forecastAccounts || [], balances || {}, scenarioId, {
+      accountKey: coreAccountKey_,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+      buildAlerts: function (cashNegative, creditPaidOff, explicitAlert) {
+        return buildAlertsTyped_(cashNegative, creditPaidOff, explicitAlert);
+      },
+      deriveJournalTransactionType: deriveJournalTransactionType_,
+      buildForecastBalanceCells: function (balanceMap, names) {
+        return buildForecastBalanceCellsTyped_(balanceMap, names);
+      },
+      creditAccountType: Config.ACCOUNT_TYPES.CREDIT,
+    });
+  }
+  return null;
+}
+
+function buildJournalEventRowsTyped_(
+  event,
+  balancesAfterFrom,
+  balancesAfterTo,
+  forecastAccounts,
+  accountTypesByKey,
+  scenarioId
+) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildJournalEventRows === 'function') {
+    return api.buildJournalEventRows(
+      event || {},
+      balancesAfterFrom || {},
+      balancesAfterTo || {},
+      forecastAccounts || [],
+      accountTypesByKey || {},
+      scenarioId,
+      {
+        accountKey: coreAccountKey_,
+        roundMoney: function (value) { return roundUpCents_(value || 0); },
+        buildAlerts: function (cashNegative, creditPaidOff, explicitAlert) {
+          return buildAlertsTyped_(cashNegative, creditPaidOff, explicitAlert);
+        },
+        deriveJournalTransactionType: deriveJournalTransactionType_,
+        buildForecastBalanceCells: function (balanceMap, names) {
+          return buildForecastBalanceCellsTyped_(balanceMap, names);
+        },
+        creditAccountType: Config.ACCOUNT_TYPES.CREDIT,
+      }
+    );
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

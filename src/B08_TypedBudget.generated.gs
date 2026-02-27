@@ -1122,6 +1122,80 @@ var TypedBudget = (() => {
     return alerts.join(" | ");
   }
 
+  // ts/core/journalRows.ts
+  function buildOpeningRows(accounts, date, forecastAccounts, balances, scenarioId, ctx) {
+    return (accounts || []).map((account) => {
+      const balanceSnapshot = ctx.buildForecastBalanceCells(balances, forecastAccounts);
+      return [
+        new Date(date.getTime()),
+        scenarioId,
+        account?.name,
+        "Opening",
+        "Opening Balance",
+        account?.balance || 0,
+        "",
+        ""
+      ].concat(balanceSnapshot);
+    });
+  }
+  function buildJournalEventRows(event, balancesAfterFrom, balancesAfterTo, forecastAccounts, accountTypesByKey, scenarioId, ctx) {
+    const balanceSnapshotFrom = ctx.buildForecastBalanceCells(balancesAfterFrom, forecastAccounts);
+    const balanceSnapshotTo = ctx.buildForecastBalanceCells(balancesAfterTo, forecastAccounts);
+    const transactionType = ctx.deriveJournalTransactionType(event);
+    const amount = event.appliedAmount !== void 0 ? event.appliedAmount : event.amount || 0;
+    let signedAmount = amount;
+    if (event.kind === "Expense" || event.kind === "Transfer" && event.from) {
+      signedAmount = -amount;
+    }
+    if (event.kind === "Transfer") {
+      const accounts = [event.from, event.to].filter((name) => name && name !== "External");
+      return accounts.map((accountName2) => {
+        let rowAmount = signedAmount;
+        if (accountName2 === event.to) {
+          rowAmount = amount;
+        }
+        const snapshot = accountName2 === event.to ? balanceSnapshotTo : balanceSnapshotFrom;
+        const balanceForRow = accountName2 === event.to ? balancesAfterTo : balancesAfterFrom;
+        const accountKey2 = ctx.accountKey(accountName2);
+        const accountType2 = accountTypesByKey[accountKey2];
+        const cashNegative2 = accountType2 !== ctx.creditAccountType && (balanceForRow[accountKey2] || 0) < 0;
+        const creditPaidOff2 = accountType2 === ctx.creditAccountType && Math.abs(ctx.roundMoney(balanceForRow[accountKey2] || 0)) === 0 && rowAmount > 0;
+        return [
+          event.date,
+          scenarioId,
+          accountName2,
+          transactionType,
+          event.name,
+          rowAmount,
+          event.sourceRuleId || "",
+          ctx.buildAlerts(cashNegative2, creditPaidOff2, event.alertTag)
+        ].concat(snapshot);
+      });
+    }
+    let accountName;
+    if (event.kind === "Interest") {
+      accountName = event.account;
+    } else {
+      accountName = event.kind === "Income" ? event.to : event.from;
+    }
+    const accountKey = ctx.accountKey(accountName);
+    const accountType = accountTypesByKey[accountKey];
+    const cashNegative = accountType !== ctx.creditAccountType && (balancesAfterTo[accountKey] || 0) < 0;
+    const creditPaidOff = accountType === ctx.creditAccountType && Math.abs(ctx.roundMoney(balancesAfterTo[accountKey] || 0)) === 0 && signedAmount > 0;
+    return [
+      [
+        event.date,
+        scenarioId,
+        accountName || "",
+        transactionType,
+        event.name,
+        signedAmount,
+        event.sourceRuleId || "",
+        ctx.buildAlerts(cashNegative, creditPaidOff, event.alertTag)
+      ].concat(balanceSnapshotTo)
+    ];
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1326,7 +1400,9 @@ var TypedBudget = (() => {
     buildBalanceMap,
     buildForecastableMap,
     buildForecastBalanceCells,
-    buildAlerts
+    buildAlerts,
+    buildOpeningRows,
+    buildJournalEventRows
   };
   return __toCommonJS(entry_exports);
 })();

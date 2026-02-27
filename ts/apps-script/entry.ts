@@ -103,6 +103,7 @@ import {
   buildForecastBalanceCells,
   buildForecastableMap,
 } from "../core/journalApplyHelpers";
+import { buildJournalEventRows, buildOpeningRows } from "../core/journalRows";
 import {
   alignToWindow,
   expandRecurrence,
@@ -190,6 +191,8 @@ export const TypedBudget = {
   buildForecastableMap,
   buildForecastBalanceCells,
   buildAlerts,
+  buildOpeningRows,
+  buildJournalEventRows,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
