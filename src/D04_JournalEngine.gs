@@ -760,6 +760,10 @@ function validateGoalsSheet_(validAccounts) {
 
 function validateIncomeSheet_(validAccounts) {
   return validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
+    var typed = validateIncomeRowReasonsTyped_(row, indexes, validAccounts);
+    if (Array.isArray(typed)) {
+      return typed;
+    }
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
@@ -790,6 +794,10 @@ function validateIncomeSheet_(validAccounts) {
 
 function validateTransferSheet_(validAccounts) {
   return validateAndDeactivateRows_(Config.SHEETS.TRANSFERS, 'Transfer', function (row, indexes) {
+    var typed = validateTransferRowReasonsTyped_(row, indexes, validAccounts);
+    if (Array.isArray(typed)) {
+      return typed;
+    }
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.name]) {
@@ -835,6 +843,10 @@ function validateTransferSheet_(validAccounts) {
 
 function validateExpenseSheet_(validAccounts) {
   return validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
+    var typed = validateExpenseRowReasonsTyped_(row, indexes, validAccounts);
+    if (Array.isArray(typed)) {
+      return typed;
+    }
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {

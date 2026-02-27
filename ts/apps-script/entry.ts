@@ -166,6 +166,11 @@ import {
 } from "../core/journalAccountRows";
 import { validatePolicyRows } from "../core/journalPolicyRows";
 import { validateGoalRows } from "../core/journalGoalRows";
+import {
+  validateExpenseRowReasons,
+  validateIncomeRowReasons,
+  validateTransferRowReasons,
+} from "../core/journalRowValidation";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -181,6 +186,9 @@ export const TypedBudget = {
   validateAccountsRows,
   validatePolicyRows,
   validateGoalRows,
+  validateIncomeRowReasons,
+  validateTransferRowReasons,
+  validateExpenseRowReasons,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

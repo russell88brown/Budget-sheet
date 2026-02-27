@@ -23,6 +23,9 @@ const required = [
   "validateAccountsRows",
   "validatePolicyRows",
   "validateGoalRows",
+  "validateIncomeRowReasons",
+  "validateTransferRowReasons",
+  "validateExpenseRowReasons",
 ];
 
 for (const key of required) {
