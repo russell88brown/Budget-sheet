@@ -337,6 +337,102 @@ function getApplicableAutoDeficitPoliciesTyped_(policyRules, event) {
   return null;
 }
 
+function normalizeScenarioSetTyped_(scenarioIds) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeScenarioSet === 'function') {
+    return api.normalizeScenarioSet(scenarioIds);
+  }
+  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
+  var normalized = ids
+    .map(function (value) { return normalizeTagTyped_(value); })
+    .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
+  return normalized.length ? normalized : [Config.SCENARIOS.DEFAULT];
+}
+
+function filterByScenarioTyped_(rows, scenarioId) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.filterByScenario === 'function') {
+    return api.filterByScenario(rows || [], scenarioId);
+  }
+  if (!Array.isArray(rows) || !rows.length) {
+    return [];
+  }
+  var activeScenarioId = normalizeTagTyped_(scenarioId);
+  return rows.filter(function (row) {
+    return normalizeTagTyped_(row && row.scenarioId) === activeScenarioId;
+  });
+}
+
+function filterByScenarioSetTyped_(rows, scenarioIds) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.filterByScenarioSet === 'function') {
+    return api.filterByScenarioSet(rows || [], scenarioIds);
+  }
+  if (!Array.isArray(rows) || !rows.length) {
+    return [];
+  }
+  var lookup = {};
+  normalizeScenarioSetTyped_(scenarioIds).forEach(function (id) {
+    lookup[id] = true;
+  });
+  return rows.filter(function (row) {
+    return !!lookup[normalizeTagTyped_(row && row.scenarioId)];
+  });
+}
+
+function buildScenarioLookupTyped_(catalogValues) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildScenarioLookup === 'function') {
+    return api.buildScenarioLookup(catalogValues || []);
+  }
+  var lookup = {};
+  var values = Array.isArray(catalogValues) ? catalogValues : [catalogValues];
+  values.forEach(function (value) {
+    lookup[normalizeTagTyped_(value)] = true;
+  });
+  lookup[Config.SCENARIOS.DEFAULT] = true;
+  return lookup;
+}
+
+function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
+    return api.shouldIncludeScenarioColumn(scenarioColumnIndex, scenarioIds);
+  }
+  return scenarioColumnIndex !== -1 && normalizeScenarioSetTyped_(scenarioIds).length > 1;
+}
+
+function valuesWithinToleranceTyped_(left, right, tolerance) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.valuesWithinTolerance === 'function') {
+    return api.valuesWithinTolerance(left, right, tolerance);
+  }
+  var lhs = typeof left === 'number' ? left : 0;
+  var rhs = typeof right === 'number' ? right : 0;
+  var limit = tolerance === undefined ? 0.01 : tolerance;
+  return Math.abs(lhs - rhs) <= limit;
+}
+
+function countDaysBelowTyped_(rows, index, threshold) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.countDaysBelow === 'function') {
+    return api.countDaysBelow(rows || [], index, threshold);
+  }
+  return (rows || []).reduce(function (count, row) {
+    return count + (((row && row[index]) || 0) < threshold ? 1 : 0);
+  }, 0);
+}
+
+function computeSeriesStatsTyped_(rows, index) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeSeriesStats === 'function') {
+    return api.computeSeriesStats(rows || [], index, function (value) {
+      return roundUpCents_(value || 0);
+    });
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

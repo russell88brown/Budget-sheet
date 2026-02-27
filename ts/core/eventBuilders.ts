@@ -159,7 +159,7 @@ export function buildInterestEvents(
       endDate,
     });
 
-    const accrualEvents = accrualDates.map((date) => ({
+    const accrualEvents: Array<Record<string, unknown>> = accrualDates.map((date) => ({
       date,
       scenarioId: account.scenarioId,
       kind: "Interest",
@@ -173,7 +173,7 @@ export function buildInterestEvents(
       skipJournal: true,
     }));
 
-    const postingEvents = postingDates.map((date) => ({
+    const postingEvents: Array<Record<string, unknown>> = postingDates.map((date) => ({
       date,
       scenarioId: account.scenarioId,
       kind: "Interest",
@@ -188,6 +188,6 @@ export function buildInterestEvents(
       repeatEvery: account.interestPostingRepeatEvery,
     }));
 
-    return accrualEvents.concat(postingEvents);
+    return [...accrualEvents, ...postingEvents];
   });
 }

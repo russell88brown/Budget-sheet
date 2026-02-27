@@ -54,6 +54,19 @@ import {
   type PolicyRuleContext,
 } from "../core/policyRules";
 import {
+  buildScenarioLookup,
+  filterByScenario,
+  filterByScenarioSet,
+  normalizeScenarioSet,
+  shouldIncludeScenarioColumn,
+} from "../core/tagScope";
+import {
+  computeSeriesStats,
+  countDaysBelow,
+  valuesWithinTolerance,
+  type SeriesStats,
+} from "../core/summaryStats";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -107,6 +120,14 @@ export const TypedBudget = {
   computeInterestFeePerPosting,
   isPolicyActiveOnDate,
   getApplicableAutoDeficitPolicies,
+  normalizeScenarioSet,
+  filterByScenario,
+  filterByScenarioSet,
+  buildScenarioLookup,
+  shouldIncludeScenarioColumn,
+  valuesWithinTolerance,
+  countDaysBelow,
+  computeSeriesStats,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
@@ -126,3 +147,4 @@ export type { TransferCalculationContext };
 export type { ResolveTransferAmountResult };
 export type { InterestFeeContext };
 export type { PolicyRuleContext };
+export type { SeriesStats };

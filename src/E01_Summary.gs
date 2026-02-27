@@ -38,7 +38,7 @@ function runSummaryForTag(tagId) {
 }
 
 function buildDailySummary_(tagId) {
-  var scenarioIds = Array.isArray(tagId) ? tagId : [tagId];
+  var scenarioIds = normalizeScenarioSet_(tagId);
   var scenarioLookup = {};
   scenarioIds.forEach(function (value) {
     scenarioLookup[normalizeScenario_(value)] = true;
@@ -68,7 +68,7 @@ function buildDailySummary_(tagId) {
 
   var values = journal.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var tz = ss.getSpreadsheetTimeZone();
-  var includeScenarioColumn = scenarioIndex !== -1 && scenarioIds.length > 1;
+  var includeScenarioColumn = shouldIncludeScenarioColumnTyped_(scenarioIndex, scenarioIds);
   var dayMap = {};
 
   values.forEach(function (row) {
@@ -134,11 +134,7 @@ function buildDailySummary_(tagId) {
 }
 
 function normalizeScenarioSet_(scenarioId) {
-  var values = Array.isArray(tagId) ? tagId : [tagId];
-  var normalized = values
-    .map(function (value) { return normalizeScenario_(value); })
-    .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
-  return normalized.length ? normalized : [Config.SCENARIOS.DEFAULT];
+  return normalizeScenarioSetTyped_(scenarioId);
 }
 
 function buildJournalContextForScenarioSet_(scenarioId) {
@@ -207,10 +203,7 @@ function assertJournalRowsAvailableForScenarioSet_(scenarioId) {
 }
 
 function valuesWithinTolerance_(left, right, tolerance) {
-  var lhs = typeof left === 'number' ? left : 0;
-  var rhs = typeof right === 'number' ? right : 0;
-  var limit = tolerance === undefined ? SUMMARY_RECON_TOLERANCE_ : tolerance;
-  return Math.abs(lhs - rhs) <= limit;
+  return valuesWithinToleranceTyped_(left, right, tolerance === undefined ? SUMMARY_RECON_TOLERANCE_ : tolerance);
 }
 
 function assertDailyReconcilesWithJournal_(daily, scenarioId) {
@@ -746,6 +739,11 @@ function buildScenarioComparisonData_(scenarioId, daily, current) {
 }
 
 function computeSeriesStats_(rows, index) {
+  var typed = computeSeriesStatsTyped_(rows, index);
+  if (typed) {
+    return typed;
+  }
+
   var minValue = rows[0][index] || 0;
   var maxValue = rows[0][index] || 0;
   var minDate = rows[0][0];
@@ -777,9 +775,7 @@ function computeSeriesStats_(rows, index) {
 }
 
 function countDaysBelow_(rows, index, threshold) {
-  return rows.reduce(function (count, row) {
-    return count + ((row[index] || 0) < threshold ? 1 : 0);
-  }, 0);
+  return countDaysBelowTyped_(rows, index, threshold);
 }
 
 function writeDashboard_(dashboard) {

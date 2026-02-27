@@ -503,7 +503,7 @@ var TypedBudget = (() => {
         frequency: account.interestPostingFrequency,
         repeatEvery: account.interestPostingRepeatEvery
       }));
-      return accrualEvents.concat(postingEvents);
+      return [...accrualEvents, ...postingEvents];
     });
   }
 
@@ -617,6 +617,94 @@ var TypedBudget = (() => {
       const nb = String(b.name || "");
       return na < nb ? -1 : na > nb ? 1 : 0;
     });
+  }
+
+  // ts/core/tagScope.ts
+  function normalizeScenarioSet(values) {
+    const raw = Array.isArray(values) ? values : [values];
+    const normalized = raw.map((value) => normalizeTag(value)).filter((value, idx, arr) => value && arr.indexOf(value) === idx);
+    return normalized.length ? normalized : [DEFAULT_TAG];
+  }
+  function filterByScenario(rows, scenarioId) {
+    if (!Array.isArray(rows) || !rows.length) {
+      return [];
+    }
+    const activeScenarioId = normalizeTag(scenarioId);
+    return rows.filter((row) => normalizeTag(row?.scenarioId) === activeScenarioId);
+  }
+  function filterByScenarioSet(rows, scenarioIds) {
+    if (!Array.isArray(rows) || !rows.length) {
+      return [];
+    }
+    const lookup = {};
+    normalizeScenarioSet(scenarioIds).forEach((id) => {
+      lookup[id] = true;
+    });
+    return rows.filter((row) => !!lookup[normalizeTag(row?.scenarioId)]);
+  }
+  function buildScenarioLookup(catalogValues) {
+    const lookup = {};
+    const values = Array.isArray(catalogValues) ? catalogValues : [catalogValues];
+    values.forEach((value) => {
+      lookup[normalizeTag(value)] = true;
+    });
+    lookup[DEFAULT_TAG] = true;
+    return lookup;
+  }
+  function shouldIncludeScenarioColumn(scenarioColumnIndex, scenarioIds) {
+    return scenarioColumnIndex !== -1 && normalizeScenarioSet(scenarioIds).length > 1;
+  }
+
+  // ts/core/summaryStats.ts
+  function valuesWithinTolerance(left, right, tolerance = 0.01) {
+    const lhs = typeof left === "number" ? left : 0;
+    const rhs = typeof right === "number" ? right : 0;
+    return Math.abs(lhs - rhs) <= tolerance;
+  }
+  function countDaysBelow(rows, index, threshold) {
+    return (rows || []).reduce((count, row) => {
+      const value = Number(row && row[index] || 0);
+      return count + (value < threshold ? 1 : 0);
+    }, 0);
+  }
+  function computeSeriesStats(rows, index, roundMoney) {
+    if (!rows || !rows.length) {
+      return {
+        min: roundMoney(0),
+        max: roundMoney(0),
+        minDate: null,
+        maxDate: null,
+        start: roundMoney(0),
+        end: roundMoney(0),
+        netChange: roundMoney(0)
+      };
+    }
+    let minValue = Number(rows[0] && rows[0][index] || 0);
+    let maxValue = Number(rows[0] && rows[0][index] || 0);
+    let minDate = rows[0] && rows[0][0];
+    let maxDate = rows[0] && rows[0][0];
+    const startValue = Number(rows[0] && rows[0][index] || 0);
+    const endValue = Number(rows[rows.length - 1] && rows[rows.length - 1][index] || 0);
+    (rows || []).forEach((row) => {
+      const value = Number(row && row[index] || 0);
+      if (value < minValue) {
+        minValue = value;
+        minDate = row && row[0];
+      }
+      if (value > maxValue) {
+        maxValue = value;
+        maxDate = row && row[0];
+      }
+    });
+    return {
+      min: roundMoney(minValue),
+      max: roundMoney(maxValue),
+      minDate,
+      maxDate,
+      start: roundMoney(startValue),
+      end: roundMoney(endValue),
+      netChange: roundMoney(endValue - startValue)
+    };
   }
 
   // ts/core/recurrence.ts
@@ -790,7 +878,15 @@ var TypedBudget = (() => {
     resolveTransferAmount,
     computeInterestFeePerPosting,
     isPolicyActiveOnDate,
-    getApplicableAutoDeficitPolicies
+    getApplicableAutoDeficitPolicies,
+    normalizeScenarioSet,
+    filterByScenario,
+    filterByScenarioSet,
+    buildScenarioLookup,
+    shouldIncludeScenarioColumn,
+    valuesWithinTolerance,
+    countDaysBelow,
+    computeSeriesStats
   };
   return __toCommonJS(entry_exports);
 })();

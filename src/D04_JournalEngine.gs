@@ -154,29 +154,11 @@ function readTagCatalog_() {
 }
 
 function filterByScenario_(rows, scenarioId) {
-  if (!Array.isArray(rows) || !rows.length) {
-    return [];
-  }
-  var activeScenarioId = resolveScenarioId_(scenarioId);
-  return rows.filter(function (row) {
-    var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
-    return rowScenarioId === activeScenarioId;
-  });
+  return filterByScenarioTyped_(rows, scenarioId);
 }
 
 function filterByScenarioSet_(rows, scenarioIds) {
-  if (!Array.isArray(rows) || !rows.length) {
-    return [];
-  }
-  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
-  var lookup = {};
-  ids.forEach(function (scenarioId) {
-    lookup[resolveScenarioId_(scenarioId)] = true;
-  });
-  return rows.filter(function (row) {
-    var rowScenarioId = row ? resolveScenarioId_(row.scenarioId) : Config.SCENARIOS.DEFAULT;
-    return !!lookup[rowScenarioId];
-  });
+  return filterByScenarioSetTyped_(rows, scenarioIds);
 }
 
 function preprocessInputSheets_() {
@@ -313,12 +295,7 @@ function reviewAndCleanupInputSheets_() {
 
 function buildScenarioLookup_() {
   var tags = readTagCatalog_();
-  var lookup = {};
-  (tags || []).forEach(function (scenarioId) {
-    lookup[resolveScenarioId_(scenarioId)] = true;
-  });
-  lookup[Config.SCENARIOS.DEFAULT] = true;
-  return lookup;
+  return buildScenarioLookupTyped_(tags);
 }
 
 function validateScenariosAcrossInputs_(validScenarios) {
