@@ -264,6 +264,79 @@ function buildInterestEventsTyped_(accounts) {
   return null;
 }
 
+function transferCalculationContextTyped_() {
+  return {
+    transferTypes: Config.TRANSFER_TYPES,
+    accountKey: function (value) {
+      return coreAccountKey_(value);
+    },
+    roundMoney: function (value) {
+      return roundUpCents_(value || 0);
+    },
+  };
+}
+
+function estimateTransferOutgoingAmountTyped_(balances, event) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.estimateTransferOutgoingAmount === 'function') {
+    return api.estimateTransferOutgoingAmount(
+      balances || {},
+      event || {},
+      transferCalculationContextTyped_()
+    );
+  }
+  return null;
+}
+
+function resolveTransferAmountTyped_(balances, event, amount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.resolveTransferAmount === 'function') {
+    return api.resolveTransferAmount(
+      balances || {},
+      event || {},
+      amount || 0,
+      transferCalculationContextTyped_()
+    );
+  }
+  return null;
+}
+
+function computeInterestFeePerPostingTyped_(event) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeInterestFeePerPosting === 'function') {
+    return api.computeInterestFeePerPosting(event || {}, {
+      toNumber: toNumberTyped_,
+      periodsPerYear: function (frequency, repeatEvery) {
+        return periodsPerYearTyped_(frequency, repeatEvery);
+      },
+    });
+  }
+  return null;
+}
+
+function isPolicyActiveOnDateTyped_(policy, date) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isPolicyActiveOnDate === 'function') {
+    return api.isPolicyActiveOnDate(policy || {}, date, normalizeDateTyped_);
+  }
+  return null;
+}
+
+function getApplicableAutoDeficitPoliciesTyped_(policyRules, event) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.getApplicableAutoDeficitPolicies === 'function') {
+    return api.getApplicableAutoDeficitPolicies(policyRules || [], event || {}, {
+      autoDeficitCoverType: Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+      normalizeAccountLookupKey: function (value) {
+        return normalizeAccountLookupKey_(value);
+      },
+      toPositiveInt: toPositiveIntTyped_,
+      normalizeDate: normalizeDateTyped_,
+    });
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

@@ -336,6 +336,11 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
 }
 
 function coreGetApplicableAutoDeficitPolicies_(policyRules, event) {
+  var typed = getApplicableAutoDeficitPoliciesTyped_(policyRules, event);
+  if (typed) {
+    return typed;
+  }
+
   if (!event || !event.from || !Array.isArray(policyRules) || !policyRules.length) {
     return [];
   }
@@ -363,6 +368,11 @@ function coreGetApplicableAutoDeficitPolicies_(policyRules, event) {
 }
 
 function coreIsPolicyActiveOnDate_(policy, date) {
+  var typed = isPolicyActiveOnDateTyped_(policy, date);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var day = normalizeDate_(date || new Date());
   var startDate = policy && policy.startDate ? normalizeDate_(policy.startDate) : null;
   var endDate = policy && policy.endDate ? normalizeDate_(policy.endDate) : null;
@@ -416,6 +426,11 @@ function coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypesByKey,
 }
 
 function coreEstimateTransferOutgoingAmount_(balances, event) {
+  var typed = estimateTransferOutgoingAmountTyped_(balances, event);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var transferType = event.transferBehavior || event.behavior;
   var amount = roundUpCents_(event.amount || 0);
 
@@ -442,6 +457,22 @@ function coreEstimateTransferOutgoingAmount_(balances, event) {
 }
 
 function coreResolveTransferAmount_(balances, event, amount) {
+  var typed = resolveTransferAmountTyped_(balances, event, amount);
+  if (typed) {
+    if (typed.skip) {
+      event.appliedAmount = 0;
+      event.skipJournal = true;
+      if (typed.creditPaidOff && typeof runState_ !== 'undefined' && runState_) {
+        runState_.creditPaidOffWarned = runState_.creditPaidOffWarned || {};
+        if (!runState_.creditPaidOffWarned[event.name]) {
+          runState_.creditPaidOffWarned[event.name] = true;
+        }
+      }
+      return { amount: 0, skip: true };
+    }
+    return { amount: typed.amount, skip: false };
+  }
+
   var transferType = event.transferBehavior || event.behavior;
 
   if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
@@ -544,6 +575,11 @@ function coreAccrueDailyInterest_(balances, event) {
 }
 
 function coreComputeInterestFeePerPosting_(event) {
+  var typed = computeInterestFeePerPostingTyped_(event);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var monthlyFee = toNumber_(event.monthlyFee);
   if (monthlyFee === null || monthlyFee <= 0) {
     return 0;

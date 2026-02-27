@@ -69,6 +69,16 @@ This project is structured around operational pipeline stages plus shared utilit
 ## Typed Migration Pipeline
 
 - Typed source lives in `ts/`.
+- Migrated typed cores currently include:
+  - `engine/runSelections`
+  - `core/dateMath`
+  - `core/eventSort`
+  - `core/compiledEvent`
+  - `core/recurrence`
+  - `core/readerNormalization`
+  - `core/eventBuilders`
+  - `core/applyCalculations`
+  - `core/policyRules`
 - Build command: `npm run build:typed`.
 - Typecheck command: `npm run typecheck`.
 - Test command: `npm test`.

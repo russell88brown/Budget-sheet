@@ -3,7 +3,7 @@
 ## Summary
 - Introduces TypeScript migration foundation with low-risk adapter wiring.
 - Keeps Apps Script runtime stable with typed-first + JS fallback behavior.
-- Adds typed recurrence utilities and tests in this continuation slice.
+- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, and policy-rule utilities with tests.
 
 ## Implemented
 - TS build/test foundation (`tsconfig`, scripts, typed modules, tests).
@@ -14,7 +14,11 @@
   - date helpers
   - event sort
   - compiled event normalize/compare
-  - recurrence helpers (`B04` now routes through typed adapters)
+  - recurrence helpers (`B04` routes through typed adapters)
+  - reader normalization helpers (`C01` routes through typed adapters)
+  - event builders (`D01` routes through typed adapters)
+  - transfer resolution + fee helpers (`D03` routes through typed adapters)
+  - policy applicability helpers (`D03` routes through typed adapters)
 
 ## Local Validation Steps
 1. `npm install`

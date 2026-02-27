@@ -40,6 +40,20 @@ import {
   type RecurrenceOptions,
 } from "../core/eventBuilders";
 import {
+  computeInterestFeePerPosting,
+  estimateTransferOutgoingAmount,
+  resolveTransferAmount,
+  type InterestFeeContext,
+  type ResolveTransferAmountResult,
+  type TransferCalculationContext,
+  type TransferTypeConfig,
+} from "../core/applyCalculations";
+import {
+  getApplicableAutoDeficitPolicies,
+  isPolicyActiveOnDate,
+  type PolicyRuleContext,
+} from "../core/policyRules";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -88,6 +102,11 @@ export const TypedBudget = {
   buildExpenseEvents,
   buildTransferEvents,
   buildInterestEvents,
+  estimateTransferOutgoingAmount,
+  resolveTransferAmount,
+  computeInterestFeePerPosting,
+  isPolicyActiveOnDate,
+  getApplicableAutoDeficitPolicies,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
@@ -102,3 +121,8 @@ export type { ReaderTransferConfig };
 export type { ReaderPolicyConfig };
 export type { EventBuilderContext };
 export type { RecurrenceOptions };
+export type { TransferTypeConfig };
+export type { TransferCalculationContext };
+export type { ResolveTransferAmountResult };
+export type { InterestFeeContext };
+export type { PolicyRuleContext };

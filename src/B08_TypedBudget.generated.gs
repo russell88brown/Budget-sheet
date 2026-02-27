@@ -144,12 +144,12 @@ var TypedBudget = (() => {
       "Transfer:" + config.transferEverythingExcept
     ];
   }
-  function getEventSortKey(event, normalizeTransferType) {
+  function getEventSortKey(event, normalizeTransferType2) {
     if (!event || !event.kind) {
       return "";
     }
     if (event.kind === "Transfer") {
-      const behavior = normalizeTransferType(event.transferBehavior ?? event.behavior, event.amount);
+      const behavior = normalizeTransferType2(event.transferBehavior ?? event.behavior, event.amount);
       return "Transfer:" + behavior;
     }
     if (event.kind === "Interest" && event.interestAccrual === true) {
@@ -157,13 +157,13 @@ var TypedBudget = (() => {
     }
     return String(event.kind);
   }
-  function eventSortPriority(event, normalizeTransferType, config) {
+  function eventSortPriority(event, normalizeTransferType2, config) {
     const order = getEventSortOrder(config);
     const lookup = {};
     order.forEach((key2, idx) => {
       lookup[key2] = idx;
     });
-    const key = getEventSortKey(event, normalizeTransferType);
+    const key = getEventSortKey(event, normalizeTransferType2);
     return Object.prototype.hasOwnProperty.call(lookup, key) ? lookup[key] : order.length + 1;
   }
 
@@ -227,6 +227,529 @@ var TypedBudget = (() => {
     return 0;
   }
 
+  // ts/core/readerNormalization.ts
+  function toBoolean(value) {
+    return value === true || value === "TRUE" || value === "true" || value === 1;
+  }
+  function toNumber(value) {
+    if (value === "" || value === null || value === void 0) {
+      return null;
+    }
+    const num = Number(value);
+    return Number.isNaN(num) ? null : num;
+  }
+  function toDate(value) {
+    if (!value) {
+      return null;
+    }
+    if (Object.prototype.toString.call(value) === "[object Date]") {
+      return value;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  function toPositiveInt(value) {
+    if (value === "" || value === null || value === void 0) {
+      return null;
+    }
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      return null;
+    }
+    if (num < 1) {
+      return null;
+    }
+    return Math.floor(num);
+  }
+  function normalizeFrequency(value, frequencies) {
+    if (!value) {
+      return { frequency: value, repeatEvery: null, isSingleOccurrence: false };
+    }
+    const cleaned = String(value).trim();
+    const lower = cleaned.toLowerCase();
+    if (lower === "daily") {
+      return { frequency: frequencies.DAILY, repeatEvery: null, isSingleOccurrence: false };
+    }
+    if (lower === "once" || lower === "one-off" || lower === "one off") {
+      return { frequency: frequencies.ONCE, repeatEvery: 1, isSingleOccurrence: true };
+    }
+    if (lower === "weekly") {
+      return { frequency: frequencies.WEEKLY, repeatEvery: null, isSingleOccurrence: false };
+    }
+    if (lower === "monthly") {
+      return { frequency: frequencies.MONTHLY, repeatEvery: null, isSingleOccurrence: false };
+    }
+    if (lower === "yearly" || lower === "annually") {
+      return {
+        frequency: frequencies.YEARLY,
+        repeatEvery: lower === "annually" ? 1 : null,
+        isSingleOccurrence: false
+      };
+    }
+    return { frequency: cleaned, repeatEvery: null, isSingleOccurrence: false };
+  }
+  function normalizeRecurrence(frequencyValue, repeatEveryValue, startDateValue, endDateValue, frequencies) {
+    const startDate = toDate(startDateValue);
+    let endDate = toDate(endDateValue);
+    const normalized = normalizeFrequency(frequencyValue, frequencies);
+    const repeatEvery = normalized.repeatEvery || toPositiveInt(repeatEveryValue) || 1;
+    if (normalized.isSingleOccurrence && startDate && !endDate) {
+      endDate = startDate;
+    }
+    return {
+      frequency: normalized.frequency,
+      repeatEvery,
+      isSingleOccurrence: normalized.isSingleOccurrence,
+      startDate,
+      endDate
+    };
+  }
+  function normalizeTransferType(value, amountValue, transferTypes) {
+    if (value === null || value === void 0) {
+      return value;
+    }
+    const cleaned = String(value).trim();
+    if (!cleaned) {
+      return cleaned;
+    }
+    const lower = cleaned.toLowerCase();
+    if (lower === String(transferTypes.REPAYMENT_AMOUNT).toLowerCase()) {
+      return transferTypes.REPAYMENT_AMOUNT;
+    }
+    if (lower === String(transferTypes.REPAYMENT_ALL).toLowerCase()) {
+      return transferTypes.REPAYMENT_ALL;
+    }
+    if (lower === String(transferTypes.TRANSFER_AMOUNT).toLowerCase()) {
+      return transferTypes.TRANSFER_AMOUNT;
+    }
+    if (lower === String(transferTypes.TRANSFER_EVERYTHING_EXCEPT).toLowerCase()) {
+      return transferTypes.TRANSFER_EVERYTHING_EXCEPT;
+    }
+    if (lower === "repayment") {
+      const amount = toNumber(amountValue);
+      if (amount === 0) {
+        return transferTypes.REPAYMENT_ALL;
+      }
+      return transferTypes.REPAYMENT_AMOUNT;
+    }
+    if (lower === "transfer") {
+      return transferTypes.TRANSFER_AMOUNT;
+    }
+    return cleaned;
+  }
+  function normalizePolicyType(value, policyTypes) {
+    if (value === null || value === void 0) {
+      return value;
+    }
+    const cleaned = String(value).trim();
+    if (!cleaned) {
+      return cleaned;
+    }
+    const lower = cleaned.toLowerCase();
+    if (lower === String(policyTypes.AUTO_DEFICIT_COVER).toLowerCase()) {
+      return policyTypes.AUTO_DEFICIT_COVER;
+    }
+    return cleaned;
+  }
+
+  // ts/core/eventBuilders.ts
+  function buildSourceRuleId(prefix, source, fallbackName) {
+    const explicit = source?.ruleId ? String(source.ruleId).trim() : "";
+    if (explicit) {
+      return explicit;
+    }
+    const name = fallbackName ? String(fallbackName).trim() : "";
+    if (!name) {
+      return `${prefix}:UNKNOWN`;
+    }
+    return `${prefix}:${name.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
+  }
+  function buildIncomeEvents(incomeRules, ctx) {
+    return (incomeRules || []).flatMap((rule) => {
+      if (!rule || !rule.paidTo) {
+        return [];
+      }
+      const dates = ctx.expandRecurrence({
+        startDate: rule.startDate,
+        frequency: rule.frequency,
+        repeatEvery: rule.repeatEvery,
+        endDate: rule.endDate
+      });
+      return dates.map((date) => ({
+        date,
+        scenarioId: rule.scenarioId,
+        kind: "Income",
+        sourceRuleId: ctx.buildSourceRuleId("INC", rule, rule.name),
+        behavior: rule.type || "Income",
+        name: rule.name,
+        category: null,
+        from: null,
+        to: rule.paidTo,
+        amount: rule.amount
+      }));
+    });
+  }
+  function buildExpenseEvents(expenseRules, ctx) {
+    return (expenseRules || []).flatMap((rule) => {
+      if (!rule || !rule.paidFrom) {
+        return [];
+      }
+      const dates = ctx.expandRecurrence({
+        startDate: rule.startDate,
+        frequency: rule.frequency,
+        repeatEvery: rule.repeatEvery,
+        endDate: rule.endDate
+      });
+      return dates.map((date) => {
+        const expenseNameParts = [];
+        if (rule.type) {
+          expenseNameParts.push(String(rule.type));
+        }
+        if (rule.name) {
+          expenseNameParts.push(String(rule.name));
+        }
+        const expenseName = expenseNameParts.join(" - ");
+        return {
+          date,
+          scenarioId: rule.scenarioId,
+          kind: "Expense",
+          sourceRuleId: ctx.buildSourceRuleId("EXP", rule, expenseName),
+          behavior: rule.type || ctx.behaviorLabels.Expense,
+          name: expenseName,
+          category: rule.type,
+          from: rule.paidFrom,
+          to: "External",
+          amount: rule.amount
+        };
+      });
+    });
+  }
+  function buildTransferEvents(transferRules, ctx) {
+    return (transferRules || []).flatMap((rule) => {
+      if (!rule || !rule.paidFrom || !rule.paidTo) {
+        return [];
+      }
+      const dates = ctx.expandRecurrence({
+        startDate: rule.startDate,
+        frequency: rule.frequency,
+        repeatEvery: rule.repeatEvery,
+        endDate: rule.endDate
+      });
+      return dates.map((date) => ({
+        date,
+        scenarioId: rule.scenarioId,
+        kind: "Transfer",
+        sourceRuleId: ctx.buildSourceRuleId("TRN", rule, rule.name),
+        behavior: rule.type || rule.behavior,
+        transferBehavior: rule.type || rule.behavior,
+        name: rule.name,
+        category: null,
+        from: rule.paidFrom,
+        to: rule.paidTo,
+        amount: rule.amount
+      }));
+    });
+  }
+  function buildInterestEvents(accounts, ctx) {
+    return (accounts || []).flatMap((account) => {
+      if (!account) {
+        return [];
+      }
+      if (!account.interestPostingFrequency || !account.interestRate) {
+        return [];
+      }
+      const window = ctx.getForecastWindow();
+      const startDate = account.interestPostingStartDate || window.start;
+      const endDate = null;
+      const postingDates = ctx.expandRecurrence({
+        startDate,
+        frequency: account.interestPostingFrequency,
+        repeatEvery: account.interestPostingRepeatEvery,
+        endDate
+      });
+      if (!postingDates.length) {
+        return [];
+      }
+      const accrualDates = ctx.expandRecurrence({
+        startDate,
+        frequency: ctx.frequencies.DAILY,
+        repeatEvery: 1,
+        endDate
+      });
+      const accrualEvents = accrualDates.map((date) => ({
+        date,
+        scenarioId: account.scenarioId,
+        kind: "Interest",
+        sourceRuleId: ctx.buildSourceRuleId("INT", account, account.name),
+        behavior: "Interest Accrual",
+        name: "Interest Accrual",
+        account: account.name,
+        rate: account.interestRate,
+        method: account.interestMethod,
+        interestAccrual: true,
+        skipJournal: true
+      }));
+      const postingEvents = postingDates.map((date) => ({
+        date,
+        scenarioId: account.scenarioId,
+        kind: "Interest",
+        sourceRuleId: ctx.buildSourceRuleId("INT", account, account.name),
+        behavior: "Interest",
+        name: "Interest",
+        account: account.name,
+        rate: account.interestRate,
+        monthlyFee: account.interestMonthlyFee,
+        method: account.interestMethod,
+        frequency: account.interestPostingFrequency,
+        repeatEvery: account.interestPostingRepeatEvery
+      }));
+      return accrualEvents.concat(postingEvents);
+    });
+  }
+
+  // ts/core/applyCalculations.ts
+  function estimateTransferOutgoingAmount(balances, event, ctx) {
+    const transferType = event.transferBehavior || event.behavior;
+    const amount = ctx.roundMoney(event.amount || 0);
+    if (transferType === ctx.transferTypes.TRANSFER_EVERYTHING_EXCEPT) {
+      return 0;
+    }
+    if (transferType === ctx.transferTypes.TRANSFER_AMOUNT) {
+      return amount > 0 ? amount : 0;
+    }
+    if (transferType === ctx.transferTypes.REPAYMENT_ALL) {
+      const toKey = ctx.accountKey(event.to);
+      const targetAll = toKey ? balances[toKey] || 0 : 0;
+      return targetAll < 0 ? ctx.roundMoney(Math.abs(targetAll)) : 0;
+    }
+    if (transferType === ctx.transferTypes.REPAYMENT_AMOUNT) {
+      const targetKey = ctx.accountKey(event.to);
+      const targetAmount = targetKey ? balances[targetKey] || 0 : 0;
+      if (targetAmount >= 0 || amount <= 0) {
+        return 0;
+      }
+      return ctx.roundMoney(Math.min(amount, Math.abs(targetAmount)));
+    }
+    return amount > 0 ? amount : 0;
+  }
+  function resolveTransferAmount(balances, event, amount, ctx) {
+    const transferType = event.transferBehavior || event.behavior;
+    if (transferType === ctx.transferTypes.TRANSFER_EVERYTHING_EXCEPT) {
+      const sourceKey = ctx.accountKey(event.from);
+      const sourceBalance = sourceKey ? balances[sourceKey] || 0 : 0;
+      const keepAmount = amount || 0;
+      const moveAmount = ctx.roundMoney(Math.max(0, sourceBalance - keepAmount));
+      if (moveAmount <= 0) {
+        return { amount: 0, skip: true, creditPaidOff: false };
+      }
+      return { amount: moveAmount, skip: false, creditPaidOff: false };
+    }
+    if (transferType === ctx.transferTypes.TRANSFER_AMOUNT) {
+      if (amount <= 0) {
+        return { amount: 0, skip: true, creditPaidOff: false };
+      }
+      return { amount, skip: false, creditPaidOff: false };
+    }
+    if (transferType !== ctx.transferTypes.REPAYMENT_AMOUNT && transferType !== ctx.transferTypes.REPAYMENT_ALL) {
+      return { amount, skip: false, creditPaidOff: false };
+    }
+    const toKey = ctx.accountKey(event.to);
+    const target = toKey ? balances[toKey] || 0 : 0;
+    if (target >= 0) {
+      return { amount: 0, skip: true, creditPaidOff: true };
+    }
+    const required = Math.abs(target);
+    let resolvedAmount = amount;
+    if (transferType === ctx.transferTypes.REPAYMENT_ALL) {
+      resolvedAmount = required;
+    } else if (resolvedAmount <= 0) {
+      return { amount: 0, skip: true, creditPaidOff: false };
+    } else if (resolvedAmount > required) {
+      resolvedAmount = ctx.roundMoney(required);
+    }
+    return { amount: resolvedAmount, skip: false, creditPaidOff: false };
+  }
+  function computeInterestFeePerPosting(event, ctx) {
+    const monthlyFee = ctx.toNumber(event.monthlyFee);
+    if (monthlyFee === null || monthlyFee <= 0) {
+      return 0;
+    }
+    const periods = ctx.periodsPerYear(event.frequency, event.repeatEvery);
+    if (!periods) {
+      return monthlyFee;
+    }
+    return monthlyFee * (12 / periods);
+  }
+
+  // ts/core/policyRules.ts
+  function isPolicyActiveOnDate(policy, date, normalizeDate2) {
+    const day = normalizeDate2(date || /* @__PURE__ */ new Date());
+    const startDate = policy?.startDate ? normalizeDate2(policy.startDate) : null;
+    const endDate = policy?.endDate ? normalizeDate2(policy.endDate) : null;
+    if (startDate && day.getTime() < startDate.getTime()) {
+      return false;
+    }
+    if (endDate && day.getTime() > endDate.getTime()) {
+      return false;
+    }
+    return true;
+  }
+  function getApplicableAutoDeficitPolicies(policyRules, event, ctx) {
+    if (!event || !event.from || !Array.isArray(policyRules) || !policyRules.length) {
+      return [];
+    }
+    const eventFromKey = ctx.normalizeAccountLookupKey(event.from);
+    return policyRules.filter((policy) => {
+      if (!policy || policy.type !== ctx.autoDeficitCoverType) {
+        return false;
+      }
+      if (ctx.normalizeAccountLookupKey(policy.triggerAccount) !== eventFromKey) {
+        return false;
+      }
+      return isPolicyActiveOnDate(policy, event.date, ctx.normalizeDate);
+    }).sort((a, b) => {
+      const pa = ctx.toPositiveInt(a.priority) || 100;
+      const pb = ctx.toPositiveInt(b.priority) || 100;
+      if (pa !== pb) {
+        return pa - pb;
+      }
+      const na = String(a.name || "");
+      const nb = String(b.name || "");
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+  }
+
+  // ts/core/recurrence.ts
+  function normalizeRepeatEvery(repeatEvery) {
+    const raw = Number(repeatEvery);
+    if (!Number.isFinite(raw) || raw < 1) {
+      return 1;
+    }
+    return Math.floor(raw);
+  }
+  function getStepMonths(frequency, repeatEvery, frequencies) {
+    const every = normalizeRepeatEvery(repeatEvery);
+    if (frequency === frequencies.MONTHLY) {
+      return every;
+    }
+    if (frequency === frequencies.YEARLY) {
+      return every * 12;
+    }
+    return null;
+  }
+  function getStepDays(frequency, repeatEvery, frequencies) {
+    if (frequency === frequencies.DAILY) {
+      return normalizeRepeatEvery(repeatEvery);
+    }
+    if (frequency === frequencies.WEEKLY) {
+      return normalizeRepeatEvery(repeatEvery) * 7;
+    }
+    return null;
+  }
+  function periodsPerYear(frequency, repeatEvery, frequencies) {
+    const every = normalizeRepeatEvery(repeatEvery);
+    switch (frequency) {
+      case frequencies.ONCE:
+        return 0;
+      case frequencies.DAILY:
+        return 365 / every;
+      case frequencies.WEEKLY:
+        return 365 / 7 / every;
+      case frequencies.MONTHLY:
+        return 12 / every;
+      case frequencies.YEARLY:
+        return 1 / every;
+      default:
+        return 0;
+    }
+  }
+  function stepForward(date, frequency, repeatEvery, ctx) {
+    const stepDays = getStepDays(frequency, repeatEvery, ctx.frequencies);
+    if (stepDays) {
+      return ctx.addDays(date, stepDays);
+    }
+    const stepMonths = getStepMonths(frequency, repeatEvery, ctx.frequencies);
+    if (stepMonths) {
+      return ctx.addMonthsClamped(date, stepMonths);
+    }
+    return null;
+  }
+  function alignToWindow(anchor, frequency, repeatEvery, windowStart, ctx) {
+    if (anchor > windowStart) {
+      return anchor;
+    }
+    const stepDays = getStepDays(frequency, repeatEvery, ctx.frequencies);
+    if (stepDays) {
+      const daysDiff = Math.floor((windowStart.getTime() - anchor.getTime()) / 864e5);
+      const steps = Math.floor(daysDiff / stepDays);
+      let candidate2 = ctx.addDays(anchor, steps * stepDays);
+      if (candidate2 < windowStart) {
+        candidate2 = ctx.addDays(candidate2, stepDays);
+      }
+      return candidate2;
+    }
+    const stepMonths = getStepMonths(frequency, repeatEvery, ctx.frequencies);
+    if (!stepMonths) {
+      return null;
+    }
+    const monthsDiff = (windowStart.getFullYear() - anchor.getFullYear()) * 12 + (windowStart.getMonth() - anchor.getMonth());
+    const stepsMonths = Math.floor(monthsDiff / stepMonths);
+    let candidate = ctx.addMonthsClamped(anchor, stepsMonths * stepMonths);
+    if (candidate < windowStart) {
+      candidate = ctx.addMonthsClamped(candidate, stepMonths);
+    }
+    return candidate;
+  }
+  function expandRecurrence(options, ctx) {
+    const startDate = options.startDate;
+    const frequency = options.frequency;
+    const repeatEvery = normalizeRepeatEvery(options.repeatEvery);
+    if (!startDate || !frequency) {
+      return [];
+    }
+    const anchor = ctx.normalizeDate(startDate);
+    const windowStartBase = ctx.normalizeDate(ctx.window.start);
+    const windowEnd = ctx.normalizeDate(ctx.window.end);
+    let end = options.endDate ? ctx.normalizeDate(options.endDate) : windowEnd;
+    const today = ctx.normalizeDate(ctx.today ?? /* @__PURE__ */ new Date());
+    const windowStart = windowStartBase > today ? windowStartBase : today;
+    if (frequency === ctx.frequencies.ONCE) {
+      if (anchor < windowStart) {
+        return [];
+      }
+      if (anchor > windowEnd) {
+        return [];
+      }
+      return [new Date(anchor.getTime())];
+    }
+    if (options.endDate && anchor.getTime() === end.getTime()) {
+      if (anchor < windowStart) {
+        return [];
+      }
+      if (anchor > windowEnd) {
+        return [];
+      }
+      return [new Date(anchor.getTime())];
+    }
+    const start = alignToWindow(anchor, frequency, repeatEvery, windowStart, ctx);
+    if (!start) {
+      return [];
+    }
+    if (end > windowEnd) {
+      end = windowEnd;
+    }
+    if (start > end) {
+      return [];
+    }
+    const dates = [];
+    let current = start;
+    while (current && current <= end) {
+      dates.push(new Date(current.getTime()));
+      current = stepForward(current, frequency, repeatEvery, ctx);
+    }
+    return dates;
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
     DEFAULT_TAG: "Base",
@@ -241,8 +764,33 @@ var TypedBudget = (() => {
     getEventSortOrder,
     getEventSortKey,
     eventSortPriority,
+    normalizeRepeatEvery,
+    getStepMonths,
+    getStepDays,
+    periodsPerYear,
+    stepForward,
+    alignToWindow,
+    expandRecurrence,
     normalizeCompiledEvent,
-    compareCompiledEvents
+    compareCompiledEvents,
+    toBoolean,
+    toNumber,
+    toDate,
+    toPositiveInt,
+    normalizeFrequency,
+    normalizeRecurrence,
+    normalizeTransferType,
+    normalizePolicyType,
+    buildSourceRuleId,
+    buildIncomeEvents,
+    buildExpenseEvents,
+    buildTransferEvents,
+    buildInterestEvents,
+    estimateTransferOutgoingAmount,
+    resolveTransferAmount,
+    computeInterestFeePerPosting,
+    isPolicyActiveOnDate,
+    getApplicableAutoDeficitPolicies
   };
   return __toCommonJS(entry_exports);
 })();

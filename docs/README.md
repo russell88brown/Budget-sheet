@@ -20,4 +20,4 @@
 
 | Document | Purpose |
 |---|---|
-| `PR_NOTE.md` | Current migration PR summary/checklist. Remove after merge if no longer needed. |
+| `PR/PR_NOTE.md` | Current migration PR summary/checklist. Remove after merge if no longer needed. |
