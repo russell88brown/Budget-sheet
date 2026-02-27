@@ -1431,16 +1431,36 @@ var TypedBudget = (() => {
     return fallbackCount;
   }
 
+  // ts/core/contracts.ts
+  function assertAccountsShape(accounts) {
+    if (!Array.isArray(accounts)) {
+      throw new Error("Accounts payload must be an array.");
+    }
+    return accounts;
+  }
+  function assertPoliciesShape(policies) {
+    if (!Array.isArray(policies)) {
+      throw new Error("Policies payload must be an array.");
+    }
+    return policies;
+  }
+  function assertEventsShape(events) {
+    if (!Array.isArray(events)) {
+      throw new Error("Events payload must be an array.");
+    }
+    return events;
+  }
+
   // ts/core/journalBuild.ts
   function buildJournalArtifactsForRunModel(runModel, ctx) {
     const model = runModel || {};
     const activeScenarioId = ctx.resolveScenarioId(model.scenarioId);
-    const accounts = model.accounts || [];
+    const accounts = assertAccountsShape(model.accounts || []);
     ctx.assertUniqueScenarioAccountNames(activeScenarioId, accounts);
     const accountTypes = ctx.buildAccountTypeMap(accounts) || {};
     const runExtensions = ctx.buildRunExtensions(model) || {};
-    const policies = runExtensions.policies || [];
-    const events = ctx.buildSortedEvents(model) || [];
+    const policies = assertPoliciesShape(runExtensions.policies || []);
+    const events = assertEventsShape(ctx.buildSortedEvents(model) || []);
     const journalData = ctx.applyEventsToJournal({
       accounts,
       events,
@@ -1710,7 +1730,10 @@ var TypedBudget = (() => {
     buildMultiRunJournalPayload,
     resolveJournalScenarioId,
     shouldUseEngineDirect,
-    executeJournalPipelineCore
+    executeJournalPipelineCore,
+    assertAccountsShape,
+    assertEventsShape,
+    assertPoliciesShape
   };
   return __toCommonJS(entry_exports);
 })();

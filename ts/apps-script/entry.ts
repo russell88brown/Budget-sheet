@@ -126,6 +126,15 @@ import {
 } from "../core/journalRuntime";
 import { executeJournalPipelineCore } from "../core/journalPipelineExecution";
 import {
+  assertAccountsShape,
+  assertEventsShape,
+  assertPoliciesShape,
+  type BudgetAccount,
+  type BudgetEvent,
+  type BudgetPolicy,
+  type JournalRow,
+} from "../core/contracts";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -230,6 +239,9 @@ export const TypedBudget = {
   resolveJournalScenarioId,
   shouldUseEngineDirect,
   executeJournalPipelineCore,
+  assertAccountsShape,
+  assertEventsShape,
+  assertPoliciesShape,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
@@ -250,3 +262,7 @@ export type { ResolveTransferAmountResult };
 export type { InterestFeeContext };
 export type { PolicyRuleContext };
 export type { SeriesStats };
+export type { BudgetAccount };
+export type { BudgetEvent };
+export type { BudgetPolicy };
+export type { JournalRow };

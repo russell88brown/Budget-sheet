@@ -100,6 +100,7 @@ This project is structured around operational pipeline stages plus shared utilit
   - `core/journalMultiRun`
   - `core/journalRuntime`
   - `core/journalPipelineExecution`
+  - `core/contracts`
 - Build command: `npm run build:typed`.
 - Typecheck command: `npm run typecheck`.
 - Test command: `npm test`.

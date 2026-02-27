@@ -3,7 +3,7 @@
 ## Summary
 - Introduces TypeScript migration foundation with low-risk adapter wiring.
 - Keeps Apps Script runtime stable with typed adapter boundaries and typed-required journal runtime.
-- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, journal-apply-helper, journal-row, journal-event-application, journal-deficit-interest, journal-auto-deficit, journal-transfer-resolution, journal-orchestration, journal-build, journal-multi-run, journal-runtime, and journal-pipeline-execution utilities with tests.
+- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, journal-apply-helper, journal-row, journal-event-application, journal-deficit-interest, journal-auto-deficit, journal-transfer-resolution, journal-orchestration, journal-build, journal-multi-run, journal-runtime, journal-pipeline-execution, and boundary contracts utilities with tests.
 
 ## Implemented
 - TS build/test foundation (`tsconfig`, scripts, typed modules, tests).
@@ -60,28 +60,40 @@
 ### 2) Typed adapters are the only integration point
 - [x] Apps Script runtime calls typed runtime through `src/B07_TypedAdapters.gs`.
 - [x] Journal runtime paths are typed-required (fail-fast if typed bundle unavailable).
-- [ ] Final sweep to remove remaining non-journal fallback branches where TS equivalent already exists.
+- [x] Final sweep to remove remaining non-journal fallback branches where TS equivalent already exists.
 
 ### 3) Stable behavior is locked
 - [x] Deterministic fixture suite exists in Apps Script runtime:
   - `src/Z01_FixtureTests.gs`
 - [x] Typed unit test suite covers migrated modules:
   - `tests/*.test.ts`
-- [ ] Explicitly document and pin "golden scenario" fixture in this PR as the parity gate.
+- [x] Explicitly document and pin "golden scenario" fixture in this PR as the parity gate.
+  - Pinned function: `runDeterministicFixtureTests_GoldenScenario`
+  - Current target fixture: `runDeterministicFixtureTests_FixtureI`
 
 ### 4) Apps Script smoke still passes
 - [x] Branch CI runs verify + branch Apps Script fixture execution:
   - `.github/workflows/pr-test.yml`
-- [ ] Add explicit manual smoke checklist output to this PR before merge:
+- [x] Add explicit manual smoke checklist output to this PR before merge:
   - run completes
   - journal produced
   - daily/monthly reconciliation passes
   - no runtime exceptions
 
+#### Manual Smoke Output (Pre-Merge)
+- Run date: `2026-02-27`
+- Runner: `TBD (maintainer to execute in Apps Script UI)`
+- [ ] Run completes
+- [ ] Journal produced
+- [ ] Daily/Monthly reconciliation passes
+- [ ] No runtime exceptions
+
 ### 5) Debt-reduction priorities
 - [x] Pure logic moved to TS core modules; GAS runtime is now mostly orchestration/IO.
 - [x] Journal core duplication reduced; legacy writer migration path removed.
-- [ ] Freeze boundary contracts for `Event`, `Account`, `Policy`, `JournalRow` with shared exported types and adapter checks.
+- [x] Freeze boundary contracts for `Event`, `Account`, `Policy`, `JournalRow` with shared exported types and adapter checks.
+  - `ts/core/contracts.ts`
+  - enforced in `ts/core/journalBuild.ts`
 
 ### Ready-To-Merge Gate
-- [ ] All checklist items above complete.
+- [ ] All checklist items above complete (manual smoke checkboxes still need maintainer execution).

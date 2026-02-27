@@ -976,75 +976,26 @@ function executeJournalPipelineCoreTyped_(scenarioId, runModel, refreshSummaries
 
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
-  if (api && typeof api.normalizeActions === 'function') {
-    return api.normalizeActions(actions || []);
+  if (!(api && typeof api.normalizeActions === 'function')) {
+    throw new Error('Typed runtime is unavailable. Run npm run build:typed.');
   }
-  var values = Array.isArray(actions)
-    ? actions.map(function (value) { return String(value || '').toLowerCase(); })
-    : [];
-  var seen = {};
-  var result = [];
-  values.forEach(function (value) {
-    if (!value || seen[value]) {
-      return;
-    }
-    if (
-      value !== 'summarise_accounts' &&
-      value !== 'journal' &&
-      value !== 'daily' &&
-      value !== 'monthly' &&
-      value !== 'dashboard'
-    ) {
-      throw new Error('Unknown action type.');
-    }
-    seen[value] = true;
-    result.push(value);
-  });
-  if (!result.length) {
-    throw new Error('Select at least one action.');
-  }
-  return result;
+  return api.normalizeActions(actions || []);
 }
 
 function selectRunTagsTyped_(availableValues, selectedValues) {
   var api = typedBudgetApi_();
-  if (api && typeof api.selectRunTags === 'function') {
-    return api.selectRunTags(availableValues || [], selectedValues || []);
+  if (!(api && typeof api.selectRunTags === 'function')) {
+    throw new Error('Typed runtime is unavailable. Run npm run build:typed.');
   }
-  var available = (availableValues || []).map(function (value) {
-    return normalizeTagTyped_(value);
-  });
-  if (available.indexOf(Config.SCENARIOS.DEFAULT) === -1) {
-    available.push(Config.SCENARIOS.DEFAULT);
-  }
-  var selected = (selectedValues || []).map(function (value) {
-    return normalizeTagTyped_(value);
-  });
-  selected.push(Config.SCENARIOS.DEFAULT);
-  selected = selected.filter(function (value, idx, arr) {
-    return value && arr.indexOf(value) === idx;
-  });
-  selected.forEach(function (tagId) {
-    if (available.indexOf(tagId) === -1) {
-      throw new Error('Unknown tag "' + tagId + '".');
-    }
-  });
-  return selected;
+  return api.selectRunTags(availableValues || [], selectedValues || []);
 }
 
 function getTagColumnIndexTyped_(headers) {
   var api = typedBudgetApi_();
-  if (api && typeof api.getTagColumnIndex === 'function') {
-    return api.getTagColumnIndex(headers || []);
+  if (!(api && typeof api.getTagColumnIndex === 'function')) {
+    throw new Error('Typed runtime is unavailable. Run npm run build:typed.');
   }
-  if (!headers || !headers.length) {
-    return -1;
-  }
-  var tagIdx = headers.indexOf('Tag');
-  if (tagIdx !== -1) {
-    return tagIdx;
-  }
-  return headers.indexOf('Scenario');
+  return api.getTagColumnIndex(headers || []);
 }
 
 function normalizeDateTyped_(value) {
