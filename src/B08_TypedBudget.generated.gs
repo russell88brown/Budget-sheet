@@ -2155,6 +2155,25 @@ var TypedBudget = (() => {
     return { rows, assigned };
   }
 
+  // ts/core/scenarioValidation.ts
+  function disableUnknownScenarioRows(sourceRows, includeIdx, scenarioIdx, validScenarios, toBoolean2, resolveScenarioId) {
+    const rows = sourceRows.map((row) => row.slice());
+    let disabledCount = 0;
+    let updated = false;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[includeIdx])) {
+        return;
+      }
+      const scenarioId = resolveScenarioId(row[scenarioIdx]);
+      if (!validScenarios[scenarioId]) {
+        row[includeIdx] = false;
+        updated = true;
+        disabledCount += 1;
+      }
+    });
+    return { rows, disabledCount, updated };
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
     Config: CONFIG,
@@ -2165,6 +2184,7 @@ var TypedBudget = (() => {
     buildRunExtensions,
     hasMeaningfulRowDataForRuleId,
     assignMissingRuleIdsRows,
+    disableUnknownScenarioRows,
     DEFAULT_TAG: "Base",
     normalizeTag,
     normalizeAvailableTags,

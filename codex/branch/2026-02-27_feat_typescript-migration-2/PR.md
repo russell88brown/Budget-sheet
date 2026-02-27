@@ -31,6 +31,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Added `tests/runModel.test.ts` and `tests/runExtensions.test.ts`, and expanded typed API surface checks for run-model functions. | Ensure the newly extracted logic is covered by repeatable Node tests. | Increases confidence that further GAS wrapper-thinning can happen without behavior drift. |
 | 2026-02-27 | Extracted D04 Rule ID assignment logic into `ts/core/ruleIdAssignment.ts`, exported via typed runtime, and wired `D04_JournalEngine.gs` to typed-first execution with fallback. | Start high-priority `D04_JournalEngine.gs` decomposition without changing Apps Script runtime boundaries. | Rule ID assignment behavior is now directly unit-testable in TS and no longer maintained only in GAS code. |
 | 2026-02-27 | Added `tests/ruleIdAssignment.test.ts` and expanded typed API surface checks for Rule ID assignment helpers. | Guard the new typed extraction and preserve runtime contract coverage. | Future regressions in Rule ID assignment behavior/export availability will fail in CI tests. |
+| 2026-02-27 | Extracted D04 unknown-scenario row-disable transform into `ts/core/scenarioValidation.ts`, exported via typed runtime, and wired `D04_JournalEngine.gs` to typed-first execution with fallback. | Continue decomposing `D04_JournalEngine.gs` pure validation transforms while preserving GAS I/O boundaries. | Scenario validation row mutation logic is now directly testable TS code with stable fallback behavior in GAS. |
+| 2026-02-27 | Added `tests/scenarioValidation.test.ts` and expanded typed API surface checks for scenario validation helper export. | Ensure extracted scenario validation transform remains covered and discoverable through typed runtime API contract. | Reduces regression risk during further D04 extraction phases. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
@@ -42,6 +44,8 @@ Target architecture agreed for implementation:
 | Build | `npm run build:typed` | Pass | Regenerated `src/B08_TypedBudget.generated.gs` with run-model and run-extension exports. |
 | Unit | `npm test` | Pass | Includes new `tests/ruleIdAssignment.test.ts` coverage for D04 Rule ID assignment extraction. |
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `hasMeaningfulRowDataForRuleId` and `assignMissingRuleIdsRows` exports. |
+| Unit | `npm test` | Pass | Includes new `tests/scenarioValidation.test.ts` coverage for unknown-scenario row-disable extraction. |
+| Build | `npm run build:typed` | Pass | Regenerated typed bundle with `disableUnknownScenarioRows` export and adapter wiring. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
 
 ## Risks
@@ -56,4 +60,5 @@ Target architecture agreed for implementation:
 ## Follow-Ups
 - Next implementation target: begin `D04_JournalEngine.gs` extraction of pure decision logic to `ts/core`.
 - Continue `D04_JournalEngine.gs` extraction by moving pure scenario/account validation row transforms next.
+- Continue `D04_JournalEngine.gs` extraction with account lookup/validation transforms that do not require direct sheet I/O.
 

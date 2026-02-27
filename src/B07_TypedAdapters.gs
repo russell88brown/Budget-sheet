@@ -457,6 +457,21 @@ function assignMissingRuleIdsRowsTyped_(rows, ruleIdIdx, prefix) {
   return null;
 }
 
+function disableUnknownScenarioRowsTyped_(rows, includeIdx, scenarioIdx, validScenarios) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.disableUnknownScenarioRows === 'function') {
+    return api.disableUnknownScenarioRows(
+      Array.isArray(rows) ? rows : [],
+      includeIdx,
+      scenarioIdx,
+      validScenarios || {},
+      toBoolean_,
+      resolveScenarioId_
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

@@ -159,6 +159,7 @@ import {
   assignMissingRuleIdsRows,
   hasMeaningfulRowDataForRuleId,
 } from "../core/ruleIdAssignment";
+import { disableUnknownScenarioRows } from "../core/scenarioValidation";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -169,6 +170,7 @@ export const TypedBudget = {
   buildRunExtensions,
   hasMeaningfulRowDataForRuleId,
   assignMissingRuleIdsRows,
+  disableUnknownScenarioRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

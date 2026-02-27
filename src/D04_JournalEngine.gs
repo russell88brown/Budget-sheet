@@ -335,17 +335,29 @@ function disableRowsWithUnknownScenario_(sheetName, validScenarios) {
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
   var disabledCount = 0;
-  values.forEach(function (row) {
-    if (!toBoolean_(row[includeIdx])) {
-      return;
-    }
-    var scenarioId = resolveScenarioId_(row[scenarioIdx]);
-    if (!validScenarios[scenarioId]) {
-      row[includeIdx] = false;
-      updated = true;
-      disabledCount += 1;
-    }
-  });
+  var typedResult = disableUnknownScenarioRowsTyped_(values, includeIdx, scenarioIdx, validScenarios);
+  if (
+    typedResult &&
+    Array.isArray(typedResult.rows) &&
+    typeof typedResult.disabledCount === 'number' &&
+    typeof typedResult.updated === 'boolean'
+  ) {
+    values = typedResult.rows;
+    disabledCount = typedResult.disabledCount;
+    updated = typedResult.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[includeIdx])) {
+        return;
+      }
+      var scenarioId = resolveScenarioId_(row[scenarioIdx]);
+      if (!validScenarios[scenarioId]) {
+        row[includeIdx] = false;
+        updated = true;
+        disabledCount += 1;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);

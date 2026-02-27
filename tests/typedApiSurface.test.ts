@@ -18,6 +18,7 @@ const required = [
   "buildRunExtensions",
   "hasMeaningfulRowDataForRuleId",
   "assignMissingRuleIdsRows",
+  "disableUnknownScenarioRows",
 ];
 
 for (const key of required) {
