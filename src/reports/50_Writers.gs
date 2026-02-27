@@ -11,7 +11,6 @@ const Writers = {
     if (rows.length) {
       sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
     }
-    applyJournalSort_(sheet);
     applyJournalConditionalFormatting_(sheet, forecastAccounts || [], accountTypes || {}, rows.length);
   },
 };
@@ -92,14 +91,6 @@ function ensureJournalFilter_(sheet, lastCol) {
   if (!sheet.getFilter()) {
     sheet.getRange(1, 1, 1, lastCol).createFilter();
   }
-}
-
-function applyJournalSort_(sheet) {
-  var filter = sheet.getFilter();
-  if (!filter) {
-    return;
-  }
-  filter.sort(1, true);
 }
 
 function applyJournalConditionalFormatting_(sheet, forecastAccounts, accountTypes, rowCount) {

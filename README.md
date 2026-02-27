@@ -60,6 +60,10 @@ Practical combinations:
 - `Journal` only: refreshes core forecast ledger.
 - `Daily + Monthly + Dashboard` only: rebuilds reporting from current journal.
 
+Notes:
+- When multiple scenarios are selected for Daily/Monthly, output includes a `Scenario` column.
+- Journal rows keep generated order to preserve deterministic same-day closing snapshots.
+
 ## Scenario Case Studies
 
 | Scenario | User Story | Implementation | Output |

@@ -382,6 +382,7 @@ function buildAccountLookup_() {
   var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.ACCOUNTS);
   var lookup = {};
   var counts = {};
+  var scopedCounts = {};
   if (!sheet) {
     return lookup;
   }
@@ -392,11 +393,16 @@ function buildAccountLookup_() {
   }
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
+  var includeIdx = headers.indexOf('Include');
+  var scenarioIdx = headers.indexOf('Scenario');
   if (nameIdx === -1) {
     return lookup;
   }
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   values.forEach(function (row) {
+    if (includeIdx !== -1 && !toBoolean_(row[includeIdx])) {
+      return;
+    }
     var name = row[nameIdx];
     if (!name) {
       return;
@@ -405,14 +411,30 @@ function buildAccountLookup_() {
     if (!key) {
       return;
     }
+    var scenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
     counts[key] = (counts[key] || 0) + 1;
+    var scopedKey = scenarioId + '|' + key;
+    scopedCounts[scopedKey] = (scopedCounts[scopedKey] || 0) + 1;
   });
   Object.keys(counts).forEach(function (name) {
     if (counts[name] === 1) {
       lookup[name] = true;
     }
   });
+  Object.keys(scopedCounts).forEach(function (scopedKey) {
+    if (scopedCounts[scopedKey] === 1) {
+      lookup[scopedKey] = true;
+    }
+  });
   return lookup;
+}
+
+function hasValidAccountForScenario_(validAccounts, scenarioId, accountKey) {
+  if (!accountKey) {
+    return false;
+  }
+  var scopedKey = normalizeScenario_(scenarioId) + '|' + accountKey;
+  return !!validAccounts[scopedKey];
 }
 
 function validateAccountsSheet_() {
@@ -429,21 +451,24 @@ function validateAccountsSheet_() {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var nameIdx = headers.indexOf('Account Name');
   var includeIdx = headers.indexOf('Include');
+  var scenarioIdx = headers.indexOf('Scenario');
   var typeIdx = headers.indexOf('Type');
   var balanceIdx = headers.indexOf('Balance');
   if (nameIdx === -1 || includeIdx === -1 || typeIdx === -1 || balanceIdx === -1) {
     return buildAccountLookup_();
   }
 
-  var validAccounts = buildAccountLookup_();
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var seen = {};
+  var updated = 0;
 
-  values.forEach(function (row, idx) {
+  values.forEach(function (row) {
     if (!toBoolean_(row[includeIdx])) {
       return;
     }
     var name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+    var scenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+    var normalizedName = normalizeAccountLookupKey_(name);
     var type = normalizeAccountType_(row[typeIdx]);
     var balance = toNumber_(row[balanceIdx]);
     var reasons = [];
@@ -451,10 +476,11 @@ function validateAccountsSheet_() {
     if (!name) {
       reasons.push('missing account name');
     } else {
-      if (seen[name]) {
+      var duplicateKey = scenarioId + '|' + normalizedName;
+      if (seen[duplicateKey]) {
         reasons.push('duplicate account name');
       }
-      seen[name] = true;
+      seen[duplicateKey] = true;
     }
     if (type !== Config.ACCOUNT_TYPES.CASH && type !== Config.ACCOUNT_TYPES.CREDIT) {
       reasons.push('invalid account type');
@@ -463,10 +489,15 @@ function validateAccountsSheet_() {
       reasons.push('invalid balance');
     }
     if (reasons.length) {
+      row[includeIdx] = false;
+      updated += 1;
     }
   });
 
-  return validAccounts;
+  if (updated > 0) {
+    sheet.getRange(2, 1, values.length, lastCol).setValues(values);
+  }
+  return buildAccountLookup_();
 }
 
 function validatePoliciesSheet_(validAccounts) {
@@ -483,6 +514,7 @@ function validatePoliciesSheet_(validAccounts) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var idx = {
     include: headers.indexOf('Include'),
+    scenario: headers.indexOf('Scenario'),
     type: headers.indexOf('Policy Type'),
     name: headers.indexOf('Name'),
     priority: headers.indexOf('Priority'),
@@ -512,6 +544,7 @@ function validatePoliciesSheet_(validAccounts) {
     var reasons = [];
     var policyType = normalizePolicyType_(row[idx.type]);
     var name = row[idx.name] ? String(row[idx.name]).trim() : '';
+    var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
     var trigger = normalizeAccountLookupKey_(row[idx.trigger]);
     var funding = normalizeAccountLookupKey_(row[idx.funding]);
     var threshold = idx.threshold === -1 ? null : toNumber_(row[idx.threshold]);
@@ -525,12 +558,12 @@ function validatePoliciesSheet_(validAccounts) {
     }
     if (!trigger) {
       reasons.push('missing trigger account');
-    } else if (!validAccounts[trigger]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, trigger)) {
       reasons.push('unknown trigger account');
     }
     if (!funding) {
       reasons.push('missing funding account');
-    } else if (!validAccounts[funding]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, funding)) {
       reasons.push('unknown funding account');
     }
     if (trigger && funding && trigger === funding) {
@@ -578,6 +611,7 @@ function validateGoalsSheet_(validAccounts) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var idx = {
     include: headers.indexOf('Include'),
+    scenario: headers.indexOf('Scenario'),
     name: headers.indexOf('Goal Name'),
     targetAmount: headers.indexOf('Target Amount'),
     targetDate: headers.indexOf('Target Date'),
@@ -606,6 +640,7 @@ function validateGoalsSheet_(validAccounts) {
     }
     var reasons = [];
     var goalName = row[idx.name] ? String(row[idx.name]).trim() : '';
+    var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
     var targetAmount = toNumber_(row[idx.targetAmount]);
     var targetDate = toDate_(row[idx.targetDate]);
     var fundingAccount = normalizeAccountLookupKey_(row[idx.fundingAccount]);
@@ -624,7 +659,7 @@ function validateGoalsSheet_(validAccounts) {
     }
     if (!fundingAccount) {
       reasons.push('missing funding account');
-    } else if (!validAccounts[fundingAccount]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fundingAccount)) {
       reasons.push('unknown funding account');
     }
     if (
@@ -662,6 +697,7 @@ function validateGoalsSheet_(validAccounts) {
 function validateIncomeSheet_(validAccounts) {
   validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
     var reasons = [];
+    var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
       reasons.push('missing type');
     }
@@ -681,7 +717,7 @@ function validateIncomeSheet_(validAccounts) {
     var account = normalizeAccountLookupKey_(row[indexes.account]);
     if (!account) {
       reasons.push('missing to account');
-    } else if (!validAccounts[account]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, account)) {
       reasons.push('unknown to account');
     }
     return reasons;
@@ -691,6 +727,7 @@ function validateIncomeSheet_(validAccounts) {
 function validateTransferSheet_(validAccounts) {
   validateAndDeactivateRows_(Config.SHEETS.TRANSFERS, 'Transfer', function (row, indexes) {
     var reasons = [];
+    var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.name]) {
       reasons.push('missing name');
     }
@@ -717,12 +754,12 @@ function validateTransferSheet_(validAccounts) {
     var toAccount = normalizeAccountLookupKey_(row[indexes.to]);
     if (!fromAccount) {
       reasons.push('missing from account');
-    } else if (!validAccounts[fromAccount]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fromAccount)) {
       reasons.push('unknown from account');
     }
     if (!toAccount) {
       reasons.push('missing to account');
-    } else if (!validAccounts[toAccount]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, toAccount)) {
       reasons.push('unknown to account');
     }
     if (fromAccount && toAccount && fromAccount === toAccount) {
@@ -735,6 +772,7 @@ function validateTransferSheet_(validAccounts) {
 function validateExpenseSheet_(validAccounts) {
   validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
     var reasons = [];
+    var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
       reasons.push('missing type');
     }
@@ -754,7 +792,7 @@ function validateExpenseSheet_(validAccounts) {
     var fromAccount = normalizeAccountLookupKey_(row[indexes.from]);
     if (!fromAccount) {
       reasons.push('missing from account');
-    } else if (!validAccounts[fromAccount]) {
+    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fromAccount)) {
       reasons.push('unknown from account');
     }
     return reasons;
@@ -775,6 +813,7 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var indexes = {
     include: headers.indexOf('Include'),
+    scenario: headers.indexOf('Scenario'),
     type: headers.indexOf('Type'),
     name: headers.indexOf('Name'),
     amount: headers.indexOf('Amount'),

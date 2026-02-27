@@ -9,11 +9,11 @@ const CoreApplyEvents = {
 
     var balances = coreBuildBalanceMap_(accounts);
     var forecastable = coreBuildForecastableMap_(accounts);
-    var accountTypes = buildAccountTypeMap_(accounts);
+    var accountTypesByKey = coreBuildAccountTypesByKey_(accounts);
     var policyRules = policies || [];
     var forecastAccounts = accounts
       .filter(function (account) {
-        return forecastable[account.name];
+        return forecastable[coreAccountKey_(account.name)];
       })
       .map(function (account) {
         return account.name;
@@ -28,7 +28,7 @@ const CoreApplyEvents = {
         coreApplyAutoDeficitCoverRowsBeforeEvent_(
           balances,
           event,
-          accountTypes,
+          accountTypesByKey,
           policyRules,
           forecastAccounts,
           scenarioId
@@ -44,7 +44,7 @@ const CoreApplyEvents = {
           snapshots.afterFrom,
           snapshots.afterTo,
           forecastAccounts,
-          accountTypes,
+          accountTypesByKey,
           scenarioId
         )
       );
@@ -73,7 +73,11 @@ function coreBuildOpeningRows_(accounts, date, forecastAccounts, balances, scena
 function coreBuildBalanceMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
-    map[account.name] = roundUpCents_(account.balance || 0);
+    var key = coreAccountKey_(account && account.name);
+    if (!key) {
+      return;
+    }
+    map[key] = roundUpCents_(account.balance || 0);
   });
   return map;
 }
@@ -81,14 +85,18 @@ function coreBuildBalanceMap_(accounts) {
 function coreBuildForecastableMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
-    map[account.name] = account.forecast === true;
+    var key = coreAccountKey_(account && account.name);
+    if (!key) {
+      return;
+    }
+    map[key] = account.forecast === true;
   });
   return map;
 }
 
 function coreBuildForecastBalanceCells_(balances, forecastAccounts) {
   return forecastAccounts.map(function (name) {
-    return balances[name] || 0;
+    return balances[coreAccountKey_(name)] || 0;
   });
 }
 
@@ -97,7 +105,7 @@ function coreBuildJournalEventRows_(
   balancesAfterFrom,
   balancesAfterTo,
   forecastAccounts,
-  accountTypes,
+  accountTypesByKey,
   scenarioId
 ) {
   var balanceSnapshotFrom = coreBuildForecastBalanceCells_(balancesAfterFrom, forecastAccounts);
@@ -119,11 +127,13 @@ function coreBuildJournalEventRows_(
       }
       var snapshot = accountName === event.to ? balanceSnapshotTo : balanceSnapshotFrom;
       var balanceForRow = accountName === event.to ? balancesAfterTo : balancesAfterFrom;
+      var accountKey = coreAccountKey_(accountName);
+      var accountType = accountTypesByKey[accountKey];
       var cashNegative =
-        accountTypes[accountName] !== Config.ACCOUNT_TYPES.CREDIT && balanceForRow[accountName] < 0;
+        accountType !== Config.ACCOUNT_TYPES.CREDIT && balanceForRow[accountKey] < 0;
       var creditPaidOff =
-        accountTypes[accountName] === Config.ACCOUNT_TYPES.CREDIT &&
-        Math.abs(roundUpCents_(balanceForRow[accountName])) === 0 &&
+        accountType === Config.ACCOUNT_TYPES.CREDIT &&
+        Math.abs(roundUpCents_(balanceForRow[accountKey])) === 0 &&
         rowAmount > 0;
       return [
         event.date,
@@ -144,12 +154,14 @@ function coreBuildJournalEventRows_(
   } else {
     accountName = event.kind === 'Income' ? event.to : event.from;
   }
+  var accountKey = coreAccountKey_(accountName);
+  var accountType = accountTypesByKey[accountKey];
   var cashNegative =
-    accountTypes[accountName] !== Config.ACCOUNT_TYPES.CREDIT &&
-    balancesAfterTo[accountName] < 0;
+    accountType !== Config.ACCOUNT_TYPES.CREDIT &&
+    balancesAfterTo[accountKey] < 0;
   var creditPaidOff =
-    accountTypes[accountName] === Config.ACCOUNT_TYPES.CREDIT &&
-    Math.abs(roundUpCents_(balancesAfterTo[accountName])) === 0 &&
+    accountType === Config.ACCOUNT_TYPES.CREDIT &&
+    Math.abs(roundUpCents_(balancesAfterTo[accountKey])) === 0 &&
     signedAmount > 0;
   return [
     [
@@ -182,33 +194,35 @@ function coreBuildAlerts_(cashNegative, creditPaidOff, explicitAlert) {
 function coreApplyEventWithSnapshots_(balances, event) {
   var pre = coreCloneBalances_(balances);
   var amount = roundUpCents_(event.amount || 0);
+  var toKey = coreAccountKey_(event.to);
+  var fromKey = coreAccountKey_(event.from);
+  var accountKey = coreAccountKey_(event.account);
 
   if (event.kind === 'Income') {
-    if (event.to) {
-      balances[event.to] = roundUpCents_((balances[event.to] || 0) + amount);
+    if (toKey && balances[toKey] !== undefined) {
+      balances[toKey] = roundUpCents_((balances[toKey] || 0) + amount);
     }
     event.appliedAmount = amount;
     return { afterFrom: coreCloneBalances_(balances), afterTo: coreCloneBalances_(balances) };
   }
 
   if (event.kind === 'Expense') {
-    if (event.from) {
-      balances[event.from] = roundUpCents_((balances[event.from] || 0) - amount);
+    if (fromKey && balances[fromKey] !== undefined) {
+      balances[fromKey] = roundUpCents_((balances[fromKey] || 0) - amount);
     }
     event.appliedAmount = amount;
     return { afterFrom: coreCloneBalances_(balances), afterTo: coreCloneBalances_(balances) };
   }
 
   if (event.kind === 'Interest') {
-    var interestAccount = event.account;
     var interestAmount = coreComputeInterestAmount_(balances, event);
     event.appliedAmount = interestAmount;
     if (interestAmount === 0) {
       event.skipJournal = true;
       return { afterFrom: pre, afterTo: pre };
     }
-    if (interestAccount) {
-      balances[interestAccount] = roundUpCents_((balances[interestAccount] || 0) + interestAmount);
+    if (accountKey && balances[accountKey] !== undefined) {
+      balances[accountKey] = roundUpCents_((balances[accountKey] || 0) + interestAmount);
     }
     return { afterFrom: coreCloneBalances_(balances), afterTo: coreCloneBalances_(balances) };
   }
@@ -221,12 +235,12 @@ function coreApplyEventWithSnapshots_(balances, event) {
     }
 
     var afterFrom = coreCloneBalances_(pre);
-    if (event.from) {
-      afterFrom[event.from] = roundUpCents_((afterFrom[event.from] || 0) - amount);
+    if (fromKey && afterFrom[fromKey] !== undefined) {
+      afterFrom[fromKey] = roundUpCents_((afterFrom[fromKey] || 0) - amount);
     }
     var afterTo = coreCloneBalances_(afterFrom);
-    if (event.to) {
-      afterTo[event.to] = roundUpCents_((afterTo[event.to] || 0) + amount);
+    if (toKey && afterTo[toKey] !== undefined) {
+      afterTo[toKey] = roundUpCents_((afterTo[toKey] || 0) + amount);
     }
     Object.keys(afterTo).forEach(function (name) {
       balances[name] = afterTo[name];
@@ -241,7 +255,7 @@ function coreApplyEventWithSnapshots_(balances, event) {
 function coreApplyAutoDeficitCoverRowsBeforeEvent_(
   balances,
   event,
-  accountTypes,
+  accountTypesByKey,
   policyRules,
   forecastAccounts,
   scenarioId
@@ -258,24 +272,26 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
     }
     return value > maxValue ? value : maxValue;
   }, 0);
-  var coverageNeed = coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypes, threshold);
+  var coverageNeed = coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypesByKey, threshold);
   if (!coverageNeed || !coverageNeed.account || coverageNeed.amount <= 0) {
     return [];
   }
   var coveredAccount = coverageNeed.account;
+  var coveredAccountKey = coreAccountKey_(coveredAccount);
   var remainingNeed = coverageNeed.amount;
   var rows = [];
 
   for (var i = 0; i < applicablePolicies.length && remainingNeed > 0; i += 1) {
     var policy = applicablePolicies[i];
     var sourceAccount = (policy.fundingAccount || '').toString().trim();
-    if (!sourceAccount || sourceAccount === coveredAccount) {
+    var sourceKey = coreAccountKey_(sourceAccount);
+    if (!sourceAccount || sourceKey === coveredAccountKey) {
       continue;
     }
-    if (balances[sourceAccount] === undefined) {
+    if (!sourceKey || balances[sourceKey] === undefined) {
       continue;
     }
-    var available = roundUpCents_(Math.max(0, balances[sourceAccount] || 0));
+    var available = roundUpCents_(Math.max(0, balances[sourceKey] || 0));
     if (available <= 0) {
       continue;
     }
@@ -309,7 +325,7 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
         snapshots.afterFrom,
         snapshots.afterTo,
         forecastAccounts,
-        accountTypes,
+        accountTypesByKey,
         scenarioId
       )
     );
@@ -359,14 +375,15 @@ function coreIsPolicyActiveOnDate_(policy, date) {
   return true;
 }
 
-function coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypes, threshold) {
+function coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypesByKey, threshold) {
   if (!event || !event.kind) {
     return null;
   }
   if (event.kind !== 'Expense' && event.kind !== 'Transfer') {
     return null;
   }
-  if (!event.from || accountTypes[event.from] === Config.ACCOUNT_TYPES.CREDIT) {
+  var fromKey = coreAccountKey_(event.from);
+  if (!fromKey || accountTypesByKey[fromKey] === Config.ACCOUNT_TYPES.CREDIT) {
     return null;
   }
   if ((event.transferBehavior || event.behavior) === Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
@@ -383,7 +400,7 @@ function coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypes, thre
   if (outgoing <= 0) {
     return null;
   }
-  var currentBalance = roundUpCents_(balances[event.from] || 0);
+  var currentBalance = roundUpCents_(balances[fromKey] || 0);
   var safeThreshold = toNumber_(threshold);
   if (safeThreshold === null || safeThreshold < 0) {
     safeThreshold = 0;
@@ -409,11 +426,13 @@ function coreEstimateTransferOutgoingAmount_(balances, event) {
     return amount > 0 ? amount : 0;
   }
   if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-    var targetAll = event.to ? balances[event.to] || 0 : 0;
+    var toKey = coreAccountKey_(event.to);
+    var targetAll = toKey ? balances[toKey] || 0 : 0;
     return targetAll < 0 ? roundUpCents_(Math.abs(targetAll)) : 0;
   }
   if (transferType === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT) {
-    var targetAmount = event.to ? balances[event.to] || 0 : 0;
+    var targetKey = coreAccountKey_(event.to);
+    var targetAmount = targetKey ? balances[targetKey] || 0 : 0;
     if (targetAmount >= 0 || amount <= 0) {
       return 0;
     }
@@ -426,7 +445,8 @@ function coreResolveTransferAmount_(balances, event, amount) {
   var transferType = event.transferBehavior || event.behavior;
 
   if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-    var sourceBalance = event.from ? balances[event.from] || 0 : 0;
+    var sourceKey = coreAccountKey_(event.from);
+    var sourceBalance = sourceKey ? balances[sourceKey] || 0 : 0;
     var keepAmount = amount || 0;
     var moveAmount = roundUpCents_(Math.max(0, sourceBalance - keepAmount));
     if (moveAmount <= 0) {
@@ -453,7 +473,8 @@ function coreResolveTransferAmount_(balances, event, amount) {
     return { amount: amount, skip: false };
   }
 
-  var target = event.to ? balances[event.to] || 0 : 0;
+  var toKey = coreAccountKey_(event.to);
+  var target = toKey ? balances[toKey] || 0 : 0;
   if (target >= 0) {
     event.appliedAmount = 0;
     event.skipJournal = true;
@@ -488,11 +509,11 @@ function coreComputeInterestAmount_(balances, event) {
     coreAccrueDailyInterest_(balances, event);
     return 0;
   }
-  var account = event.account;
-  if (!account) {
+  var accountKey = coreAccountKey_(event.account);
+  if (!accountKey) {
     return 0;
   }
-  var bucket = coreGetInterestBucket_(account);
+  var bucket = coreGetInterestBucket_(accountKey);
   var accrued = bucket.accrued || 0;
   var fee = coreComputeInterestFeePerPosting_(event);
   bucket.accrued = 0;
@@ -501,15 +522,15 @@ function coreComputeInterestAmount_(balances, event) {
 }
 
 function coreAccrueDailyInterest_(balances, event) {
-  var account = event.account;
-  if (!account) {
+  var accountKey = coreAccountKey_(event.account);
+  if (!accountKey) {
     return;
   }
   var rate = event.rate;
   if (rate === null || rate === undefined || rate === '') {
     return;
   }
-  var balance = balances[account] || 0;
+  var balance = balances[accountKey] || 0;
   if (!balance) {
     return;
   }
@@ -518,7 +539,7 @@ function coreAccrueDailyInterest_(balances, event) {
   if (event.method === Config.INTEREST_METHODS.APY_COMPOUND) {
     dailyRate = Math.pow(1 + annualRate, 1 / 365) - 1;
   }
-  var bucket = coreGetInterestBucket_(account);
+  var bucket = coreGetInterestBucket_(accountKey);
   bucket.accrued = (bucket.accrued || 0) + balance * dailyRate;
 }
 
@@ -550,5 +571,20 @@ function coreCloneBalances_(balances) {
     copy[key] = balances[key];
     return copy;
   }, {});
+}
+
+function coreAccountKey_(value) {
+  return normalizeAccountLookupKey_(value);
+}
+
+function coreBuildAccountTypesByKey_(accounts) {
+  var byKey = {};
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    byKey[coreAccountKey_(account.name)] = account.type;
+  });
+  return byKey;
 }
 

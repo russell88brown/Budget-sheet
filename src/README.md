@@ -15,3 +15,5 @@ Determinism guarantees (core paths):
 - Event sorting uses one canonical same-day order list plus stable tie-breakers.
 - Account summaries use the same transfer totals object that powers Transfers `Monthly Total` writes.
 - Fixture runners in `src/tests/98_FixtureTests.gs` validate stable ordering and balance outcomes.
+- Journal writer preserves generated row order (no post-write re-sort), so Daily/Monthly closings stay stable.
+- Multi-scenario Daily/Monthly outputs include a `Scenario` column to avoid same-day scenario collisions.

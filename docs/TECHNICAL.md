@@ -182,10 +182,12 @@ Dashboard -> Accounts -> Income -> Transfers -> Goals -> Policies -> Expense -> 
 ### Daily formatting
 - Date column formatted as `yyyy-mm-dd`
 - Conditional formatting applies only to account balance columns
+- When summarizing multiple scenarios, Daily includes a `Scenario` column.
 
 ### Journal formatting
 - Frozen header row
 - Filters applied to the header row
+- No post-write sort is applied; generated event order is preserved.
 - Conditional formatting:
   - Credit accounts: green if >= 0
   - Cash accounts: red if < 0

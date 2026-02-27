@@ -68,11 +68,13 @@ function buildDailySummary_(scenarioId) {
 
   var values = journal.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var tz = ss.getSpreadsheetTimeZone();
+  var includeScenarioColumn = scenarioIndex !== -1 && scenarioIds.length > 1;
   var dayMap = {};
 
   values.forEach(function (row) {
+    var rowScenarioId = Config.SCENARIOS.DEFAULT;
     if (scenarioIndex !== -1) {
-      var rowScenarioId = normalizeScenario_(row[scenarioIndex]);
+      rowScenarioId = normalizeScenario_(row[scenarioIndex]);
       if (!scenarioLookup[rowScenarioId]) {
         return;
       }
@@ -82,9 +84,10 @@ function buildDailySummary_(scenarioId) {
       return;
     }
     var day = normalizeDate_(date);
-    var key = Utilities.formatDate(day, tz, 'yyyy-MM-dd');
+    var dayKey = Utilities.formatDate(day, tz, 'yyyy-MM-dd');
+    var key = includeScenarioColumn ? rowScenarioId + '|' + dayKey : dayKey;
     var balances = row.slice(alertsIndex + 1, alertsIndex + 1 + accountNames.length);
-    dayMap[key] = { date: day, balances: balances };
+    dayMap[key] = { date: day, scenarioId: rowScenarioId, balances: balances };
   });
 
   var keys = Object.keys(dayMap).sort();
@@ -112,11 +115,22 @@ function buildDailySummary_(scenarioId) {
     cash = roundUpCents_(cash);
     debt = roundUpCents_(debt);
     var net = roundUpCents_(cash + debt);
+    if (includeScenarioColumn) {
+      return [entry.date, entry.scenarioId, cash, debt, net].concat(entry.balances);
+    }
     return [entry.date, cash, debt, net].concat(entry.balances);
   });
 
-  var headers = ['Date', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames);
-  return { headers: headers, rows: rows, accountNames: accountNames, accountTypes: accountTypes };
+  var headers = includeScenarioColumn
+    ? ['Date', 'Scenario', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames)
+    : ['Date', 'Total Cash', 'Total Debt', 'Net Position'].concat(accountNames);
+  return {
+    headers: headers,
+    rows: rows,
+    accountNames: accountNames,
+    accountTypes: accountTypes,
+    includeScenarioColumn: includeScenarioColumn,
+  };
 }
 
 function normalizeScenarioSet_(scenarioId) {
@@ -209,26 +223,34 @@ function assertDailyReconcilesWithJournal_(daily, scenarioId) {
   }
 
   var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var includeScenarioColumn = daily && daily.includeScenarioColumn === true;
   var dayClosings = {};
   context.rows.forEach(function (row) {
     var date = row[0];
     if (!date) {
       return;
     }
-    var key = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM-dd');
+    var dayKey = Utilities.formatDate(normalizeDate_(date), tz, 'yyyy-MM-dd');
+    var scenarioPart = includeScenarioColumn
+      ? normalizeScenario_(row[1])
+      : '';
+    var key = includeScenarioColumn ? scenarioPart + '|' + dayKey : dayKey;
     var snapshotStart = context.alertsIndex + 1;
     dayClosings[key] = row.slice(snapshotStart, snapshotStart + context.accountNames.length);
   });
 
   daily.rows.forEach(function (row) {
-    var key = Utilities.formatDate(normalizeDate_(row[0]), tz, 'yyyy-MM-dd');
+    var rowDayKey = Utilities.formatDate(normalizeDate_(row[0]), tz, 'yyyy-MM-dd');
+    var rowScenario = includeScenarioColumn ? normalizeScenario_(row[1]) : '';
+    var key = includeScenarioColumn ? rowScenario + '|' + rowDayKey : rowDayKey;
     var expected = dayClosings[key];
     if (!expected) {
       throw new Error('Daily reconciliation failed: missing Journal closing for ' + key + '.');
     }
+    var snapshotOffset = includeScenarioColumn ? 5 : 4;
     for (var i = 0; i < context.accountNames.length; i += 1) {
       var expectedValue = typeof expected[i] === 'number' ? expected[i] : 0;
-      var actualValue = typeof row[4 + i] === 'number' ? row[4 + i] : 0;
+      var actualValue = typeof row[snapshotOffset + i] === 'number' ? row[snapshotOffset + i] : 0;
       if (!valuesWithinTolerance_(expectedValue, actualValue)) {
         throw new Error(
           'Daily reconciliation failed at ' +
@@ -250,10 +272,24 @@ function assertMonthlyReconcilesWithDaily_(monthly, daily) {
     throw new Error('Monthly reconciliation failed: Daily summary has no rows.');
   }
 
+  var includeScenarioColumn = daily && daily.includeScenarioColumn === true;
+  var dailyScenarioIndex = includeScenarioColumn ? 1 : -1;
+  var dailyCashIndex = includeScenarioColumn ? 2 : 1;
+  var dailyDebtIndex = includeScenarioColumn ? 3 : 2;
+  var dailyNetIndex = includeScenarioColumn ? 4 : 3;
+  var dailyAccountStart = includeScenarioColumn ? 5 : 4;
+  var monthlyScenarioIndex = monthly && monthly.includeScenarioColumn === true ? 1 : -1;
+  var monthlyCashIndex = monthlyScenarioIndex !== -1 ? 2 : 1;
+  var monthlyDebtIndex = monthlyScenarioIndex !== -1 ? 3 : 2;
+  var monthlyNetIndex = monthlyScenarioIndex !== -1 ? 4 : 3;
+  var monthlyAccountStart = monthlyScenarioIndex !== -1 ? 5 : 4;
+
   var dailyByMonth = {};
   daily.rows.forEach(function (row) {
     var date = normalizeDate_(row[0]);
-    var key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    var monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    var scenarioPart = dailyScenarioIndex === -1 ? '' : normalizeScenario_(row[dailyScenarioIndex]);
+    var key = dailyScenarioIndex === -1 ? monthKey : scenarioPart + '|' + monthKey;
     if (!dailyByMonth[key]) {
       dailyByMonth[key] = [];
     }
@@ -263,7 +299,9 @@ function assertMonthlyReconcilesWithDaily_(monthly, daily) {
   var monthlyByMonth = {};
   monthly.rows.forEach(function (row) {
     var monthDate = normalizeDate_(row[0]);
-    var key = monthDate.getFullYear() + '-' + String(monthDate.getMonth() + 1).padStart(2, '0');
+    var monthKey = monthDate.getFullYear() + '-' + String(monthDate.getMonth() + 1).padStart(2, '0');
+    var scenarioPart = monthlyScenarioIndex === -1 ? '' : normalizeScenario_(row[monthlyScenarioIndex]);
+    var key = monthlyScenarioIndex === -1 ? monthKey : scenarioPart + '|' + monthKey;
     monthlyByMonth[key] = row;
   });
 
@@ -281,20 +319,20 @@ function assertMonthlyReconcilesWithDaily_(monthly, daily) {
     var first = monthRows[0];
     var last = monthRows[monthRows.length - 1];
 
-    if (!valuesWithinTolerance_(monthRow[1], last[1])) {
+    if (!valuesWithinTolerance_(monthRow[monthlyCashIndex], last[dailyCashIndex])) {
       throw new Error('Monthly reconciliation failed: Total Cash mismatch for ' + key + '.');
     }
-    if (!valuesWithinTolerance_(monthRow[2], last[2])) {
+    if (!valuesWithinTolerance_(monthRow[monthlyDebtIndex], last[dailyDebtIndex])) {
       throw new Error('Monthly reconciliation failed: Total Debt mismatch for ' + key + '.');
     }
-    if (!valuesWithinTolerance_(monthRow[3], last[3])) {
+    if (!valuesWithinTolerance_(monthRow[monthlyNetIndex], last[dailyNetIndex])) {
       throw new Error('Monthly reconciliation failed: Net Position mismatch for ' + key + '.');
     }
 
     var accountCount = (daily.accountNames || []).length;
     for (var i = 0; i < accountCount; i += 1) {
-      var dailyIndex = 4 + i;
-      var monthlyIndex = 4 + i * 4;
+      var dailyIndex = dailyAccountStart + i;
+      var monthlyIndex = monthlyAccountStart + i * 4;
       var startValue = typeof first[dailyIndex] === 'number' ? first[dailyIndex] : 0;
       var endValue = typeof last[dailyIndex] === 'number' ? last[dailyIndex] : 0;
       var minValue = startValue;
@@ -352,16 +390,18 @@ function writeDailySummary_(daily) {
   sheet.autoResizeColumns(1, daily.headers.length);
 
   sheet.getRange(2, 1, sheet.getMaxRows() - 1, 1).setNumberFormat('yyyy-mm-dd');
-  if (daily.headers.length > 1) {
+  var numberStartCol = daily.includeScenarioColumn ? 3 : 2;
+  if (daily.headers.length >= numberStartCol) {
     sheet
-      .getRange(2, 2, sheet.getMaxRows() - 1, daily.headers.length - 1)
+      .getRange(2, numberStartCol, sheet.getMaxRows() - 1, daily.headers.length - numberStartCol + 1)
       .setNumberFormat('0.00');
   }
 
-  applyDailyConditionalFormatting_(sheet, daily.accountNames, daily.accountTypes, daily.rows.length);
+  var accountStartCol = daily.includeScenarioColumn ? 6 : 5;
+  applyDailyConditionalFormatting_(sheet, daily.accountNames, daily.accountTypes, daily.rows.length, accountStartCol);
 }
 
-function applyDailyConditionalFormatting_(sheet, accountNames, accountTypes, rowCount) {
+function applyDailyConditionalFormatting_(sheet, accountNames, accountTypes, rowCount, accountStartCol) {
   if (!accountNames.length || rowCount <= 0) {
     return;
   }
@@ -376,7 +416,7 @@ function applyDailyConditionalFormatting_(sheet, accountNames, accountTypes, row
   var newRules = [];
   var startRow = 2;
   var endRow = startRow + rowCount - 1;
-  var startCol = 5;
+  var startCol = accountStartCol || 5;
 
   accountNames.forEach(function (name, idx) {
     var col = startCol + idx;
@@ -405,8 +445,20 @@ function applyDailyConditionalFormatting_(sheet, accountNames, accountTypes, row
 
 function buildMonthlySummary_(daily) {
   if (!daily.rows.length) {
-    return { headers: [], rows: [], accountNames: daily.accountNames || [] };
+    return {
+      headers: [],
+      rows: [],
+      accountNames: daily.accountNames || [],
+      includeScenarioColumn: daily && daily.includeScenarioColumn === true,
+    };
   }
+
+  var includeScenarioColumn = daily && daily.includeScenarioColumn === true;
+  var dailyScenarioIndex = includeScenarioColumn ? 1 : -1;
+  var dailyCashIndex = includeScenarioColumn ? 2 : 1;
+  var dailyDebtIndex = includeScenarioColumn ? 3 : 2;
+  var dailyNetIndex = includeScenarioColumn ? 4 : 3;
+  var dailyAccountStart = includeScenarioColumn ? 5 : 4;
 
   var groups = {};
   daily.rows.forEach(function (row) {
@@ -415,9 +467,15 @@ function buildMonthlySummary_(daily) {
       return;
     }
     var day = normalizeDate_(date);
-    var key = day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0');
+    var monthKey = day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0');
+    var scenarioPart = dailyScenarioIndex === -1 ? '' : normalizeScenario_(row[dailyScenarioIndex]);
+    var key = dailyScenarioIndex === -1 ? monthKey : scenarioPart + '|' + monthKey;
     if (!groups[key]) {
-      groups[key] = { date: new Date(day.getFullYear(), day.getMonth(), 1), rows: [] };
+      groups[key] = {
+        date: new Date(day.getFullYear(), day.getMonth(), 1),
+        scenarioId: scenarioPart,
+        rows: [],
+      };
     }
     groups[key].rows.push(row);
   });
@@ -429,23 +487,30 @@ function buildMonthlySummary_(daily) {
     var first = monthRows[0];
     var last = monthRows[monthRows.length - 1];
 
-    var row = [
-      month.date,
-      roundUpCents_(last[1] || 0),
-      roundUpCents_(last[2] || 0),
-      roundUpCents_(last[3] || 0),
-    ];
+    var row = includeScenarioColumn
+      ? [
+          month.date,
+          month.scenarioId,
+          roundUpCents_(last[dailyCashIndex] || 0),
+          roundUpCents_(last[dailyDebtIndex] || 0),
+          roundUpCents_(last[dailyNetIndex] || 0),
+        ]
+      : [
+          month.date,
+          roundUpCents_(last[dailyCashIndex] || 0),
+          roundUpCents_(last[dailyDebtIndex] || 0),
+          roundUpCents_(last[dailyNetIndex] || 0),
+        ];
 
-    var startIndex = 4;
     var accountCount = daily.accountNames.length;
     for (var i = 0; i < accountCount; i++) {
-      var startValue = first[startIndex + i] || 0;
-      var endValue = last[startIndex + i] || 0;
+      var startValue = first[dailyAccountStart + i] || 0;
+      var endValue = last[dailyAccountStart + i] || 0;
       var minValue = startValue;
       var maxValue = startValue;
 
       monthRows.forEach(function (dayRow) {
-        var value = dayRow[startIndex + i] || 0;
+        var value = dayRow[dailyAccountStart + i] || 0;
         if (value < minValue) {
           minValue = value;
         }
@@ -463,7 +528,9 @@ function buildMonthlySummary_(daily) {
     return row;
   });
 
-  var headers = ['Month', 'Total Cash', 'Total Debt', 'Net Position'];
+  var headers = includeScenarioColumn
+    ? ['Month', 'Scenario', 'Total Cash', 'Total Debt', 'Net Position']
+    : ['Month', 'Total Cash', 'Total Debt', 'Net Position'];
   daily.accountNames.forEach(function () {
     headers.push('Min');
     headers.push('Max');
@@ -471,7 +538,12 @@ function buildMonthlySummary_(daily) {
     headers.push('Ending');
   });
 
-  return { headers: headers, rows: rows, accountNames: daily.accountNames };
+  return {
+    headers: headers,
+    rows: rows,
+    accountNames: daily.accountNames,
+    includeScenarioColumn: includeScenarioColumn,
+  };
 }
 
 function writeMonthlySummary_(monthly) {
@@ -491,7 +563,7 @@ function writeMonthlySummary_(monthly) {
 
   var colCount = monthly.headers.length;
   var headerRow1 = new Array(colCount).fill('');
-  var accountStart = 5;
+  var accountStart = monthly.includeScenarioColumn ? 6 : 5;
   monthly.accountNames.forEach(function (name, idx) {
     var startCol = accountStart + idx * 4;
     headerRow1[startCol - 1] = name;
@@ -514,9 +586,10 @@ function writeMonthlySummary_(monthly) {
   sheet.autoResizeColumns(1, colCount);
 
   sheet.getRange(3, 1, sheet.getMaxRows() - 2, 1).setNumberFormat('mmm yyyy');
-  if (colCount > 1) {
+  var numberStartCol = monthly.includeScenarioColumn ? 3 : 2;
+  if (colCount >= numberStartCol) {
     sheet
-      .getRange(3, 2, sheet.getMaxRows() - 2, colCount - 1)
+      .getRange(3, numberStartCol, sheet.getMaxRows() - 2, colCount - numberStartCol + 1)
       .setNumberFormat('0.00');
   }
 }
@@ -533,12 +606,17 @@ function buildDashboardData_(daily, scenarioId) {
   }
 
   var rows = daily.rows;
+  var includeScenarioColumn = daily && daily.includeScenarioColumn === true;
+  var cashIndex = includeScenarioColumn ? 2 : 1;
+  var debtIndex = includeScenarioColumn ? 3 : 2;
+  var netIndex = includeScenarioColumn ? 4 : 3;
+  var accountStartIndex = includeScenarioColumn ? 5 : 4;
   var startDate = rows[0][0];
   var endDate = rows[rows.length - 1][0];
 
-  var cashStats = computeSeriesStats_(rows, 1);
-  var debtStats = computeSeriesStats_(rows, 2);
-  var netStats = computeSeriesStats_(rows, 3);
+  var cashStats = computeSeriesStats_(rows, cashIndex);
+  var debtStats = computeSeriesStats_(rows, debtIndex);
+  var netStats = computeSeriesStats_(rows, netIndex);
 
   var scenarioLabel = Array.isArray(scenarioId)
     ? scenarioId.map(function (value) { return normalizeScenario_(value); }).join(', ')
@@ -555,13 +633,13 @@ function buildDashboardData_(daily, scenarioId) {
     ['Cash Max', formatValueWithDate_(cashStats.max, cashStats.maxDate)],
     ['Net Min', formatValueWithDate_(netStats.min, netStats.minDate)],
     ['Net Max', formatValueWithDate_(netStats.max, netStats.maxDate)],
-    ['Days Cash < 0', countDaysBelow_(rows, 1, 0)],
-    ['Days Net < 0', countDaysBelow_(rows, 3, 0)],
+    ['Days Cash < 0', countDaysBelow_(rows, cashIndex, 0)],
+    ['Days Net < 0', countDaysBelow_(rows, netIndex, 0)],
     ['Net Change', netStats.netChange],
   ];
 
   var accountStats = daily.accountNames.map(function (name, idx) {
-    var seriesIndex = 4 + idx;
+    var seriesIndex = accountStartIndex + idx;
     var stats = computeSeriesStats_(rows, seriesIndex);
     return {
       name: name,
@@ -575,8 +653,8 @@ function buildDashboardData_(daily, scenarioId) {
   var comparison = buildScenarioComparisonData_(scenarioId, daily, {
     cashStats: cashStats,
     netStats: netStats,
-    daysCashNegative: countDaysBelow_(rows, 1, 0),
-    daysNetNegative: countDaysBelow_(rows, 3, 0),
+    daysCashNegative: countDaysBelow_(rows, cashIndex, 0),
+    daysNetNegative: countDaysBelow_(rows, netIndex, 0),
   });
   var explainability = buildNegativeCashTopSources_(scenarioId);
 

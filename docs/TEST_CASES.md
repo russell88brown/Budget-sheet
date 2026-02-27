@@ -46,6 +46,7 @@ Run this targeted checklist after changes to Accounts/Income/Transfers/Expense l
 - Run `Generate journal` for at least two scenarios, then run `Generate daily` and `Generate monthly` in multi-scenario mode.
 - Expected:
   - Daily/Monthly generation is stable and repeatable for the same scenario set.
+  - Daily and Monthly include a `Scenario` column in multi-scenario mode.
   - No same-day row collisions or missing balances between reruns.
 
 3. Journal ordering stability
