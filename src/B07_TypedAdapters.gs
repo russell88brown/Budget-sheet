@@ -1,6 +1,14 @@
 // Typed adapter bridge. Uses generated TypedBudget API when available.
 
 function typedBudgetApi_() {
+  var resolved = resolveTypedBudgetApi_();
+  if (!resolved) {
+    throw new Error('Typed runtime is unavailable. Run npm run build:typed.');
+  }
+  return strictTypedBudgetApi_(resolved);
+}
+
+function resolveTypedBudgetApi_() {
   if (typeof TypedBudget === 'undefined' || !TypedBudget) {
     return null;
   }
@@ -11,6 +19,36 @@ function typedBudgetApi_() {
     return TypedBudget.TypedBudget;
   }
   return null;
+}
+
+var strictTypedBudgetApiSource_ = null;
+var strictTypedBudgetApiCache_ = null;
+
+function strictTypedBudgetApi_(api) {
+  if (typeof Proxy !== 'function') {
+    return api;
+  }
+  if (strictTypedBudgetApiSource_ === api && strictTypedBudgetApiCache_) {
+    return strictTypedBudgetApiCache_;
+  }
+  strictTypedBudgetApiSource_ = api;
+  strictTypedBudgetApiCache_ = new Proxy(api, {
+    get: function (target, prop) {
+      var value = target[prop];
+      if (value !== undefined) {
+        return value;
+      }
+      if (typeof prop === 'string') {
+        return function () {
+          throw new Error(
+            'Typed runtime function "' + prop + '" is unavailable. Run npm run build:typed.'
+          );
+        };
+      }
+      return value;
+    },
+  });
+  return strictTypedBudgetApiCache_;
 }
 
 function normalizeTagTyped_(value) {

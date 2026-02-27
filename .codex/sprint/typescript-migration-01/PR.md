@@ -48,6 +48,10 @@
 
 ## Notes
 - Typed journal paths now fail fast when typed runtime is unavailable (`npm run build:typed`).
+- Strict-mode sweep applied:
+  - adapters now enforce typed-runtime-only execution (missing typed methods throw immediately),
+  - `Tag` is now the only accepted input header for scope selection (`Scenario` alias removed),
+  - setup/remap and reader compatibility aliases for `Scenario` were removed as a deliberate breaking change.
 
 ## Definition Of Done (Merge Checklist)
 

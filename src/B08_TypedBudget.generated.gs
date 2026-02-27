@@ -98,11 +98,7 @@ var TypedBudget = (() => {
     if (!Array.isArray(headers) || !headers.length) {
       return -1;
     }
-    const tagIdx = headers.findIndex((value) => String(value ?? "") === "Tag");
-    if (tagIdx !== -1) {
-      return tagIdx;
-    }
-    return headers.findIndex((value) => String(value ?? "") === "Scenario");
+    return headers.findIndex((value) => String(value ?? "") === "Tag");
   }
 
   // ts/core/dateMath.ts

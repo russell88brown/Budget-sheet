@@ -33,7 +33,7 @@ This project is structured around operational pipeline stages plus shared utilit
 ### B: Utilities/Foundation
 - `src/B01_Config.gs`: constants, enums, sheet and range IDs.
 - `src/B02_Schema.gs`: canonical sheet schema metadata.
-- `src/B03_Utils.gs`: shared helpers and template compatibility wrappers.
+- `src/B03_Utils.gs`: shared helpers.
 - `src/B04_Recurrence.gs`: recurrence/date/window helpers.
 - `src/B05_EventSort.gs`: deterministic event precedence and tie-break ordering.
 - `src/B06_CoreModel.gs`: core event normalization helpers.
@@ -112,6 +112,7 @@ This project is structured around operational pipeline stages plus shared utilit
 
 - User-facing key is `Tag`.
 - `Base` is always included in run selections.
+- Legacy `Scenario` header aliases are removed; inputs must use `Tag`.
 
 ## Determinism Guarantees
 

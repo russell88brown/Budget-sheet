@@ -26,7 +26,7 @@ This folder contains the Apps Script runtime for setup, inputs, journal generati
 
 - User-facing key is `Tag`.
 - `Base` is always included in run selections.
-- Legacy `Scenario` headers are still accepted for compatibility.
+- Legacy `Scenario` header aliases are removed; inputs must use `Tag`.
 
 ## Typed Migration
 
@@ -41,7 +41,7 @@ This folder contains the Apps Script runtime for setup, inputs, journal generati
 | Doc | Purpose |
 |---|---|
 | `docs/TECHNICAL.md` | Detailed architecture, runtime flow, and module responsibilities. |
-| `docs/SCENARIOS.md` | Tag behavior, run selection rules, and compatibility details. |
+| `docs/SCENARIOS.md` | Tag behavior and run selection rules. |
 | `docs/TEST_CASES.md` | Manual regression checklist. |
 | `docs/tooling/CI.md` | CI workflows and required secrets. |
 | `docs/tooling/CLASP.md` | Apps Script sync setup and local push/pull workflow. |

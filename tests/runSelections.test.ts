@@ -29,5 +29,5 @@ assert.deepEqual(selectedTags, ["Stress", "Base"]);
 assert.throws(() => selectRunTags(["Base"], ["Stress"]), /Unknown tag "Stress"/);
 
 assert.equal(getTagColumnIndex(["Date", "Tag", "Amount"]), 1);
-assert.equal(getTagColumnIndex(["Date", "Scenario", "Amount"]), 1);
+assert.equal(getTagColumnIndex(["Date", "Scenario", "Amount"]), -1);
 assert.equal(getTagColumnIndex(["Date", "Amount"]), -1);

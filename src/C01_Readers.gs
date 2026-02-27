@@ -218,11 +218,6 @@ function readSheetRows_(sheetName) {
       headers.forEach(function (header, idx) {
         obj[header] = row[idx];
       });
-      if (obj.Tag !== undefined && obj.Scenario === undefined) {
-        obj.Scenario = obj.Tag;
-      } else if (obj.Scenario !== undefined && obj.Tag === undefined) {
-        obj.Tag = obj.Scenario;
-      }
       return obj;
     })
     .filter(function (row) {
@@ -236,10 +231,7 @@ function getTagValue_(row) {
   if (!row) {
     return '';
   }
-  if (row.Tag !== undefined) {
-    return row.Tag;
-  }
-  return row.Scenario;
+  return row.Tag;
 }
 
 function toBoolean_(value) {
@@ -271,22 +263,7 @@ function normalizeTransferType_(value, amountValue) {
 }
 
 function normalizeScenario_(value) {
-  if (typeof normalizeTagTyped_ === 'function') {
-    return normalizeTagTyped_(value);
-  }
-  var fallback = Config.SCENARIOS.DEFAULT;
-  if (value === '' || value === null || value === undefined) {
-    return fallback;
-  }
-  var cleaned = String(value).trim();
-  if (!cleaned) {
-    return fallback;
-  }
-  var normalized = cleaned.toLowerCase();
-  if (normalized === String(fallback).toLowerCase()) {
-    return fallback;
-  }
-  return cleaned;
+  return normalizeTagTyped_(value);
 }
 
 function normalizePolicyType_(value) {

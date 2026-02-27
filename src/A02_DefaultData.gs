@@ -384,7 +384,7 @@ function writeRowsByHeader_(sheet, records) {
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var rows = records.map(function (record) {
     return headers.map(function (header) {
-      if (header === 'Scenario' || header === 'Tag') {
+      if (header === 'Tag') {
         var scenarioValue = record[header];
         if (scenarioValue === undefined || scenarioValue === null || String(scenarioValue).trim() === '') {
           return Config.SCENARIOS.DEFAULT;
