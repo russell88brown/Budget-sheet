@@ -1,23 +1,15 @@
-## Sprint Documentation
+<!--
+PR body is generated dynamically from the active sprint PR notes.
 
-- Sprint ID: `<sprint-id>`
-- Sprint plan: `.codex/sprints/<sprint-id>/sprint-plan.md`
-- PR notes: `.codex/sprints/<sprint-id>/PR.md`
-- Retro (draft or updated): `.codex/sprints/<sprint-id>/retro.md`
+Steps:
+1. Run: npm run pr:body
+2. Copy .github/pull_request_body.generated.md into the PR description.
 
-## Change Summary
+Source:
+- codex/current-sprint
+- codex/branch/<sprint-id>/PR.md
+-->
 
-Describe what changed and why.
+## PR Body Source
 
-## Validation
-
-- [ ] `npm run typecheck`
-- [ ] `npm test`
-- [ ] `npm run sprint:check`
-- [ ] Manual checks completed (if applicable)
-
-## Risks / Follow-Ups
-
-- Risk:
-- Follow-up:
-
+Use generated content from `.github/pull_request_body.generated.md`.

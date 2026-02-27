@@ -3,3 +3,4 @@ codex/config.toml
 codex/current-sprint
 tmp/
 node_modules/
+.github/pull_request_body.generated.md

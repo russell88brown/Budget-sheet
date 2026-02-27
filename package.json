@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
     "verify": "npm run typecheck && npm run test && npm run build:typed",
+    "pr:body": "node scripts/generate-pr-body.mjs",
     "sprint:start": "node scripts/sprint-tools.mjs start",
     "sprint:check": "node scripts/sprint-tools.mjs check",
     "pr:deploy-main": "node scripts/pr-tools.mjs deploy-main",
