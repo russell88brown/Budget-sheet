@@ -37,7 +37,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Added `tests/journalAccountRows.test.ts` and expanded typed API surface checks for account-row helper exports. | Protect the newly extracted account transforms and maintain typed runtime contract coverage. | Improves confidence for subsequent D04 extraction phases and regression detection. |
 | 2026-02-27 | Extracted D04 policy-row validation transform into `ts/core/journalPolicyRows.ts`, exported via typed runtime, and wired `validatePoliciesSheet_` to typed-first execution with fallback. | Continue shrinking mixed validation logic in `D04_JournalEngine.gs` while keeping sheet I/O boundaries in GAS. | Policy validation logic is now directly testable TS code and easier to evolve safely. |
 | 2026-02-27 | Added `tests/journalPolicyRows.test.ts` and expanded typed API surface checks for policy-row helper export. | Protect new policy-validation extraction and maintain typed runtime contract coverage. | Reduces regression risk while moving remaining D04 row validators to TS core. |
-| 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
+| 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
+| 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
@@ -56,6 +57,7 @@ Target architecture agreed for implementation:
 | Unit | `npm test` | Pass | Includes new `tests/journalPolicyRows.test.ts` coverage for D04 policy-row validation transform extraction. |
 | Build | `npm run build:typed` | Pass | Regenerated typed bundle with `validatePolicyRows` export and adapter wiring. |
 | Validation | Updated `codex/README.md` prompt catalog to match `codex/SKILL.md` phase model | Pass | Prompt set now explicitly maps to required sprint phases and sprint artifacts. |
+| Validation | `node scripts/sprint-tools.mjs check` | Pass | Passed with current marker stored at `codex/current-sprint.md`. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
 
 ## Risks

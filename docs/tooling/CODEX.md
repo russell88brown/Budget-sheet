@@ -118,7 +118,7 @@ Current automation is hard-wired to these paths in `scripts/sprint-tools.mjs`:
 - `codex/sprint_tempalte-plan.md`
 - `codex/sprint_template-pr.md`
 - `codex/branch/`
-- `codex/current-sprint`
+- `codex/current-sprint.md`
 
 If you want another root, update those constants in `scripts/sprint-tools.mjs` once, then keep that structure stable across sprints.
 

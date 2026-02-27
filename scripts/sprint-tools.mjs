@@ -9,7 +9,8 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const codexRoot = path.join(repoRoot, 'codex');
 const branchDir = path.join(codexRoot, 'branch');
-const currentSprintFile = path.join(codexRoot, 'current-sprint');
+const currentSprintFile = path.join(codexRoot, 'current-sprint.md');
+const legacyCurrentSprintFile = path.join(codexRoot, 'current-sprint');
 const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
 const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
 const allowedPhaseValues = [
@@ -76,6 +77,16 @@ function parseCurrentSprintState(rawValue) {
   return { sprintId: parts[0], phase: parts[1], status: parts[2] };
 }
 
+function readCurrentSprintMarker() {
+  if (fs.existsSync(currentSprintFile)) {
+    return { filePath: currentSprintFile, raw: readFile(currentSprintFile) };
+  }
+  if (fs.existsSync(legacyCurrentSprintFile)) {
+    return { filePath: legacyCurrentSprintFile, raw: readFile(legacyCurrentSprintFile) };
+  }
+  return null;
+}
+
 function copyTemplate(templatePath, targetFilePath, sprintId) {
   if (!fs.existsSync(templatePath)) {
     fail(`Template missing: ${templatePath}`);
@@ -127,6 +138,10 @@ function startSprint(sprintId, options) {
   const stateValue = `${sprintId}|create_plan_from_prompt|in_progress`;
   writeFile(currentSprintFile, `${stateValue}\n`);
   info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${stateValue}`);
+  if (fs.existsSync(legacyCurrentSprintFile)) {
+    fs.unlinkSync(legacyCurrentSprintFile);
+    info(`Removed legacy marker: ${path.relative(repoRoot, legacyCurrentSprintFile)}`);
+  }
 
   if (!options.noBranch) {
     runGitCreateBranch(`sprint/${sprintId}`);
@@ -207,13 +222,14 @@ function checkFileSections(filePath, sectionNames) {
 }
 
 function checkSprint() {
-  if (!fs.existsSync(currentSprintFile)) {
+  const marker = readCurrentSprintMarker();
+  if (!marker) {
     fail(`Missing ${path.relative(repoRoot, currentSprintFile)}. Run sprint:start first.`);
   }
 
-  const state = parseCurrentSprintState(readFile(currentSprintFile));
+  const state = parseCurrentSprintState(marker.raw);
   if (!state || !state.sprintId) {
-    fail(`${path.relative(repoRoot, currentSprintFile)} is empty.`);
+    fail(`${path.relative(repoRoot, marker.filePath)} is empty.`);
   }
   const sprintId = state.sprintId;
 
@@ -224,10 +240,10 @@ function checkSprint() {
 
   if (state.phase !== null || state.status !== null) {
     if (!allowedPhaseValues.includes(state.phase)) {
-      fail(`${path.relative(repoRoot, currentSprintFile)} has invalid phase "${state.phase}".`);
+      fail(`${path.relative(repoRoot, marker.filePath)} has invalid phase "${state.phase}".`);
     }
     if (!allowedStatusValues.includes(state.status)) {
-      fail(`${path.relative(repoRoot, currentSprintFile)} has invalid status "${state.status}".`);
+      fail(`${path.relative(repoRoot, marker.filePath)} has invalid status "${state.status}".`);
     }
   }
 
