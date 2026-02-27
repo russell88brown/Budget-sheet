@@ -126,7 +126,7 @@
     </style>
   </head>
   <body>
-    <form id="scenario-form" class="panel">
+    <form id="run-form" class="panel">
       <div class="layout">
         <div class="col">
           <p class="section-title">Choose what to run</p>
@@ -148,23 +148,20 @@
         </div>
         <div class="col col-right">
           <div>
-            <p class="section-title">Scenario selection</p>
-            <div class="check">
-              <label class="check-head"><input type="radio" name="scenario_mode" value="base" checked> Use Base scenario</label>
-            </div>
-            <div class="check">
-              <label class="check-head"><input type="radio" name="scenario_mode" value="custom"> Choose custom scenario(s)</label>
-            </div>
-            <div id="custom-scenario-block" style="display:none;">
-              <label for="scenarios" style="margin-top: 6px;">Custom scenarios (multi-select)</label>
-              <select id="scenarios" multiple size="4">
-              <? for (var i = 0; i < scenarios.length; i++) { var item = scenarios[i]; ?>
+            <p class="section-title">Tag selection</p>
+            <label for="tags" style="margin-top: 6px;">Base tag is always included. Select additional tags (multi-select)</label>
+            <select id="tags" multiple size="5">
+              <? for (var i = 0; i < tags.length; i++) { var item = tags[i]; ?>
+                <? var isBase = String(item).toLowerCase() === 'base'; ?>
+                <? if (isBase) { ?>
+                <option value="<?= item ?>" selected><?= item ?></option>
+                <? } else { ?>
                 <option value="<?= item ?>"><?= item ?></option>
+                <? } ?>
               <? } ?>
-              </select>
-              <div style="margin-top: 6px; color: #5f6368; font-size: 12px;">
-                Ctrl/Cmd for multiple.
-              </div>
+            </select>
+            <div style="margin-top: 6px; color: #5f6368; font-size: 12px;">
+              Ctrl/Cmd for multiple.
             </div>
           </div>
           <div class="actions">
@@ -177,26 +174,10 @@
     </form>
     <script>
       (function () {
-        var form = document.getElementById('scenario-form');
+        var form = document.getElementById('run-form');
         var statusEl = document.getElementById('status');
-        var customBlock = document.getElementById('custom-scenario-block');
-        var modeInputs = form.querySelectorAll('input[name="scenario_mode"]');
         var submitBtn = form.querySelector('button[type="submit"]');
         var cancelBtn = form.querySelector('button.secondary');
-
-        function selectedMode_() {
-          var checked = form.querySelector('input[name="scenario_mode"]:checked');
-          return checked ? checked.value : 'base';
-        }
-
-        function toggleScenarioBlock_() {
-          customBlock.style.display = selectedMode_() === 'custom' ? '' : 'none';
-        }
-
-        Array.prototype.forEach.call(modeInputs, function (input) {
-          input.addEventListener('change', toggleScenarioBlock_);
-        });
-        toggleScenarioBlock_();
 
         form.addEventListener('submit', function (event) {
           event.preventDefault();
@@ -208,17 +189,9 @@
             statusEl.textContent = 'Select at least one action.';
             return;
           }
-          var scenarios = [];
-          var scenarioMode = selectedMode_();
-          if (scenarioMode === 'custom') {
-            scenarios = Array.prototype.slice
-              .call(document.getElementById('scenarios').selectedOptions)
-              .map(function (option) { return option.value; });
-            if (!scenarios.length) {
-              statusEl.textContent = 'Select at least one scenario.';
-              return;
-            }
-          }
+          var tags = Array.prototype.slice
+            .call(document.getElementById('tags').selectedOptions)
+            .map(function (option) { return option.value; });
           submitBtn.disabled = true;
           cancelBtn.disabled = true;
           statusEl.textContent = 'Running...';
@@ -233,7 +206,7 @@
               submitBtn.disabled = false;
               cancelBtn.disabled = false;
             })
-            .runBudgetSelections(actions, scenarioMode, scenarios);
+            .runBudgetSelections(actions, tags);
         });
       })();
     </script>

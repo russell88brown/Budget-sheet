@@ -1,25 +1,25 @@
 // Deterministic fixture tests for the domain-core compile/apply flow.
-function getDeterministicFixtureTestsPhase2Specs_() {
+function getDeterministicFixtureTestSpecs_() {
   return [
-    { name: 'Fixture A', handler: 'runDeterministicFixtureTestsPhase2_FixtureA', run: runDeterministicFixtureTestsPhase2_FixtureA },
-    { name: 'Fixture B', handler: 'runDeterministicFixtureTestsPhase2_FixtureB', run: runDeterministicFixtureTestsPhase2_FixtureB },
-    { name: 'Fixture C', handler: 'runDeterministicFixtureTestsPhase2_FixtureC', run: runDeterministicFixtureTestsPhase2_FixtureC },
-    { name: 'Fixture D', handler: 'runDeterministicFixtureTestsPhase2_FixtureD', run: runDeterministicFixtureTestsPhase2_FixtureD },
-    { name: 'Fixture E', handler: 'runDeterministicFixtureTestsPhase2_FixtureE', run: runDeterministicFixtureTestsPhase2_FixtureE },
-    { name: 'Fixture F', handler: 'runDeterministicFixtureTestsPhase2_FixtureF', run: runDeterministicFixtureTestsPhase2_FixtureF },
-    { name: 'Fixture G', handler: 'runDeterministicFixtureTestsPhase2_FixtureG', run: runDeterministicFixtureTestsPhase2_FixtureG },
-    { name: 'Fixture H', handler: 'runDeterministicFixtureTestsPhase2_FixtureH', run: runDeterministicFixtureTestsPhase2_FixtureH },
-    { name: 'Fixture I', handler: 'runDeterministicFixtureTestsPhase2_FixtureI', run: runDeterministicFixtureTestsPhase2_FixtureI },
+    { name: 'Fixture A', handler: 'runDeterministicFixtureTests_FixtureA', run: runDeterministicFixtureTests_FixtureA },
+    { name: 'Fixture B', handler: 'runDeterministicFixtureTests_FixtureB', run: runDeterministicFixtureTests_FixtureB },
+    { name: 'Fixture C', handler: 'runDeterministicFixtureTests_FixtureC', run: runDeterministicFixtureTests_FixtureC },
+    { name: 'Fixture D', handler: 'runDeterministicFixtureTests_FixtureD', run: runDeterministicFixtureTests_FixtureD },
+    { name: 'Fixture E', handler: 'runDeterministicFixtureTests_FixtureE', run: runDeterministicFixtureTests_FixtureE },
+    { name: 'Fixture F', handler: 'runDeterministicFixtureTests_FixtureF', run: runDeterministicFixtureTests_FixtureF },
+    { name: 'Fixture G', handler: 'runDeterministicFixtureTests_FixtureG', run: runDeterministicFixtureTests_FixtureG },
+    { name: 'Fixture H', handler: 'runDeterministicFixtureTests_FixtureH', run: runDeterministicFixtureTests_FixtureH },
+    { name: 'Fixture I', handler: 'runDeterministicFixtureTests_FixtureI', run: runDeterministicFixtureTests_FixtureI },
   ];
 }
 
-function runDeterministicFixtureTestsPhase2_All() {
-  return getDeterministicFixtureTestsPhase2Specs_().map(function (fixture) {
+function runDeterministicFixtureTests_All() {
+  return getDeterministicFixtureTestSpecs_().map(function (fixture) {
     return fixture.run();
   });
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureA() {
+function runDeterministicFixtureTests_FixtureA() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var model = {
@@ -93,7 +93,7 @@ function runDeterministicFixtureTestsPhase2_FixtureA() {
   return 'Fixture A passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureB() {
+function runDeterministicFixtureTests_FixtureB() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var nextDay = addDays_(anchor, 1);
@@ -135,7 +135,7 @@ function runDeterministicFixtureTestsPhase2_FixtureB() {
   return 'Fixture B passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureC() {
+function runDeterministicFixtureTests_FixtureC() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var accounts = [
@@ -164,7 +164,7 @@ function runDeterministicFixtureTestsPhase2_FixtureC() {
   return 'Fixture C passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureD() {
+function runDeterministicFixtureTests_FixtureD() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var accounts = [
@@ -193,7 +193,7 @@ function runDeterministicFixtureTestsPhase2_FixtureD() {
   return 'Fixture D passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureE() {
+function runDeterministicFixtureTests_FixtureE() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var accounts = [
@@ -237,7 +237,7 @@ function runDeterministicFixtureTestsPhase2_FixtureE() {
   return 'Fixture E passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureF() {
+function runDeterministicFixtureTests_FixtureF() {
   var rows = [
     [null, null, null, null, null, -120, 'EXP:RENT', 'NEGATIVE_CASH'],
     [null, null, null, null, null, -25, 'EXP:RENT', 'NEGATIVE_CASH'],
@@ -266,7 +266,7 @@ function runDeterministicFixtureTestsPhase2_FixtureF() {
   return 'Fixture F passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureG() {
+function runDeterministicFixtureTests_FixtureG() {
   var anchor = fixtureAnchorDate_();
   var events = [
     { date: anchor, kind: 'Transfer', behavior: Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT, transferBehavior: Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT, name: 'Sweep', sourceRuleId: 'TRN:SWEEP', amount: 100 },
@@ -302,7 +302,7 @@ function runDeterministicFixtureTestsPhase2_FixtureG() {
   return 'Fixture G passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureH() {
+function runDeterministicFixtureTests_FixtureH() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var model = {
@@ -339,7 +339,7 @@ function runDeterministicFixtureTestsPhase2_FixtureH() {
   return 'Fixture H passed';
 }
 
-function runDeterministicFixtureTestsPhase2_FixtureI() {
+function runDeterministicFixtureTests_FixtureI() {
   resetFixtureRunState_();
   var anchor = fixtureAnchorDate_();
   var model = {
@@ -478,4 +478,5 @@ function resetFixtureRunState_() {
     resetRunState_();
   }
 }
+
 

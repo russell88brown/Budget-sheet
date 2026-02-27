@@ -45,5 +45,6 @@ jobs:
         env:
           CLASP_CREDENTIALS_JSON: ${{ secrets.CLASP_CREDENTIALS_JSON }}
           CLASP_SCRIPT_ID_TEST: ${{ secrets.CLASP_SCRIPT_ID_TEST }}
-          TEST_RUNNER_FUNCTION: runDeterministicFixtureTestsPhase2_All
+          TEST_RUNNER_FUNCTION: runDeterministicFixtureTests_All
         run: npm run pr:test-branch
+

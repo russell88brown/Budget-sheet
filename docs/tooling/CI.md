@@ -34,7 +34,7 @@ Environment variables:
 - `CLASP_SCRIPT_ID_PROD` for `pr:deploy-main`
 - `CLASP_SCRIPT_ID_TEST` for `pr:test-branch`
 - `CLASP_CREDENTIALS_JSON` (optional locally, required in CI)
-- `TEST_RUNNER_FUNCTION` (optional; default `runDeterministicFixtureTestsPhase2_All`)
+- `TEST_RUNNER_FUNCTION` (optional; default `runDeterministicFixtureTests_All`)
 
 Example:
 
@@ -42,3 +42,4 @@ Example:
 $env:CLASP_SCRIPT_ID_TEST = "YOUR_TEST_SCRIPT_ID"
 npm run pr:test-branch
 ```
+

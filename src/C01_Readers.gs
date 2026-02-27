@@ -13,7 +13,7 @@ const Readers = {
           row['Interest Start Date'],
           null
         );
-        var scenarioId = normalizeScenario_(row['Scenario']);
+        var scenarioId = normalizeScenario_(getTagValue_(row));
         return {
           name: row['Account Name'],
           balance: toNumber_(row['Balance']),
@@ -37,7 +37,7 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
-        var scenarioId = normalizeScenario_(row['Scenario']);
+        var scenarioId = normalizeScenario_(getTagValue_(row));
         return {
           ruleId: row['Rule ID'],
           type: normalizePolicyType_(row['Policy Type']),
@@ -62,7 +62,7 @@ const Readers = {
         return toBoolean_(row['Include']);
       })
       .map(function (row) {
-        var scenarioId = normalizeScenario_(row['Scenario']);
+        var scenarioId = normalizeScenario_(getTagValue_(row));
         return {
           ruleId: row['Rule ID'],
           name: row['Goal Name'],
@@ -92,7 +92,7 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
-        var scenarioId = normalizeScenario_(row['Scenario']);
+        var scenarioId = normalizeScenario_(getTagValue_(row));
         return {
           ruleId: row['Rule ID'],
           scenarioId: scenarioId,
@@ -123,7 +123,7 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
-        var scenarioId = normalizeScenario_(row['Scenario']);
+        var scenarioId = normalizeScenario_(getTagValue_(row));
         return {
           ruleId: row['Rule ID'],
           scenarioId: scenarioId,
@@ -156,7 +156,7 @@ const Readers = {
           row['Start Date'],
           row['End Date']
         );
-        var scenarioId = normalizeScenario_(row['Scenario']);
+        var scenarioId = normalizeScenario_(getTagValue_(row));
         var amount = toNumber_(row['Amount']);
         var transferType = normalizeTransferType_(row['Type'], amount);
         return {
@@ -178,7 +178,7 @@ const Readers = {
       });
   },
 
-  readScenarios: function () {
+  readTags: function () {
     var ss = SpreadsheetApp.getActive();
     var range = ss.getRangeByName(Config.NAMED_RANGES.SCENARIOS);
     if (!range) {
@@ -218,6 +218,11 @@ function readSheetRows_(sheetName) {
       headers.forEach(function (header, idx) {
         obj[header] = row[idx];
       });
+      if (obj.Tag !== undefined && obj.Scenario === undefined) {
+        obj.Scenario = obj.Tag;
+      } else if (obj.Scenario !== undefined && obj.Tag === undefined) {
+        obj.Tag = obj.Scenario;
+      }
       return obj;
     })
     .filter(function (row) {
@@ -225,6 +230,16 @@ function readSheetRows_(sheetName) {
         return row[key] !== '' && row[key] !== null && row[key] !== false;
       });
     });
+}
+
+function getTagValue_(row) {
+  if (!row) {
+    return '';
+  }
+  if (row.Tag !== undefined) {
+    return row.Tag;
+  }
+  return row.Scenario;
 }
 
 function toBoolean_(value) {
@@ -376,3 +391,4 @@ function normalizePolicyType_(value) {
   }
   return cleaned;
 }
+

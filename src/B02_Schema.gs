@@ -14,7 +14,7 @@ const Schema = {
           enumValues: Object.values(Config.ACCOUNT_TYPES),
         },
         { name: 'Include', type: 'boolean', required: false, description: 'Include in forecast outputs' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Tag', type: 'scenario', required: false, description: 'Tag key (default Base)' },
         {
           name: 'Money In / Month',
           type: 'number',
@@ -96,7 +96,7 @@ const Schema = {
       name: Config.SHEETS.POLICIES,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Enable this policy rule' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Tag', type: 'scenario', required: false, description: 'Tag key (default Base)' },
         { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Policy Type',
@@ -132,7 +132,7 @@ const Schema = {
       name: Config.SHEETS.GOALS,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in planning' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Tag', type: 'scenario', required: false, description: 'Tag key (default Base)' },
         { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         { name: 'Goal Name', type: 'string', required: true, description: 'Goal label' },
         { name: 'Target Amount', type: 'number', required: true, description: 'Goal target amount', format: '0.00' },
@@ -155,7 +155,7 @@ const Schema = {
       name: Config.SHEETS.INCOME,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Tag', type: 'scenario', required: false, description: 'Tag key (default Base)' },
         { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Monthly Total',
@@ -191,7 +191,7 @@ const Schema = {
       name: Config.SHEETS.EXPENSE,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Tag', type: 'scenario', required: false, description: 'Tag key (default Base)' },
         { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Monthly Total',
@@ -239,7 +239,7 @@ const Schema = {
       name: Config.SHEETS.TRANSFERS,
       columns: [
         { name: 'Include', type: 'boolean', required: true, description: 'Include in forecast' },
-        { name: 'Scenario', type: 'scenario', required: false, description: 'Scenario key (default Base)' },
+        { name: 'Tag', type: 'scenario', required: false, description: 'Tag key (default Base)' },
         { name: 'Rule ID', type: 'string', required: false, description: 'Stable rule identifier for explainability/diffs' },
         {
           name: 'Monthly Total',
@@ -296,7 +296,7 @@ const Schema = {
       name: Config.SHEETS.JOURNAL,
       columns: [
         { name: 'Date', type: 'date', required: true, description: 'Event date', format: 'yyyy-mm-dd' },
-        { name: 'Scenario', type: 'string', required: true, description: 'Scenario key for this run' },
+        { name: 'Tag', type: 'string', required: true, description: 'Tag key for this run' },
         { name: 'Account', type: 'string', required: false, description: 'Debited/credited account' },
         {
           name: 'Transaction Type',
@@ -315,7 +315,7 @@ const Schema = {
     var lines = [];
     lines.push('# Sheet Schemas');
     lines.push('');
-    lines.push('Generated from `src/02_Schema.gs`.');
+    lines.push('Generated from `src/B02_Schema.gs`.');
     lines.push('');
     lines.push('## Inputs');
     lines.push('');
@@ -368,3 +368,4 @@ const Schema = {
     return lines.join('\n');
   },
 };
+

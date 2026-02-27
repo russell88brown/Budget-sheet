@@ -73,4 +73,4 @@ The workflow should create `.clasp.json` at runtime using the sandbox script ID,
 
 ## CI automation
 
-For GitHub Actions deploy/test flows and required secrets, see `docs/CI.md`.
+For GitHub Actions deploy/test flows and required secrets, see `docs/tooling/CI.md`.

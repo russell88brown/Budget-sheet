@@ -1,117 +1,37 @@
 # Budget Forecast Engine
 
-Budget Forecast Engine turns your Google Sheet into a forward-looking money simulator.
+Budget Forecast Engine turns your sheet into a deterministic budget simulator.
 
-You define how money moves (income, expenses, transfers, policies), then run the menu actions to regenerate:
-- `Journal`
-- `Daily`
-- `Monthly`
-- `Dashboard`
+## Quick Start
 
-## First 5 Clicks (Get Base Running)
+1. Open `Budget Forecast -> Setup actions...`
+2. Run `Fix Structure`, `Fix Rules`, `Fix Theme`
+3. Optional: run `Load Defaults`
+4. Open `Budget Forecast -> Run Budget...`
+5. Select operations and tags, then run
 
-1. Open menu `Budget Forecast -> Setup actions...`
-2. Select `Structure`, `Validation + settings`, and `Theme`, then click `Run`
-3. (Optional) In the same setup dialog, run `Load default data` for a working sample
-4. Click `Budget Forecast -> Run Budget...`
-5. In popup, tick desired operations and keep scenario mode on `Base`, then click `Run`
+## Daily Use
 
-You now have a complete base forecast.
+- Update input sheets: `Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`
+- Run `Generate journal` first
+- Then run `Generate daily`, `Generate monthly`, `Generate dashboard` as needed
 
-## Configure Scenarios (Simple Path)
+## Tags
 
-1. Go to `Settings` sheet
-2. Add or edit scenario names in column `H` (`Base`, `Stress`, etc.)
-3. In input sheets (`Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`), set each row's `Scenario`
-4. Open `Run Budget...`
-5. Choose scenario mode `Choose custom scenario(s)` and multi-select one or more scenarios
-6. Tick desired operations, then click `Run`
-7. Check run history in `Settings!J:N`
+- User-facing selection is `Tag`
+- `Base` is always included
+- You can add one or more extra tags in the run dialog
+- Legacy `Scenario` columns remain supported for compatibility
 
-## Menu Buttons (Plain English)
+## Documentation
 
-- `Run Budget...`:
-  - opens popup
-  - choose one or more operation checkboxes:
-    - `Summarise Accounts`
-    - `Generate journal`
-    - `Generate daily`
-    - `Generate monthly`
-    - `Generate dashboard`
-  - choose scenario mode:
-    - `Use Base scenario` (default)
-    - `Choose custom scenario(s)` with multi-select list
-  - runs selected operations for selected scenario(s)
-- `Export`: downloads selected sheets as JSON zip.
-- `Setup actions...`: structure, validation/settings, theme, default sample data.
-
-## Run Operations (What Actually Happens)
-
-When you click a run button and choose operations, the engine can execute:
-
-1. Summarise Accounts
-2. Generate journal
-3. Generate daily
-4. Generate monthly
-5. Generate dashboard
-
-Practical combinations:
-- `Summarise Accounts + Journal + Daily + Monthly + Dashboard`: full end-to-end refresh.
-- `Journal` only: refreshes core forecast ledger.
-- `Daily + Monthly + Dashboard` only: rebuilds reporting from current journal.
-
-Notes:
-- When multiple scenarios are selected for Daily/Monthly, output includes a `Scenario` column.
-- Journal rows keep generated order to preserve deterministic same-day closing snapshots.
-
-## Run Modes And Guarantees
-
-| Mode | What it validates before build | Deterministic guarantees | User-data dependent |
-|---|---|---|---|
-| Forecast | Full preprocess: normalization, rule-id fill, scenario/account validation, core row validation | Stable event sort precedence, stable journal row order, reproducible balances from same inputs | Missing/incorrect user inputs can be auto-disabled from Include rows |
-| Journal only | Core integrity gate: scenario/account validation + Income/Transfer/Expense required-field/account checks | Same event ordering and balance math as Forecast mode for same valid rules | Invalid included rows are disabled before compile; resulting journal depends on remaining valid rules |
-| Daily/Monthly/Dashboard | Requires existing Journal rows for selected scenario set; reconciliation checks run | Daily snapshots and monthly closings reconcile to journal within tolerance | Output depends on journal content and selected scenario set |
-
-Deterministic means identical validated inputs produce identical outputs.
-
-## Scenario Case Studies
-
-| Scenario | User Story | Implementation | Output |
-|---|---|---|---|
-| Base | "I just want my normal month-to-month plan." | Keep rows blank or set `Scenario=Base`. Run Base journal + summaries. | Standard forecast baseline in Journal/Daily/Monthly/Dashboard. |
-| Stress | "What if my income drops and expenses rise?" | Create/enable `Stress` rows for income/expense assumptions. Run scenario actions for `Stress`. | Alternate downside forecast, comparable against Base. |
-| Debt Sprint | "I want to test an aggressive debt payoff plan." | Duplicate transfer/policy rows with `Scenario=Debt Sprint` and higher repayments. | Shows payoff speed, cash pressure, and negative-cash risk under sprint strategy. |
-| Job Change | "I may switch jobs in 3 months." | Add new income pattern as `Scenario=Job Change` with updated start date. | Timeline impact on cash runway and account balances. |
-| Family Expansion | "We're planning for a new recurring cost stack." | Add new expense rows (`childcare`, etc.) in dedicated scenario. | Clear picture of affordability before committing. |
-
-## Where To Look In Settings
-
-- `A:B`: forecast window and latest run snapshot
-- `D`: expense categories
-- `F`: income types
-- `H`: scenario catalog (`ScenarioList`)
-- `J:N`: append-only run log (`Run At`, `Mode`, `Scenario`, `Status`, `Notes`)
-
-## Users vs Administrators
-
-- End users: focus on menu flows in the sheet (`Run Budget...`, `Setup actions...`, `Export`) and scenario setup in `docs/SCENARIOS.md`.
-- Administrators/maintainers: start with `docs/SOURCE_STRUCTURE.md` for code layout, then use `docs/TECHNICAL.md` for runtime behavior details.
-
-## Documentation Map (Deeper Detail)
-
-- `docs/SOURCE_STRUCTURE.md`: source layout and ownership map
-- `docs/SCENARIOS.md`: scenario setup/runtime behavior
-- `docs/TEST_CASES.md`: manual regression test cases
-- `docs/TECHNICAL.md`: full technical reference
-- `docs/CLASP.md`: Apps Script/clasp setup
-- `docs/CI.md`: CI + PR deploy/test automation
-- `docs/CODEX.md`: local development notes
-
-## Deterministic Regression Quick Check
-
-For deterministic checks after engine changes, run script editor functions:
-1. `runDeterministicFixtureTestsPhase2_All`
-2. `runDeterministicFixtureTestsPhase2_RunAllWithReport`
-
-These validate stable event ordering, journal balances, and summary assumptions used by Accounts + Monthly totals.
-
+| Document | Purpose |
+|---|---|
+| `docs/README.md` | Documentation index (app docs vs tooling docs). |
+| `docs/TECHNICAL.md` | Full technical reference (starts with source architecture map). |
+| `docs/SCENARIOS.md` | Tag/scenario modeling guidance and examples. |
+| `src/README.md` | Source-module map only (`A/B/C/D/E/F/Z` sections). |
+| `docs/TEST_CASES.md` | Manual regression test cases. |
+| `docs/tooling/CLASP.md` | Apps Script/clasp setup notes. |
+| `docs/tooling/CI.md` | CI and deploy/test automation notes. |
+| `docs/tooling/CODEX.md` | Local contributor workflow notes. |
