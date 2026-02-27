@@ -45,6 +45,7 @@ const required = [
   "isRowInActiveScenario",
   "formatDuplicateAccountErrorMessage",
   "mapSheetRows",
+  "buildScenarioCatalog",
 ];
 
 for (const key of required) {

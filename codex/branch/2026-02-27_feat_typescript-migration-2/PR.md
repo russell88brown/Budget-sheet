@@ -35,6 +35,7 @@ Target architecture agreed for implementation:
 - [x] Extract shared D04 row-scenario matching helper to typed core (`ts/core/scenarioRow.ts`) and keep GAS fallback wiring.
 - [x] Extract duplicate-account error message formatter helper to typed core (`ts/core/accountDuplicateError.ts`) and keep GAS fallback wiring.
 - [x] Extract `C01_Readers.gs` sheet-row object mapping/filter helper to typed core (`ts/core/sheetRows.ts`) and keep GAS fallback wiring.
+- [x] Extract `C01_Readers.gs` scenario-catalog builder helper to typed core (`ts/core/scenarioCatalog.ts`) and keep GAS fallback wiring.
 
 ## PR Review Against Code
 - [x] PR notes match implemented code changes.
@@ -102,6 +103,8 @@ Target architecture agreed for implementation:
 | 2026-02-28 | Added `tests/accountDuplicateError.test.ts` and expanded typed API surface checks for `formatDuplicateAccountErrorMessage`. | Guard duplicate-account error message formatting extraction and keep typed runtime contract explicit. | Export and behavior regressions for duplicate-account error formatting are caught earlier in Node tests. |
 | 2026-02-28 | Extracted `C01_Readers.gs` sheet-row object mapping/filter helper into `ts/core/sheetRows.ts`, exported via typed runtime, and wired `readSheetRows_` to typed-first execution with fallback. | Start reducing remaining non-runtime normalization/mapping logic in `C01_Readers.gs`. | Sheet row object mapping/filtering is now testable TS logic and reduces inline row-shaping code in GAS readers. |
 | 2026-02-28 | Added `tests/sheetRows.test.ts` and expanded typed API surface checks for `mapSheetRows`. | Guard reader row-mapping helper extraction and keep typed runtime contract explicit. | Export and behavior regressions for sheet-row mapping/filtering are caught earlier in Node tests. |
+| 2026-02-28 | Extracted `C01_Readers.gs` scenario-catalog builder helper into `ts/core/scenarioCatalog.ts`, exported via typed runtime, and wired `readTags` to typed-first execution with fallback. | Continue reducing `C01` normalization/uniquing logic in GAS readers while preserving runtime boundaries. | Scenario catalog normalization/uniquing is now testable TS logic and reduces inline set-building in GAS readers. |
+| 2026-02-28 | Added `tests/scenarioCatalog.test.ts` and expanded typed API surface checks for `buildScenarioCatalog`. | Guard scenario-catalog helper extraction and keep typed runtime contract explicit. | Export and behavior regressions for scenario-catalog normalization are caught earlier in Node tests. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 

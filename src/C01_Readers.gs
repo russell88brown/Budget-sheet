@@ -185,6 +185,10 @@ const Readers = {
       return [Config.SCENARIOS.DEFAULT];
     }
     var values = range.getValues();
+    var typed = buildScenarioCatalogTyped_(values);
+    if (typed) {
+      return typed;
+    }
     var unique = {};
     values.forEach(function (row) {
       var scenarioId = normalizeScenario_(row[0]);

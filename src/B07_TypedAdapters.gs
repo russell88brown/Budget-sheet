@@ -838,6 +838,18 @@ function mapSheetRowsTyped_(headers, values) {
   return null;
 }
 
+function buildScenarioCatalogTyped_(values) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildScenarioCatalog === 'function') {
+    return api.buildScenarioCatalog(
+      Array.isArray(values) ? values : [],
+      normalizeScenario_,
+      Config.SCENARIOS.DEFAULT
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
