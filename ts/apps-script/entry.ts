@@ -179,6 +179,7 @@ import { buildExpenseMonthlyTotals, buildIncomeMonthlyTotals } from "../core/mon
 import { buildTransferMonthlyTotals } from "../core/transferRuleTotals";
 import { computeTransferMonthlyWorksheet } from "../core/transferMonthlyWorksheet";
 import { computeRuleMonthlyWorksheet } from "../core/ruleMonthlyWorksheet";
+import { buildAccountBalanceMap } from "../core/accountBalanceMap";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -206,6 +207,7 @@ export const TypedBudget = {
   buildTransferMonthlyTotals,
   computeTransferMonthlyWorksheet,
   computeRuleMonthlyWorksheet,
+  buildAccountBalanceMap,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

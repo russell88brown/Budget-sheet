@@ -33,7 +33,7 @@ Notes:
 | `D01_Events.gs` | 172 | 0 | Event builders and mapping wrappers | Split (mostly migrated) | Keep wrapper boundary; remove duplicated legacy event construction when safe. |
 | `D02_CoreCompile.gs` | 72 | 0 | Compile/sort orchestration wrappers | Split (mostly migrated) | Keep thin wrapper; lean on typed compile path. |
 | `D03_CoreApply.gs` | 451 | 0 | Core apply pipeline with typed hooks | Split | Continue extracting pure algorithms to `ts/core/journal*`; keep runtime state/integration in GAS. |
-| `D04_JournalEngine.gs` | 2108 | 25 | Large mixed engine (I/O + core logic), partially extracted | Split (high priority) | Continue with remaining pure selection/normalization/orchestration transforms; keep sheet I/O in GAS (transfer/recurrence/account row normalization, shared row-deactivation, monthly income/expense totals, transfer monthly totals, transfer monthly worksheet calculations, and income/expense monthly worksheet calculations also extracted to TS on 2026-02-27). |
+| `D04_JournalEngine.gs` | 2108 | 25 | Large mixed engine (I/O + core logic), partially extracted | Split (high priority) | Continue with remaining pure selection/normalization/orchestration transforms; keep sheet I/O in GAS (transfer/recurrence/account row normalization, shared row-deactivation, monthly income/expense totals, transfer monthly totals, transfer monthly worksheet calculations, income/expense monthly worksheet calculations, and shared account-balance map helper also extracted to TS by 2026-02-28). |
 | `D05_Writers.gs` | 202 | 5 | Journal write/formatting | Runtime-bound | Keep as GAS writer module. |
 | `E01_Summary.gs` | 733 | 13 | Mixed summary compute + output formatting | Split | Move pure summary calculations to `ts/core`; keep rendering/writes/formatting in GAS. |
 | `E02_DashboardReports.gs` | 476 | 11 | Dashboard pivot/report rendering | Runtime-bound | Keep as GAS reporting/UI writer. |
@@ -44,7 +44,7 @@ Notes:
 ## Reconciliation Notes
 - `B01_Config.gs` and `B02_Schema.gs` are now thin typed wrappers (not pending candidates).
 - `C02_RunModel.gs` and `C03_RunExtensions.gs` remain wrapper-bound with typed-first implementation complete.
-- `D04_JournalEngine.gs` has extracted modules for rule IDs, scenario disable, account lookup/validation, policy/goal row validation, income/transfer/expense row validation callbacks, transfer-row normalization, recurrence-row normalization, account-row normalization, shared row deactivation, monthly income/expense rule totals, transfer monthly rule totals, transfer monthly worksheet calculations, and income/expense monthly worksheet calculations.
+- `D04_JournalEngine.gs` has extracted modules for rule IDs, scenario disable, account lookup/validation, policy/goal row validation, income/transfer/expense row validation callbacks, transfer-row normalization, recurrence-row normalization, account-row normalization, shared row deactivation, monthly income/expense rule totals, transfer monthly rule totals, transfer monthly worksheet calculations, income/expense monthly worksheet calculations, and shared account-balance map construction.
 
 ## Next Actions
 1. Continue `D04_JournalEngine.gs` decomposition by extracting remaining pure pre-processing/orchestration transforms into `ts/core` modules, then keep GAS as sheet/runtime boundary only.

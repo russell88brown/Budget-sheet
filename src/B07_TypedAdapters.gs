@@ -730,6 +730,18 @@ function computeRuleMonthlyWorksheetTyped_(rows, indexes, params) {
   return null;
 }
 
+function buildAccountBalanceMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountBalanceMap === 'function') {
+    return api.buildAccountBalanceMap(
+      accounts || [],
+      normalizeAccountLookupKey_,
+      toNumber_
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

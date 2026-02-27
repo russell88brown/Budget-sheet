@@ -1027,13 +1027,7 @@ function buildTransferMonthlyTotalsForRunModel_(
   }
   var credits = {};
   var debits = {};
-  var accountBalances = {};
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
-  });
+  var accountBalances = buildAccountBalanceMap_(accounts || []);
 
   (transferRules || []).forEach(function (rule) {
     if (!rule || !rule.frequency) {
@@ -1322,13 +1316,7 @@ function updateTransferMonthlyTotalsForRunModel_(
     return transferTotals;
   }
 
-  var accountBalances = {};
-  (runModel.accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
-  });
+  var accountBalances = buildAccountBalanceMap_(runModel.accounts || []);
 
   var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
@@ -2401,6 +2389,22 @@ function buildAccountTypeMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
+  });
+  return map;
+}
+
+function buildAccountBalanceMap_(accounts) {
+  var typed = buildAccountBalanceMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
+  var map = {};
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    map[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
   });
   return map;
 }
