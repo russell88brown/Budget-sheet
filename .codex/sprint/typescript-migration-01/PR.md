@@ -48,3 +48,40 @@
 
 ## Notes
 - Typed journal paths now fail fast when typed runtime is unavailable (`npm run build:typed`).
+
+## Definition Of Done (Merge Checklist)
+
+### 1) Typed build is reproducible
+- [x] Single command builds typed runtime: `npm run build:typed`.
+- [x] Single command validates typecheck + tests + typed build: `npm run verify`.
+- [x] Generated bundle is committed and treated as generated output:
+  - `src/B08_TypedBudget.generated.gs`
+
+### 2) Typed adapters are the only integration point
+- [x] Apps Script runtime calls typed runtime through `src/B07_TypedAdapters.gs`.
+- [x] Journal runtime paths are typed-required (fail-fast if typed bundle unavailable).
+- [ ] Final sweep to remove remaining non-journal fallback branches where TS equivalent already exists.
+
+### 3) Stable behavior is locked
+- [x] Deterministic fixture suite exists in Apps Script runtime:
+  - `src/Z01_FixtureTests.gs`
+- [x] Typed unit test suite covers migrated modules:
+  - `tests/*.test.ts`
+- [ ] Explicitly document and pin "golden scenario" fixture in this PR as the parity gate.
+
+### 4) Apps Script smoke still passes
+- [x] Branch CI runs verify + branch Apps Script fixture execution:
+  - `.github/workflows/pr-test.yml`
+- [ ] Add explicit manual smoke checklist output to this PR before merge:
+  - run completes
+  - journal produced
+  - daily/monthly reconciliation passes
+  - no runtime exceptions
+
+### 5) Debt-reduction priorities
+- [x] Pure logic moved to TS core modules; GAS runtime is now mostly orchestration/IO.
+- [x] Journal core duplication reduced; legacy writer migration path removed.
+- [ ] Freeze boundary contracts for `Event`, `Account`, `Policy`, `JournalRow` with shared exported types and adapter checks.
+
+### Ready-To-Merge Gate
+- [ ] All checklist items above complete.
