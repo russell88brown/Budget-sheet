@@ -792,7 +792,7 @@ function getDeficitCoverageNeedForEventTyped_(balances, event, accountTypesByKey
       }
     );
   }
-  return null;
+  return undefined;
 }
 
 function accrueDailyInterestTyped_(balances, event, bucket) {

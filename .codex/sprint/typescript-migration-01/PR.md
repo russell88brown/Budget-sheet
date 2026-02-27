@@ -2,7 +2,7 @@
 
 ## Summary
 - Introduces TypeScript migration foundation with low-risk adapter wiring.
-- Keeps Apps Script runtime stable with typed-first + JS fallback behavior.
+- Keeps Apps Script runtime stable with typed adapter boundaries and typed-required journal runtime.
 - Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, journal-normalization, monthly-reconciliation, journal-assembly, journal-apply-helper, journal-row, journal-event-application, journal-deficit-interest, journal-auto-deficit, journal-transfer-resolution, journal-orchestration, journal-build, journal-multi-run, journal-runtime, and journal-pipeline-execution utilities with tests.
 
 ## Implemented

@@ -20,14 +20,6 @@ function getOrMigrateJournalSheet_(spreadsheet) {
   if (sheet) {
     return sheet;
   }
-  var legacy = spreadsheet.getSheetByName('Forecast Journal');
-  if (legacy) {
-    legacy.setName(Config.SHEETS.JOURNAL);
-    if (typeof enforcePreferredSheetOrder_ === 'function') {
-      enforcePreferredSheetOrder_(spreadsheet);
-    }
-    return legacy;
-  }
   sheet = spreadsheet.insertSheet(Config.SHEETS.JOURNAL);
   if (typeof enforcePreferredSheetOrder_ === 'function') {
     enforcePreferredSheetOrder_(spreadsheet);

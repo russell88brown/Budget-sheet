@@ -391,298 +391,77 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
 
 function coreGetApplicableAutoDeficitPolicies_(policyRules, event) {
   var typed = getApplicableAutoDeficitPoliciesTyped_(policyRules, event);
-  if (typed) {
-    return typed;
+  if (!typed) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  if (!event || !event.from || !Array.isArray(policyRules) || !policyRules.length) {
-    return [];
-  }
-  var eventFromKey = normalizeAccountLookupKey_(event.from);
-  return policyRules
-    .filter(function (policy) {
-      if (!policy || policy.type !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
-        return false;
-      }
-      if (normalizeAccountLookupKey_(policy.triggerAccount) !== eventFromKey) {
-        return false;
-      }
-      return coreIsPolicyActiveOnDate_(policy, event.date);
-    })
-    .sort(function (a, b) {
-      var pa = toPositiveInt_(a.priority) || 100;
-      var pb = toPositiveInt_(b.priority) || 100;
-      if (pa !== pb) {
-        return pa - pb;
-      }
-      var na = a.name || '';
-      var nb = b.name || '';
-      return na < nb ? -1 : na > nb ? 1 : 0;
-    });
+  return typed;
 }
 
 function coreIsPolicyActiveOnDate_(policy, date) {
   var typed = isPolicyActiveOnDateTyped_(policy, date);
-  if (typed !== null && typed !== undefined) {
-    return typed;
+  if (typed === null || typed === undefined) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  var day = normalizeDate_(date || new Date());
-  var startDate = policy && policy.startDate ? normalizeDate_(policy.startDate) : null;
-  var endDate = policy && policy.endDate ? normalizeDate_(policy.endDate) : null;
-  if (startDate && day.getTime() < startDate.getTime()) {
-    return false;
-  }
-  if (endDate && day.getTime() > endDate.getTime()) {
-    return false;
-  }
-  return true;
+  return typed;
 }
 
 function coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypesByKey, threshold) {
   var typed = getDeficitCoverageNeedForEventTyped_(balances, event, accountTypesByKey, threshold);
-  if (typed) {
-    return typed;
+  if (typed === undefined) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  if (!event || !event.kind) {
-    return null;
-  }
-  if (event.kind !== 'Expense' && event.kind !== 'Transfer') {
-    return null;
-  }
-  var fromKey = coreAccountKey_(event.from);
-  if (!fromKey || accountTypesByKey[fromKey] === Config.ACCOUNT_TYPES.CREDIT) {
-    return null;
-  }
-  if ((event.transferBehavior || event.behavior) === Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
-    return null;
-  }
-
-  var outgoing = 0;
-  if (event.kind === 'Expense') {
-    outgoing = roundUpCents_(event.amount || 0);
-  } else {
-    outgoing = coreEstimateTransferOutgoingAmount_(balances, event);
-  }
-
-  if (outgoing <= 0) {
-    return null;
-  }
-  var currentBalance = roundUpCents_(balances[fromKey] || 0);
-  var safeThreshold = toNumber_(threshold);
-  if (safeThreshold === null || safeThreshold < 0) {
-    safeThreshold = 0;
-  }
-  var needed = roundUpCents_(Math.max(0, outgoing + safeThreshold - currentBalance));
-  if (needed <= 0) {
-    return null;
-  }
-  return {
-    account: event.from,
-    amount: needed,
-  };
+  return typed;
 }
 
 function coreEstimateTransferOutgoingAmount_(balances, event) {
   var typed = estimateTransferOutgoingAmountTyped_(balances, event);
-  if (typed !== null && typed !== undefined) {
-    return typed;
+  if (typed === null || typed === undefined) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  var transferType = event.transferBehavior || event.behavior;
-  var amount = roundUpCents_(event.amount || 0);
-
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-    return 0;
-  }
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
-    return amount > 0 ? amount : 0;
-  }
-  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-    var toKey = coreAccountKey_(event.to);
-    var targetAll = toKey ? balances[toKey] || 0 : 0;
-    return targetAll < 0 ? roundUpCents_(Math.abs(targetAll)) : 0;
-  }
-  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT) {
-    var targetKey = coreAccountKey_(event.to);
-    var targetAmount = targetKey ? balances[targetKey] || 0 : 0;
-    if (targetAmount >= 0 || amount <= 0) {
-      return 0;
-    }
-    return roundUpCents_(Math.min(amount, Math.abs(targetAmount)));
-  }
-  return amount > 0 ? amount : 0;
+  return typed;
 }
 
 function coreResolveTransferAmount_(balances, event, amount) {
   var typed = resolveTransferAmountForJournalTyped_(balances, event, amount);
-  if (typed) {
-    return typed;
+  if (!typed) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  typed = resolveTransferAmountTyped_(balances, event, amount);
-  if (typed) {
-    if (typed.skip) {
-      event.appliedAmount = 0;
-      event.skipJournal = true;
-      if (typed.creditPaidOff && typeof runState_ !== 'undefined' && runState_) {
-        runState_.creditPaidOffWarned = runState_.creditPaidOffWarned || {};
-        if (!runState_.creditPaidOffWarned[event.name]) {
-          runState_.creditPaidOffWarned[event.name] = true;
-        }
-      }
-      return { amount: 0, skip: true };
-    }
-    return { amount: typed.amount, skip: false };
-  }
-
-  var transferType = event.transferBehavior || event.behavior;
-
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-    var sourceKey = coreAccountKey_(event.from);
-    var sourceBalance = sourceKey ? balances[sourceKey] || 0 : 0;
-    var keepAmount = amount || 0;
-    var moveAmount = roundUpCents_(Math.max(0, sourceBalance - keepAmount));
-    if (moveAmount <= 0) {
-      event.appliedAmount = 0;
-      event.skipJournal = true;
-      return { amount: 0, skip: true };
-    }
-    return { amount: moveAmount, skip: false };
-  }
-
-  if (transferType === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
-    if (amount <= 0) {
-      event.appliedAmount = 0;
-      event.skipJournal = true;
-      return { amount: 0, skip: true };
-    }
-    return { amount: amount, skip: false };
-  }
-
-  if (
-    transferType !== Config.TRANSFER_TYPES.REPAYMENT_AMOUNT &&
-    transferType !== Config.TRANSFER_TYPES.REPAYMENT_ALL
-  ) {
-    return { amount: amount, skip: false };
-  }
-
-  var toKey = coreAccountKey_(event.to);
-  var target = toKey ? balances[toKey] || 0 : 0;
-  if (target >= 0) {
-    event.appliedAmount = 0;
-    event.skipJournal = true;
-    if (typeof runState_ !== 'undefined' && runState_) {
-      runState_.creditPaidOffWarned = runState_.creditPaidOffWarned || {};
-      if (!runState_.creditPaidOffWarned[event.name]) {
-        runState_.creditPaidOffWarned[event.name] = true;
-      }
-    }
-    return { amount: 0, skip: true };
-  }
-
-  var required = Math.abs(target);
-  var resolvedAmount = amount;
-  if (transferType === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-    resolvedAmount = required;
-  } else if (resolvedAmount <= 0) {
-    event.appliedAmount = 0;
-    event.skipJournal = true;
-    return { amount: 0, skip: true };
-  } else if (resolvedAmount > required) {
-    resolvedAmount = roundUpCents_(required);
-  }
-  return { amount: resolvedAmount, skip: false };
+  return typed;
 }
 
 function coreComputeInterestAmount_(balances, event) {
   var interestAccountKey = coreAccountKey_(event && event.account);
   var interestBucket = interestAccountKey ? coreGetInterestBucket_(interestAccountKey) : { accrued: 0, lastPostingDate: null };
   var typed = computeInterestAmountTyped_(balances, event, interestBucket);
-  if (typed !== null && typed !== undefined) {
-    return typed;
+  if (typed === null || typed === undefined) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  if (!event) {
-    return 0;
-  }
-  if (event.interestAccrual) {
-    coreAccrueDailyInterest_(balances, event);
-    return 0;
-  }
-  var accountKey = coreAccountKey_(event.account);
-  if (!accountKey) {
-    return 0;
-  }
-  var bucket = coreGetInterestBucket_(accountKey);
-  var accrued = bucket.accrued || 0;
-  var fee = coreComputeInterestFeePerPosting_(event);
-  bucket.accrued = 0;
-  bucket.lastPostingDate = event.date ? normalizeDate_(event.date) : null;
-  return roundUpCents_(accrued - fee);
+  return typed;
 }
 
 function coreAccrueDailyInterest_(balances, event) {
   var interestAccountKey = coreAccountKey_(event && event.account);
   var interestBucket = interestAccountKey ? coreGetInterestBucket_(interestAccountKey) : { accrued: 0, lastPostingDate: null };
   var typedHandled = accrueDailyInterestTyped_(balances, event, interestBucket);
-  if (typedHandled) {
-    return;
+  if (!typedHandled) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  var accountKey = coreAccountKey_(event.account);
-  if (!accountKey) {
-    return;
-  }
-  var rate = event.rate;
-  if (rate === null || rate === undefined || rate === '') {
-    return;
-  }
-  var balance = balances[accountKey] || 0;
-  if (!balance) {
-    return;
-  }
-  var annualRate = rate / 100;
-  var dailyRate = annualRate / 365;
-  if (event.method === Config.INTEREST_METHODS.APY_COMPOUND) {
-    dailyRate = Math.pow(1 + annualRate, 1 / 365) - 1;
-  }
-  var bucket = coreGetInterestBucket_(accountKey);
-  bucket.accrued = (bucket.accrued || 0) + balance * dailyRate;
 }
 
 function coreComputeInterestFeePerPosting_(event) {
   var typed = computeInterestFeePerPostingTyped_(event);
-  if (typed !== null && typed !== undefined) {
-    return typed;
+  if (typed === null || typed === undefined) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  var monthlyFee = toNumber_(event.monthlyFee);
-  if (monthlyFee === null || monthlyFee <= 0) {
-    return 0;
-  }
-  var periodsPerYear = Recurrence.periodsPerYear(event.frequency, event.repeatEvery);
-  if (!periodsPerYear) {
-    return monthlyFee;
-  }
-  return monthlyFee * (12 / periodsPerYear);
+  return typed;
 }
 
 function coreGetInterestBucket_(accountName) {
   var typed = getInterestBucketTyped_(typeof runState_ === 'undefined' ? null : runState_, accountName);
-  if (typed) {
-    return typed;
+  if (!typed) {
+    throw new Error('Typed journal runtime is unavailable. Run npm run build:typed.');
   }
-
-  if (typeof runState_ === 'undefined' || !runState_) {
-    return { accrued: 0, lastPostingDate: null };
-  }
-  runState_.interest = runState_.interest || {};
-  if (!runState_.interest[accountName]) {
-    runState_.interest[accountName] = { accrued: 0, lastPostingDate: null };
-  }
-  return runState_.interest[accountName];
+  return typed;
 }
 
 function coreCloneBalances_(balances) {
