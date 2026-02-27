@@ -38,6 +38,7 @@ const required = [
   "buildAccountBalanceMap",
   "buildAccountLookupMap",
   "computeAccountMonthlyFlowWorksheet",
+  "composeRunLogNotes",
 ];
 
 for (const key of required) {

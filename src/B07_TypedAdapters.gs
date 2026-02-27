@@ -761,6 +761,18 @@ function computeAccountMonthlyFlowWorksheetTyped_(rows, indexes, params) {
   return null;
 }
 
+function composeRunLogNotesTyped_(scenarioValidation, coreValidation, explicitNote) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.composeRunLogNotes === 'function') {
+    return api.composeRunLogNotes({
+      scenarioValidation: scenarioValidation || null,
+      coreValidation: coreValidation || null,
+      explicitNote: explicitNote || '',
+    });
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

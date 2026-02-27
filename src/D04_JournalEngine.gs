@@ -389,17 +389,20 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
   var scenarioValidation = details && details.scenarioValidation ? details.scenarioValidation : null;
   var coreValidation = details && details.coreValidation ? details.coreValidation : null;
   var explicitNote = details && details.note ? String(details.note).trim() : '';
-  var notes = '';
-  if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
-    notes = 'Disabled unknown tag rows: ' + scenarioValidation.totalDisabled;
-  }
-  if (coreValidation && coreValidation.totalDisabled > 0) {
-    notes = notes
-      ? notes + ' | Disabled invalid core rows: ' + coreValidation.totalDisabled
-      : 'Disabled invalid core rows: ' + coreValidation.totalDisabled;
-  }
-  if (explicitNote) {
-    notes = notes ? notes + ' | ' + explicitNote : explicitNote;
+  var notes = composeRunLogNotesTyped_(scenarioValidation, coreValidation, explicitNote);
+  if (notes === null || notes === undefined) {
+    notes = '';
+    if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
+      notes = 'Disabled unknown tag rows: ' + scenarioValidation.totalDisabled;
+    }
+    if (coreValidation && coreValidation.totalDisabled > 0) {
+      notes = notes
+        ? notes + ' | Disabled invalid core rows: ' + coreValidation.totalDisabled
+        : 'Disabled invalid core rows: ' + coreValidation.totalDisabled;
+    }
+    if (explicitNote) {
+      notes = notes ? notes + ' | ' + explicitNote : explicitNote;
+    }
   }
 
   var row = 2;
