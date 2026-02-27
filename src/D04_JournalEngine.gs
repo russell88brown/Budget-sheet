@@ -2244,22 +2244,25 @@ function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
     return;
   }
 
-  var seen = {};
-  var duplicates = [];
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    var key = normalizeAccountLookupKey_(account.name);
-    if (!key) {
-      return;
-    }
-    if (seen[key]) {
-      duplicates.push(account.name);
-      return;
-    }
-    seen[key] = true;
-  });
+  var duplicates = listDuplicateAccountNamesTyped_(accounts);
+  if (!Array.isArray(duplicates)) {
+    var seen = {};
+    duplicates = [];
+    (accounts || []).forEach(function (account) {
+      if (!account || !account.name) {
+        return;
+      }
+      var key = normalizeAccountLookupKey_(account.name);
+      if (!key) {
+        return;
+      }
+      if (seen[key]) {
+        duplicates.push(account.name);
+        return;
+      }
+      seen[key] = true;
+    });
+  }
   if (!duplicates.length) {
     return;
   }

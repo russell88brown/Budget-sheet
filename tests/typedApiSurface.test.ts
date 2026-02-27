@@ -39,6 +39,7 @@ const required = [
   "buildAccountLookupMap",
   "computeAccountMonthlyFlowWorksheet",
   "composeRunLogNotes",
+  "listDuplicateAccountNames",
 ];
 
 for (const key of required) {

@@ -183,6 +183,7 @@ import { buildAccountBalanceMap } from "../core/accountBalanceMap";
 import { buildAccountLookupMap } from "../core/accountLookupMap";
 import { computeAccountMonthlyFlowWorksheet } from "../core/accountMonthlyFlowWorksheet";
 import { composeRunLogNotes } from "../core/runLogNotes";
+import { listDuplicateAccountNames } from "../core/accountNameDuplicates";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -214,6 +215,7 @@ export const TypedBudget = {
   buildAccountLookupMap,
   computeAccountMonthlyFlowWorksheet,
   composeRunLogNotes,
+  listDuplicateAccountNames,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,
