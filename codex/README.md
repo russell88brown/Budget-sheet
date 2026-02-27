@@ -20,7 +20,7 @@ Examples:
 Copy/paste:
 
 ```text
-Review and finalize the drafted sprint plan with me before implementation.
+Implement the plan and update documentation.
 ```
 
 ## Stage 3: Delivery + PR Readiness
@@ -28,6 +28,6 @@ Review and finalize the drafted sprint plan with me before implementation.
 Copy/paste:
 
 ```text
-Execute the plan task-by-task, keep PR notes updated against code changes, list remaining actions, and run final checks/housekeeping before PR.
+Review and update PR notes, do final housekeeping, and do a diff against production.
 ```
 
