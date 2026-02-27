@@ -664,6 +664,34 @@ function deactivateRowsByValidatorTyped_(rows, includeIdx, toBooleanFn, validato
   return null;
 }
 
+function buildIncomeMonthlyTotalsTyped_(incomeRules) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildIncomeMonthlyTotals === 'function') {
+    return api.buildIncomeMonthlyTotals(incomeRules || [], {
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      toNumber: toNumber_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      roundMoney: roundUpCents_,
+    });
+  }
+  return null;
+}
+
+function buildExpenseMonthlyTotalsTyped_(expenseRules) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildExpenseMonthlyTotals === 'function') {
+    return api.buildExpenseMonthlyTotals(expenseRules || [], {
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      toNumber: toNumber_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      roundMoney: roundUpCents_,
+    });
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

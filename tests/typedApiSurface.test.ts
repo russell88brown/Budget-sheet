@@ -30,6 +30,8 @@ const required = [
   "normalizeRecurrenceRows",
   "normalizeAccountRows",
   "deactivateRowsByValidator",
+  "buildIncomeMonthlyTotals",
+  "buildExpenseMonthlyTotals",
 ];
 
 for (const key of required) {

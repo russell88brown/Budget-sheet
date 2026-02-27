@@ -963,6 +963,10 @@ function refreshAccountSummariesForRunModel_(runModel) {
 }
 
 function buildIncomeMonthlyTotalsForRunModel_(incomeRules) {
+  var typed = buildIncomeMonthlyTotalsTyped_(incomeRules || []);
+  if (typed) {
+    return typed;
+  }
   var totals = {};
   (incomeRules || []).forEach(function (rule) {
     if (!rule || !rule.paidTo || !rule.frequency) {
@@ -983,6 +987,10 @@ function buildIncomeMonthlyTotalsForRunModel_(incomeRules) {
 }
 
 function buildExpenseMonthlyTotalsForRunModel_(expenseRules) {
+  var typed = buildExpenseMonthlyTotalsTyped_(expenseRules || []);
+  if (typed) {
+    return typed;
+  }
   var totals = {};
   (expenseRules || []).forEach(function (rule) {
     if (!rule || !rule.paidFrom || !rule.frequency) {

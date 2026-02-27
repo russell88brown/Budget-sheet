@@ -21,6 +21,7 @@ Target architecture agreed for implementation:
 - [x] Extract `D04_JournalEngine.gs` recurrence-row normalization transform to typed core (`ts/core/recurrenceRowNormalization.ts`) and keep GAS fallback wiring.
 - [x] Extract `D04_JournalEngine.gs` account-row normalization transform to typed core (`ts/core/accountRowNormalization.ts`) and keep GAS fallback wiring.
 - [x] Extract `D04_JournalEngine.gs` shared row-deactivation loop to typed core (`ts/core/rowDeactivation.ts`) and keep GAS fallback wiring.
+- [x] Extract `D04_JournalEngine.gs` income/expense monthly-rule total builders to typed core (`ts/core/monthlyRuleTotals.ts`) and keep GAS fallback wiring.
 
 ## PR Review Against Code
 - [x] PR notes match implemented code changes.
@@ -59,6 +60,8 @@ Target architecture agreed for implementation:
 | 2026-02-27 | Added `tests/accountRowNormalization.test.ts` and expanded typed API surface checks for `normalizeAccountRows`. | Guard account-row normalization extraction and keep typed runtime contract explicit. | Export and behavior regressions for account-row normalization are caught earlier in Node tests. |
 | 2026-02-27 | Extracted D04 shared row-deactivation loop into `ts/core/rowDeactivation.ts`, exported via typed runtime, and wired `validateAndDeactivateRows_` to typed-first execution with fallback. | Continue shrinking D04 orchestration complexity by moving pure row mutation loops into TS core. | Shared include-flag deactivation behavior is now centralized, testable TS logic with GAS fallback retained. |
 | 2026-02-27 | Added `tests/rowDeactivation.test.ts` and expanded typed API surface checks for `deactivateRowsByValidator`. | Guard shared row-deactivation extraction and keep typed runtime contract explicit. | Export and behavior regressions for row deactivation are caught earlier in Node tests. |
+| 2026-02-27 | Extracted D04 income/expense monthly-rule total builders into `ts/core/monthlyRuleTotals.ts`, exported via typed runtime, and wired `buildIncomeMonthlyTotalsForRunModel_`/`buildExpenseMonthlyTotalsForRunModel_` to typed-first execution with fallback. | Continue moving pure monthly-total calculations out of D04 GAS orchestration while preserving runtime boundaries. | Monthly income/expense totals are now testable TS logic and easier to evolve independently from GAS sheet access. |
+| 2026-02-27 | Added `tests/monthlyRuleTotals.test.ts` and expanded typed API surface checks for `buildIncomeMonthlyTotals`/`buildExpenseMonthlyTotals`. | Guard monthly-rule-total extraction and keep typed runtime contract explicit. | Export and behavior regressions for monthly-rule total builders are caught earlier in Node tests. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 
