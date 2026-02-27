@@ -181,6 +181,7 @@ import { computeTransferMonthlyWorksheet } from "../core/transferMonthlyWorkshee
 import { computeRuleMonthlyWorksheet } from "../core/ruleMonthlyWorksheet";
 import { buildAccountBalanceMap } from "../core/accountBalanceMap";
 import { buildAccountLookupMap } from "../core/accountLookupMap";
+import { computeAccountMonthlyFlowWorksheet } from "../core/accountMonthlyFlowWorksheet";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -210,6 +211,7 @@ export const TypedBudget = {
   computeRuleMonthlyWorksheet,
   buildAccountBalanceMap,
   buildAccountLookupMap,
+  computeAccountMonthlyFlowWorksheet,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

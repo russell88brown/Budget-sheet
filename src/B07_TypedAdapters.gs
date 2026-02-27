@@ -753,6 +753,14 @@ function buildAccountLookupMapTyped_(accounts) {
   return null;
 }
 
+function computeAccountMonthlyFlowWorksheetTyped_(rows, indexes, params) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeAccountMonthlyFlowWorksheet === 'function') {
+    return api.computeAccountMonthlyFlowWorksheet(rows || [], indexes || {}, params || {});
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

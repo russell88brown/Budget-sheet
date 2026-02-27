@@ -1540,55 +1540,92 @@ function updateAccountMonthlyFlowAveragesForRunModel_(
   var expenseAvgValues = [];
   var incomeAvgValues = [];
   var netFlowValues = [];
-
-  rows.forEach(function (row) {
-    var existingInterest = interestAvgIdx === -1 ? '' : row[interestAvgIdx];
-    var existingExpense = expenseAvgIdx === -1 ? '' : row[expenseAvgIdx];
-    var existingIncome = incomeAvgIdx === -1 ? '' : row[incomeAvgIdx];
-    var existingNet = netFlowIdx === -1 ? '' : row[netFlowIdx];
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      interestAvgValues.push([existingInterest]);
-      expenseAvgValues.push([existingExpense]);
-      incomeAvgValues.push([existingIncome]);
-      netFlowValues.push([existingNet]);
-      return;
+  var typedWorksheet = computeAccountMonthlyFlowWorksheetTyped_(
+    rows,
+    {
+      name: nameIdx,
+      scenario: scenarioIdx,
+      interestAvg: interestAvgIdx,
+      expenseAvg: expenseAvgIdx,
+      incomeAvg: incomeAvgIdx,
+      netFlow: netFlowIdx,
+    },
+    {
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      activeScenarioId: activeScenarioId,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      accountByKey: accountByKey,
+      toNumber: toNumber_,
+      computeEstimatedMonthlyInterest: computeEstimatedMonthlyInterest_,
+      roundMoney: roundUpCents_,
+      incomeTotalsByAccount: incomeTotalsByAccount,
+      expenseTotalsByAccount: expenseTotalsByAccount,
+      transferCredits: transferCredits,
+      transferDebits: transferDebits,
     }
+  );
+  if (
+    typedWorksheet &&
+    Array.isArray(typedWorksheet.interestAvgValues) &&
+    Array.isArray(typedWorksheet.expenseAvgValues) &&
+    Array.isArray(typedWorksheet.incomeAvgValues) &&
+    Array.isArray(typedWorksheet.netFlowValues)
+  ) {
+    interestAvgValues = typedWorksheet.interestAvgValues;
+    expenseAvgValues = typedWorksheet.expenseAvgValues;
+    incomeAvgValues = typedWorksheet.incomeAvgValues;
+    netFlowValues = typedWorksheet.netFlowValues;
+  } else {
+    rows.forEach(function (row) {
+      var existingInterest = interestAvgIdx === -1 ? '' : row[interestAvgIdx];
+      var existingExpense = expenseAvgIdx === -1 ? '' : row[expenseAvgIdx];
+      var existingIncome = incomeAvgIdx === -1 ? '' : row[incomeAvgIdx];
+      var existingNet = netFlowIdx === -1 ? '' : row[netFlowIdx];
+      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+      if (rowScenarioId !== activeScenarioId) {
+        interestAvgValues.push([existingInterest]);
+        expenseAvgValues.push([existingExpense]);
+        incomeAvgValues.push([existingIncome]);
+        netFlowValues.push([existingNet]);
+        return;
+      }
 
-    var name = row[nameIdx];
-    var key = normalizeAccountLookupKey_(name);
-    var account = accountByKey[key];
-    if (!account || account.forecast !== true) {
-      interestAvgValues.push(['']);
-      expenseAvgValues.push(['']);
-      incomeAvgValues.push(['']);
-      netFlowValues.push(['']);
-      return;
-    }
+      var name = row[nameIdx];
+      var key = normalizeAccountLookupKey_(name);
+      var account = accountByKey[key];
+      if (!account || account.forecast !== true) {
+        interestAvgValues.push(['']);
+        expenseAvgValues.push(['']);
+        incomeAvgValues.push(['']);
+        netFlowValues.push(['']);
+        return;
+      }
 
-    var rate = toNumber_(account.interestRate);
-    var balance = toNumber_(account.balance);
-    var frequency = account.interestPostingFrequency;
-    var method = account.interestMethod || '';
-    var fee = toNumber_(account.interestMonthlyFee);
+      var rate = toNumber_(account.interestRate);
+      var balance = toNumber_(account.balance);
+      var frequency = account.interestPostingFrequency;
+      var method = account.interestMethod || '';
+      var fee = toNumber_(account.interestMonthlyFee);
 
-    var interest = 0;
-    if (rate !== null && balance !== null && frequency) {
-      interest = computeEstimatedMonthlyInterest_(balance, rate, method);
-    }
+      var interest = 0;
+      if (rate !== null && balance !== null && frequency) {
+        interest = computeEstimatedMonthlyInterest_(balance, rate, method);
+      }
 
-    var income = roundUpCents_((incomeTotalsByAccount[key] || 0) + (transferCredits[key] || 0));
-    var expense = roundUpCents_((expenseTotalsByAccount[key] || 0) + (transferDebits[key] || 0));
-    if (fee !== null && fee > 0) {
-      expense = roundUpCents_(expense + fee);
-    }
-    var net = roundUpCents_(income + interest - expense);
+      var income = roundUpCents_((incomeTotalsByAccount[key] || 0) + (transferCredits[key] || 0));
+      var expense = roundUpCents_((expenseTotalsByAccount[key] || 0) + (transferDebits[key] || 0));
+      if (fee !== null && fee > 0) {
+        expense = roundUpCents_(expense + fee);
+      }
+      var net = roundUpCents_(income + interest - expense);
 
-    interestAvgValues.push([interest]);
-    expenseAvgValues.push([expense]);
-    incomeAvgValues.push([income]);
-    netFlowValues.push([net]);
-  });
+      interestAvgValues.push([interest]);
+      expenseAvgValues.push([expense]);
+      incomeAvgValues.push([income]);
+      netFlowValues.push([net]);
+    });
+  }
 
   if (expenseAvgIdx !== -1) {
     accountsSheet.getRange(2, expenseAvgIdx + 1, expenseAvgValues.length, 1).setValues(expenseAvgValues);
