@@ -1,4 +1,5 @@
 .clasp.json
 codex/config.toml
+codex/current-sprint
 tmp/
 node_modules/

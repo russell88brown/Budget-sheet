@@ -1,5 +1,0 @@
-version: 1
-display_name: Sprint Executor
-short_description: Execute sprint tasks and maintain PR delivery notes as work progresses.
-default_prompt: Implement `.codex/sprints/<sprint-id>/sprint-plan.md` tasks and keep `.codex/sprints/<sprint-id>/PR.md` updated after each completed task.
-

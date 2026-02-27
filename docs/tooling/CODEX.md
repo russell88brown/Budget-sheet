@@ -54,17 +54,31 @@ Recommended path:
 
 This section is the source of truth for planning, executing, and closing sprints with Codex.
 
-### Folder Contract
+### Folder Contract (`codex`)
 
-Each sprint is stored in `.codex/sprints/<sprint-id>/` with:
+- Skill: `codex/skill/SKILL.md`
+- Plan template: `codex/sprint_tempalte-plan.md`
+- PR template: `codex/sprint_template-pr.md`
+- Sprint history: `codex/history/<sprint-id>/`
 
-- `sprint-plan.md`
-- `PR.md`
-- `retro.md`
+### First-Time Quickstart (Repeatable)
 
-Templates live in `.codex/templates/`.
+Use this exact flow for your first sprint and every sprint after that.
 
-### End-To-End Flow
+1. Start from `main`.
+2. Choose sprint ID (example: `feat-fixtures-branch`).
+3. Scaffold sprint docs:
+   - `npm run sprint:start -- <sprint-id> --no-branch`
+4. Create/switch branch in your preferred way (user-driven).
+5. Fill required sections in:
+   - `codex/history/<sprint-id>/sprint-plan.md`
+   - `codex/history/<sprint-id>/PR.md`
+6. Validate docs before implementation:
+   - `npm run sprint:check`
+7. Implement work, updating `PR.md` continuously.
+8. Before PR/merge, run final checks.
+
+### End-To-End Flow (Default Convention)
 
 1. On `main`, define sprint scope and acceptance in `sprint-plan.md`.
 2. Start sprint scaffolding and branch:
@@ -73,8 +87,7 @@ Templates live in `.codex/templates/`.
 4. Update `PR.md` continuously as tasks complete.
 5. Before opening/updating PR, run:
    - `npm run sprint:check`
-6. Review delivery quality and complete `retro.md`.
-7. Merge when acceptance criteria and checks are satisfied.
+6. Merge when acceptance criteria and checks are satisfied.
 
 ### Commands
 
@@ -96,24 +109,32 @@ Validate required sprint docs and section completeness:
 npm run sprint:check
 ```
 
-### Skills
+### Repeatability Rules
 
-- `sprint-planner`
-  - builds/refines `.codex/sprints/<sprint-id>/sprint-plan.md`
-- `sprint-executor`
-  - executes plan items and maintains `.codex/sprints/<sprint-id>/PR.md`
-- `sprint-review-retro`
-  - reviews PR outcomes and writes `.codex/sprints/<sprint-id>/retro.md`
+- Keep one sprint folder per sprint ID.
+- Keep `PR.md` as a running log; do not backfill only at the end.
+- Run `npm run sprint:check` at least once before coding and once before PR.
+- Keep Git operations lightweight and user-driven; focus AI effort on plan quality, execution tracking, and documentation evidence.
+
+### If You Want A Different Structure
+
+Current automation is hard-wired to these paths in `scripts/sprint-tools.mjs`:
+
+- `codex/sprint_tempalte-plan.md`
+- `codex/sprint_template-pr.md`
+- `codex/history/`
+- `codex/current-sprint`
+
+If you want another root (for example `codex/`), update those constants in `scripts/sprint-tools.mjs` once, then keep that structure stable across sprints.
+
+### Skill
+
+- `sprint-loop`
+  - single end-to-end loop: plan, execute, and maintain `PR.md`.
 
 ### Commit Safety
 
-Always enforce commit scope during sprint execution:
+Keep commit safety simple:
 
-1. Verify branch:
-   - `git branch --show-current`
-2. Stage only intended files:
-   - `git add <file1> <file2>`
-3. Verify staged scope:
-   - `git diff --cached --name-only`
-4. Optional deterministic guard:
-   - `node .codex/skills/sprint-executor/scripts/guard-commit.mjs <sprint-id> .codex/ src/ tests/ scripts/`
+1. Stage only what belongs to this sprint.
+2. Check staged files once before commit.
