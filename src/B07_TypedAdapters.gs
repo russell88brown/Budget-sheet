@@ -615,6 +615,21 @@ function normalizeTransferRowsTyped_(rows, typeIdx, amountIdx) {
   return null;
 }
 
+function normalizeRecurrenceRowsTyped_(rows, frequencyIdx, repeatIdx, startIdx, endIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeRecurrenceRows === 'function') {
+    return api.normalizeRecurrenceRows(
+      Array.isArray(rows) ? rows : [],
+      frequencyIdx,
+      repeatIdx,
+      startIdx,
+      endIdx,
+      mapLegacyFrequency_
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

@@ -172,6 +172,7 @@ import {
   validateTransferRowReasons,
 } from "../core/journalRowValidation";
 import { normalizeTransferRows } from "../core/transferRowNormalization";
+import { normalizeRecurrenceRows } from "../core/recurrenceRowNormalization";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -191,6 +192,7 @@ export const TypedBudget = {
   validateTransferRowReasons,
   validateExpenseRowReasons,
   normalizeTransferRows,
+  normalizeRecurrenceRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

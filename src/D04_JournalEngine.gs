@@ -1726,22 +1726,27 @@ function normalizeRecurrenceRowsForSheet_(sheetName) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
-
-  values.forEach(function (row) {
-    var mapped = mapLegacyFrequency_(row[frequencyIdx], row[repeatIdx], startIdx === -1 ? null : row[startIdx], endIdx === -1 ? null : row[endIdx]);
-    if (mapped.frequency !== row[frequencyIdx]) {
-      row[frequencyIdx] = mapped.frequency;
-      updated = true;
-    }
-    if (mapped.repeatEvery !== row[repeatIdx]) {
-      row[repeatIdx] = mapped.repeatEvery;
-      updated = true;
-    }
-    if (endIdx !== -1 && mapped.endDate !== row[endIdx]) {
-      row[endIdx] = mapped.endDate;
-      updated = true;
-    }
-  });
+  var typed = normalizeRecurrenceRowsTyped_(values, frequencyIdx, repeatIdx, startIdx, endIdx);
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'boolean') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      var mapped = mapLegacyFrequency_(row[frequencyIdx], row[repeatIdx], startIdx === -1 ? null : row[startIdx], endIdx === -1 ? null : row[endIdx]);
+      if (mapped.frequency !== row[frequencyIdx]) {
+        row[frequencyIdx] = mapped.frequency;
+        updated = true;
+      }
+      if (mapped.repeatEvery !== row[repeatIdx]) {
+        row[repeatIdx] = mapped.repeatEvery;
+        updated = true;
+      }
+      if (endIdx !== -1 && mapped.endDate !== row[endIdx]) {
+        row[endIdx] = mapped.endDate;
+        updated = true;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
