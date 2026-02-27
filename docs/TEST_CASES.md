@@ -32,6 +32,28 @@ Run this quick sequence after housekeeping or setup changes:
 - Run `Run Budget...` with `Generate dashboard` only.
 - Expected: dashboard metrics/charts refresh and show the selected scenario.
 
+## Determinism Regression Checklist
+
+Run this targeted checklist after changes to Accounts/Income/Transfers/Expense logic:
+
+1. Monthly Total columns
+- In `Income`, `Expense`, and `Transfers`, run `Summarise Accounts`.
+- Expected:
+  - `Monthly Total` is populated in the designated `Monthly Total` column for included recurring rows.
+  - Non-selected scenario rows keep existing values unchanged.
+
+2. Multi-scenario summary behavior
+- Run `Generate journal` for at least two scenarios, then run `Generate daily` and `Generate monthly` in multi-scenario mode.
+- Expected:
+  - Daily/Monthly generation is stable and repeatable for the same scenario set.
+  - No same-day row collisions or missing balances between reruns.
+
+3. Journal ordering stability
+- Re-run `Generate journal` twice with unchanged input.
+- Expected:
+  - Relative ordering for same-day events remains stable.
+  - Opening, transfer, expense, and interest rows produce the same sequence across reruns.
+
 ## Phase 2 (No Dashboard)
 
 ### Scope and done criteria
@@ -226,6 +248,7 @@ Script editor runners (automated):
 - `runDeterministicFixtureTestsPhase2_FixtureD`
 - `runDeterministicFixtureTestsPhase2_FixtureE`
 - `runDeterministicFixtureTestsPhase2_FixtureF`
+- `runDeterministicFixtureTestsPhase2_FixtureG`
 
 1. Fixture A: single-month baseline
 - Set named range `ForecastStartDate` to `2030-01-01`.

@@ -1169,16 +1169,19 @@ function updateTransferMonthlyTotalsForScenarioModel_(
     var fromKey = normalizeAccountLookupKey_(row[fromIdx]);
     var toKey = normalizeAccountLookupKey_(row[toIdx]);
     var monthlyTotal = null;
+    var behavior = normalizeTransferType_(row[typeIdx], amount);
+    var requiresAmount =
+      behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
+      behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT ||
+      behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT;
     if (
       include &&
       recurring &&
-      amount !== null &&
-      amount >= 0 &&
       recurrence.frequency &&
       fromKey &&
-      toKey
+      toKey &&
+      (!requiresAmount || (amount !== null && amount >= 0))
     ) {
-      var behavior = normalizeTransferType_(row[typeIdx], amount);
       var factor = monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery);
       if (factor > 0) {
         if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
@@ -1226,7 +1229,7 @@ function updateTransferMonthlyTotalsForScenarioModel_(
   });
 
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
-  return transferTotals;
+  return normalizeTransferTotalsKeys_({ credits: credits, debits: debits });
 }
 
 function updateAccountMonthlyFlowAveragesForScenarioModel_(
@@ -1794,49 +1797,42 @@ function isValidAccountSummaryNumber_(value) {
   return typeof value === 'number' && !isNaN(value);
 }
 
-function eventSortPriority_(event) {
+var EVENT_SORT_ORDER_ = [
+  'Income',
+  'Transfer:' + Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+  'Transfer:' + Config.TRANSFER_TYPES.REPAYMENT_AMOUNT,
+  'Transfer:' + Config.TRANSFER_TYPES.REPAYMENT_ALL,
+  'Expense',
+  'InterestAccrual',
+  'Interest',
+  'Transfer:' + Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
+];
+
+var EVENT_SORT_ORDER_LOOKUP_ = EVENT_SORT_ORDER_.reduce(function (lookup, key, idx) {
+  lookup[key] = idx;
+  return lookup;
+}, {});
+
+function getEventSortKey_(event) {
   if (!event || !event.kind) {
-    return 50;
-  }
-  if (
-    event.kind === 'Transfer' &&
-    (event.transferBehavior || event.behavior) === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT
-  ) {
-    return 99;
-  }
-  if (event.kind === 'Income') {
-    return 0;
+    return '';
   }
   if (event.kind === 'Transfer') {
-    var transferPriority = transferBehaviorSortPriority_(event.behavior);
-    return 10 + transferPriority;
-  }
-  if (event.kind === 'Expense') {
-    return 20;
+    var behavior = normalizeTransferType_(event.transferBehavior || event.behavior, event.amount);
+    return 'Transfer:' + behavior;
   }
   if (event.kind === 'Interest' && event.interestAccrual === true) {
-    return 30;
+    return 'InterestAccrual';
   }
-  if (event.kind === 'Interest') {
-    return 40;
-  }
-  return 10;
+  return event.kind;
 }
 
-function transferBehaviorSortPriority_(behavior) {
-  if (behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT) {
-    return 0;
+function eventSortPriority_(event) {
+  var key = getEventSortKey_(event);
+  if (Object.prototype.hasOwnProperty.call(EVENT_SORT_ORDER_LOOKUP_, key)) {
+    return EVENT_SORT_ORDER_LOOKUP_[key];
   }
-  if (behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT) {
-    return 1;
-  }
-  if (behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-    return 2;
-  }
-  if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-    return 3;
-  }
-  return 9;
+  return EVENT_SORT_ORDER_.length + 1;
 }
 
 function updateExpenseMonthlyTotals_() {

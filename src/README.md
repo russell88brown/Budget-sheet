@@ -10,3 +10,8 @@
 
 Manifest:
 - `appsscript.json`
+
+Determinism guarantees (core paths):
+- Event sorting uses one canonical same-day order list plus stable tie-breakers.
+- Account summaries use the same transfer totals object that powers Transfers `Monthly Total` writes.
+- Fixture runners in `src/tests/98_FixtureTests.gs` validate stable ordering and balance outcomes.

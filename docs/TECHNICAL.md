@@ -118,6 +118,16 @@ The workbook is the source of truth. Outputs are deterministically regenerated o
 - `Transfer - Everything Except` keeps the specified amount in the source account and moves any excess.
 - Auto deficit cover policies insert transfers to prevent cash accounts from dropping below a threshold.
 - Journal rows carry `Source Rule ID` for rule-level traceability.
+- Event ordering is deterministic for same-day events via one canonical order list:
+  1. Income
+  2. Transfer - Amount
+  3. Repayment - Amount
+  4. Repayment - All
+  5. Expense
+  6. Interest Accrual
+  7. Interest Posting
+  8. Transfer - Everything Except
+- Same-day ties are resolved by `Source Rule ID`, then `Name`, then normalized event id.
 
 ### f) Write outputs
 - `Writers.writeJournal()` ([src/reports/50_Writers.gs](../src/reports/50_Writers.gs)) writes the Journal and applies formatting/filters.
@@ -374,6 +384,7 @@ Menu/UI entrypoints (`src/ui/01_Menu.gs`):
 - `runDeterministicFixtureTestsPhase2_FixtureD`
 - `runDeterministicFixtureTestsPhase2_FixtureE`
 - `runDeterministicFixtureTestsPhase2_FixtureF`
+- `runDeterministicFixtureTestsPhase2_FixtureG`
 
 Export entrypoints (`src/admin/07_Export.gs`):
 - `showExportDialog`

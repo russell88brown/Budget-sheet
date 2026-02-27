@@ -44,25 +44,6 @@ function clearData_(sheet) {
   }
 }
 
-function normalizeRows_(rows) {
-  var maxLen = 0;
-  rows.forEach(function (row) {
-    if (row.length > maxLen) {
-      maxLen = row.length;
-    }
-  });
-  return rows.map(function (row) {
-    if (row.length === maxLen) {
-      return row;
-    }
-    var padded = row.slice();
-    while (padded.length < maxLen) {
-      padded.push('');
-    }
-    return padded;
-  });
-}
-
 function clearSheetFilter_(sheet) {
   var filter = sheet.getFilter();
   if (filter) {

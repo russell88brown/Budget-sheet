@@ -92,3 +92,11 @@ Practical combinations:
 - `docs/CLASP.md`: Apps Script/clasp setup
 - `docs/CI.md`: CI + PR deploy/test automation
 - `docs/CODEX.md`: local development notes
+
+## Deterministic Regression Quick Check
+
+For deterministic checks after engine changes, run script editor functions:
+1. `runDeterministicFixtureTestsPhase2_All`
+2. `runDeterministicFixtureTestsPhase2_RunAllWithReport`
+
+These validate stable event ordering, journal balances, and summary assumptions used by Accounts + Monthly totals.

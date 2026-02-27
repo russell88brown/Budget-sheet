@@ -39,12 +39,28 @@ function compareCompiledEvents_(a, b) {
   if (priorityDiff !== 0) {
     return priorityDiff;
   }
+  var ruleA = String(a.sourceRuleId || '');
+  var ruleB = String(b.sourceRuleId || '');
+  if (ruleA < ruleB) {
+    return -1;
+  }
+  if (ruleA > ruleB) {
+    return 1;
+  }
   var nameA = a.name || '';
   var nameB = b.name || '';
   if (nameA < nameB) {
     return -1;
   }
   if (nameA > nameB) {
+    return 1;
+  }
+  var idA = String(a.id || '');
+  var idB = String(b.id || '');
+  if (idA < idB) {
+    return -1;
+  }
+  if (idA > idB) {
     return 1;
   }
   return 0;
