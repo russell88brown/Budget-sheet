@@ -34,6 +34,7 @@ const required = [
   "buildExpenseMonthlyTotals",
   "buildTransferMonthlyTotals",
   "computeTransferMonthlyWorksheet",
+  "computeRuleMonthlyWorksheet",
 ];
 
 for (const key of required) {

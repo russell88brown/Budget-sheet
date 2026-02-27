@@ -722,6 +722,14 @@ function computeTransferMonthlyWorksheetTyped_(rows, indexes, params) {
   return null;
 }
 
+function computeRuleMonthlyWorksheetTyped_(rows, indexes, params) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeRuleMonthlyWorksheet === 'function') {
+    return api.computeRuleMonthlyWorksheet(rows || [], indexes || {}, params || {});
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

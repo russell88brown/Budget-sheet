@@ -1121,32 +1121,59 @@ function updateIncomeMonthlyTotalsForRunModel_(runModel) {
 
   var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var out = rows.map(function (row) {
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      return [row[totalIdx]];
+  var out = computeRuleMonthlyWorksheetTyped_(
+    rows,
+    {
+      include: includeIdx,
+      scenario: scenarioIdx,
+      amount: amountIdx,
+      frequency: freqIdx,
+      repeat: repeatIdx,
+      start: startIdx,
+      end: endIdx,
+      account: toIdx,
+      total: totalIdx,
+    },
+    {
+      activeScenarioId: activeScenarioId,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      normalizeScenarioId: normalizeScenario_,
+      toBoolean: toBoolean_,
+      toNumber: toNumber_,
+      normalizeRecurrence: normalizeRecurrence_,
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      roundMoney: roundUpCents_,
     }
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx === -1 ? null : row[startIdx],
-      endIdx === -1 ? null : row[endIdx]
-    );
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
+  );
+  if (!Array.isArray(out)) {
+    out = rows.map(function (row) {
+      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+      if (rowScenarioId !== activeScenarioId) {
+        return [row[totalIdx]];
+      }
+      var include = toBoolean_(row[includeIdx]);
+      var amount = toNumber_(row[amountIdx]);
+      var recurrence = normalizeRecurrence_(
+        row[freqIdx],
+        row[repeatIdx],
+        startIdx === -1 ? null : row[startIdx],
+        endIdx === -1 ? null : row[endIdx]
+      );
+      var recurring = isRecurringForMonthlyAverage_({
+        startDate: recurrence.startDate,
+        endDate: recurrence.endDate,
+        isSingleOccurrence: recurrence.isSingleOccurrence,
+      });
+      if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[toIdx]) {
+        return [''];
+      }
+      var monthlyTotal = roundUpCents_(
+        (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
+      );
+      return [monthlyTotal];
     });
-    if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[toIdx]) {
-      return [''];
-    }
-    var monthlyTotal = roundUpCents_(
-      (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
-    );
-    return [monthlyTotal];
-  });
+  }
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return totals;
 }
@@ -1188,32 +1215,59 @@ function updateExpenseMonthlyTotalsForRunModel_(runModel) {
 
   var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var out = rows.map(function (row) {
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      return [row[totalIdx]];
+  var out = computeRuleMonthlyWorksheetTyped_(
+    rows,
+    {
+      include: includeIdx,
+      scenario: scenarioIdx,
+      amount: amountIdx,
+      frequency: freqIdx,
+      repeat: repeatIdx,
+      start: startIdx,
+      end: endIdx,
+      account: fromIdx,
+      total: totalIdx,
+    },
+    {
+      activeScenarioId: activeScenarioId,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      normalizeScenarioId: normalizeScenario_,
+      toBoolean: toBoolean_,
+      toNumber: toNumber_,
+      normalizeRecurrence: normalizeRecurrence_,
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      roundMoney: roundUpCents_,
     }
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx === -1 ? null : row[startIdx],
-      endIdx === -1 ? null : row[endIdx]
-    );
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
+  );
+  if (!Array.isArray(out)) {
+    out = rows.map(function (row) {
+      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+      if (rowScenarioId !== activeScenarioId) {
+        return [row[totalIdx]];
+      }
+      var include = toBoolean_(row[includeIdx]);
+      var amount = toNumber_(row[amountIdx]);
+      var recurrence = normalizeRecurrence_(
+        row[freqIdx],
+        row[repeatIdx],
+        startIdx === -1 ? null : row[startIdx],
+        endIdx === -1 ? null : row[endIdx]
+      );
+      var recurring = isRecurringForMonthlyAverage_({
+        startDate: recurrence.startDate,
+        endDate: recurrence.endDate,
+        isSingleOccurrence: recurrence.isSingleOccurrence,
+      });
+      if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[fromIdx]) {
+        return [''];
+      }
+      var monthlyTotal = roundUpCents_(
+        (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
+      );
+      return [monthlyTotal];
     });
-    if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[fromIdx]) {
-      return [''];
-    }
-    var monthlyTotal = roundUpCents_(
-      (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
-    );
-    return [monthlyTotal];
-  });
+  }
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return totals;
 }
