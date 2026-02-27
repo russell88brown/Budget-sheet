@@ -21,13 +21,16 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 | 2026-02-27 | Created execution branch `feat/typescript-migration-2` and aligned sprint metadata to this branch. | Keep sprint execution isolated to one branch per sprint run. | Sprint implementation and audit trail now match the active branch. |
 | 2026-02-27 | Removed `npm run sprint:check` from sprint instructions/templates and switched to change-relevant validation evidence. | `sprint:check` is no longer part of project workflow. | Sprint process docs now match the current tooling contract. |
 | 2026-02-27 | Updated sprint instructions to require incremental commits with descriptive messages. | Ensure sprint execution is auditable and easier to review step-by-step. | Workflow now enforces commit hygiene during execution, not only at handoff. |
+| 2026-02-27 | Extracted `Config` and `Schema` source-of-truth into `ts/core/config.ts` and `ts/core/schema.ts`, then exposed them via `TypedBudget`. | Execute the first quick-win migration target from the matrix while preserving GAS runtime usage. | `src/B01_Config.gs` and `src/B02_Schema.gs` are now thin wrappers over typed exports, reducing duplicated constant/schema maintenance. |
+| 2026-02-27 | Regenerated `src/B08_TypedBudget.generated.gs` and added API surface test coverage for `TypedBudget.Config`/`TypedBudget.Schema`. | Keep generated runtime aligned with new typed exports and guard the integration contract. | Future regressions in config/schema export availability will fail tests earlier. |
 
 ## Test Evidence
 | Type | Command/Method | Result | Notes |
 |---|---|---|---|
 | Validation | Reviewed/updated sprint process docs and sprint history artifacts | Pass | Confirmed no sprint instructions require `npm run sprint:check`. |
-| Unit | `N/A (docs-only)` | N/A | No test-affecting code changed. |
-| Typecheck | `N/A (docs-only)` | N/A | No TypeScript code changed. |
+| Unit | `npm test` | Pass | Includes updated `tests/typedApiSurface.test.ts` assertions for `Config` and `Schema`. |
+| Typecheck | `npm run typecheck` | Pass | New `ts/core/config.ts` and `ts/core/schema.ts` compile cleanly. |
+| Build | `npm run build:typed` | Pass | Regenerated `src/B08_TypedBudget.generated.gs` with exported `Config` and `Schema`. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
 
 ## Risks
@@ -40,4 +43,4 @@ Created a file-by-file TypeScript migration plan for all `src/*.gs` modules, inc
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Start implementation sprint with `B01_Config.gs` + `B02_Schema.gs` extraction to TS shared modules.
+- Next implementation target: begin `D04_JournalEngine.gs` extraction of pure decision logic to `ts/core`.

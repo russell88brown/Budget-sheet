@@ -25,6 +25,8 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Build per-file migration matrix with target track and rationale.
 - [x] Summarize migrated vs remaining/runtme-bound estimates.
 - [x] Capture results in sprint PR notes.
+- [x] Execute quick-win extraction for `B01_Config.gs` + `B02_Schema.gs` into shared TypeScript modules.
+- [x] Regenerate typed bundle and keep GAS runtime wrappers aligned.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

@@ -147,8 +147,12 @@ import {
   type RecurrenceFrequencies,
   type RecurrenceStepContext,
 } from "../core/recurrence";
+import { CONFIG } from "../core/config";
+import { SCHEMA } from "../core/schema";
 
 export const TypedBudget = {
+  Config: CONFIG,
+  Schema: SCHEMA,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

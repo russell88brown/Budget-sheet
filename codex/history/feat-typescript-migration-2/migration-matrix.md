@@ -42,6 +42,6 @@ Notes:
 | `Z01_FixtureTests.gs` | 464 | 0 | Apps Script deterministic fixtures | Split | Keep smoke fixtures in GAS, but prefer new behavior contracts in Node `tests/*.test.ts`. |
 
 ## Quick-Win Queue (Next 3)
-1. `B01_Config.gs` + `B02_Schema.gs`: move to TS shared modules and expose through entry bundle.
+1. `B01_Config.gs` + `B02_Schema.gs`: move to TS shared modules and expose through entry bundle. (Completed 2026-02-27)
 2. `D04_JournalEngine.gs`: isolate pure decision logic into new `ts/core` modules and leave only sheet/runtime orchestration.
 3. `E01_Summary.gs`: split compute (TS) from write/format/report rendering (GAS).

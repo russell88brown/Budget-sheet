@@ -17,3 +17,15 @@ const required = [
 for (const key of required) {
   assert.equal(typeof (TypedBudget as Record<string, unknown>)[key], "function", key);
 }
+
+const exportedConfig = (TypedBudget as Record<string, unknown>).Config as
+  | Record<string, unknown>
+  | undefined;
+const exportedSchema = (TypedBudget as Record<string, unknown>).Schema as
+  | Record<string, unknown>
+  | undefined;
+
+assert.equal(typeof exportedConfig, "object");
+assert.equal(exportedConfig?.SHEETS !== undefined, true);
+assert.equal(typeof exportedSchema, "object");
+assert.equal(typeof exportedSchema?.toMarkdown, "function");
