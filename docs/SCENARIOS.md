@@ -57,3 +57,4 @@ Scenario-capable input sheets:
 - If an included row has an unknown scenario, the row is auto-disabled (`Include=false`).
 - The run surfaces feedback via toast.
 - Unknown-scenario disable counts are written into run log notes when present.
+

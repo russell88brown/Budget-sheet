@@ -1,6 +1,6 @@
 // Export helpers.
 function showExportDialog() {
-  var template = createTemplateFromFileCompat_('ExportDialog', 'ui');
+  var template = createTemplateFromFileCompat_('31_ExportDialog');
   template.sheetNames = getExportableSheetNames_();
   template.journalInfo = getJournalExportInfo_();
   template.journalSheetName = Config.SHEETS.JOURNAL;

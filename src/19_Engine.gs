@@ -30,8 +30,8 @@ const Engine = {
       scenarioId: activeScenarioId,
     });
   },
-  runJournalForScenarioModel: function (scenarioModel) {
-    var model = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  runJournalForRunModel: function (runModel) {
+    var model = runModel || buildRunModelWithExtensions_(Config.SCENARIOS.DEFAULT);
     runJournalPipeline_({
       modeLabel: 'Journal',
       startToast: 'Running journal...',
@@ -40,8 +40,12 @@ const Engine = {
       refreshSummaries: false,
       toastDelayMs: 0,
       scenarioId: resolveScenarioId_(model.scenarioId),
-      scenarioModel: model,
+      runModel: model,
     });
+  },
+  runJournalForScenarioModel: function (scenarioModel) {
+    // Deprecated wrapper: use runJournalForRunModel.
+    this.runJournalForRunModel(scenarioModel);
   },
 };
 
@@ -49,7 +53,7 @@ function runJournalPipeline_(options) {
   options = options || {};
   var modeLabel = options.modeLabel || 'Run';
   var scenarioId = resolveScenarioId_(options.scenarioId);
-  var scenarioModel = options.scenarioModel || null;
+  var runModel = options.runModel || options.scenarioModel || null;
   var preprocessInputs = options.preprocessInputs === true;
   var refreshSummaries = options.refreshSummaries === true;
   var totalSteps = preprocessInputs ? 9 : 6;
@@ -64,26 +68,36 @@ function runJournalPipeline_(options) {
 
     if (preprocessInputs) {
       preprocessReport = preprocessInputSheets_();
+    } else {
+      preprocessReport = enforceCoreInputIntegrityForRun_();
+      if (preprocessReport && preprocessReport.coreValidation && preprocessReport.coreValidation.totalDisabled > 0) {
+        toastStep_(
+          'Disabled ' +
+            preprocessReport.coreValidation.totalDisabled +
+            ' invalid core row(s) before journal build.'
+        );
+      }
     }
 
     toastStep_('Reading input sheets...');
-    if (!scenarioModel) {
-      scenarioModel = buildScenarioModel_(scenarioId);
+    if (!runModel) {
+      runModel = buildRunModelWithExtensions_(scenarioId);
     }
-    var accounts = scenarioModel.accounts || [];
-    assertUniqueScenarioAccountNames_(scenarioModel.scenarioId, accounts);
+    var accounts = runModel.accounts || [];
+    assertUniqueScenarioAccountNames_(runModel.scenarioId, accounts);
     var accountTypes = buildAccountTypeMap_(accounts);
-    var policies = scenarioModel.policies || [];
+    var runExtensions = buildRunExtensions_(runModel);
+    var policies = runExtensions.policies || [];
 
     if (refreshSummaries) {
-      refreshAccountSummariesForScenarioModel_(scenarioModel);
+      refreshAccountSummariesForRunModel_(runModel);
     }
 
     toastStep_('Building events...');
-    var events = CoreCompileRules.buildSortedEventsForScenarioModel(scenarioModel);
+    var events = CoreCompileRules.buildSortedEvents(runModel);
 
     toastStep_('Building journal...');
-    var journalData = CoreApplyEvents.buildJournalRows({
+    var journalData = CoreApplyEvents.applyEventsToJournal({
       accounts: accounts,
       events: events,
       policies: policies,
@@ -100,6 +114,32 @@ function runJournalPipeline_(options) {
     endRunProgress_();
     resetForecastWindowCache_();
   }
+}
+
+function enforceCoreInputIntegrityForRun_() {
+  var validScenarios = buildScenarioLookup_();
+  var scenarioValidation = validateScenariosAcrossInputs_(validScenarios);
+  var validAccounts = validateAccountsSheet_();
+  var incomeDisabled = validateIncomeSheet_(validAccounts) || 0;
+  var transferDisabled = validateTransferSheet_(validAccounts) || 0;
+  var expenseDisabled = validateExpenseSheet_(validAccounts) || 0;
+  var bySheet = {};
+  if (incomeDisabled > 0) {
+    bySheet[Config.SHEETS.INCOME] = incomeDisabled;
+  }
+  if (transferDisabled > 0) {
+    bySheet[Config.SHEETS.TRANSFERS] = transferDisabled;
+  }
+  if (expenseDisabled > 0) {
+    bySheet[Config.SHEETS.EXPENSE] = expenseDisabled;
+  }
+  return {
+    scenarioValidation: scenarioValidation,
+    coreValidation: {
+      totalDisabled: incomeDisabled + transferDisabled + expenseDisabled,
+      bySheet: bySheet,
+    },
+  };
 }
 
 function resolveScenarioId_(scenarioId) {
@@ -354,10 +394,16 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
     return;
   }
   var scenarioValidation = details && details.scenarioValidation ? details.scenarioValidation : null;
+  var coreValidation = details && details.coreValidation ? details.coreValidation : null;
   var explicitNote = details && details.note ? String(details.note).trim() : '';
   var notes = '';
   if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
     notes = 'Disabled unknown scenario rows: ' + scenarioValidation.totalDisabled;
+  }
+  if (coreValidation && coreValidation.totalDisabled > 0) {
+    notes = notes
+      ? notes + ' | Disabled invalid core rows: ' + coreValidation.totalDisabled
+      : 'Disabled invalid core rows: ' + coreValidation.totalDisabled;
   }
   if (explicitNote) {
     notes = notes ? notes + ' | ' + explicitNote : explicitNote;
@@ -695,7 +741,7 @@ function validateGoalsSheet_(validAccounts) {
 }
 
 function validateIncomeSheet_(validAccounts) {
-  validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
+  return validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
@@ -725,7 +771,7 @@ function validateIncomeSheet_(validAccounts) {
 }
 
 function validateTransferSheet_(validAccounts) {
-  validateAndDeactivateRows_(Config.SHEETS.TRANSFERS, 'Transfer', function (row, indexes) {
+  return validateAndDeactivateRows_(Config.SHEETS.TRANSFERS, 'Transfer', function (row, indexes) {
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.name]) {
@@ -770,7 +816,7 @@ function validateTransferSheet_(validAccounts) {
 }
 
 function validateExpenseSheet_(validAccounts) {
-  validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
+  return validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
@@ -802,12 +848,12 @@ function validateExpenseSheet_(validAccounts) {
 function validateAndDeactivateRows_(sheetName, label, validator) {
   var sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
   if (!sheet) {
-    return;
+    return 0;
   }
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   if (lastRow < 2 || lastCol < 1) {
-    return;
+    return 0;
   }
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
@@ -832,7 +878,7 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
     indexes.frequency === -1 ||
     indexes.start === -1
   ) {
-    return;
+    return 0;
   }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
@@ -852,26 +898,27 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
   }
+  return updated;
 }
 
 function refreshAccountSummaries_() {
-  refreshAccountSummariesForScenarioModel_(buildScenarioModel_(Config.SCENARIOS.DEFAULT));
+  refreshAccountSummariesForRunModel_(buildRunModel_(Config.SCENARIOS.DEFAULT));
 }
 
-function refreshAccountSummariesForScenarioModel_(scenarioModel) {
-  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
-  var accounts = Array.isArray(scenarioModel.accounts) ? scenarioModel.accounts : [];
+function refreshAccountSummariesForRunModel_(runModel) {
+  runModel = runModel || buildRunModel_(Config.SCENARIOS.DEFAULT);
+  var accounts = Array.isArray(runModel.accounts) ? runModel.accounts : [];
   // Prevent ambiguous per-account writes when a scenario has duplicate account names.
-  assertUniqueScenarioAccountNames_(scenarioModel.scenarioId, accounts);
-  var incomeTotalsByAccount = updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
-  var expenseTotalsByAccount = updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
-  var transferTotals = updateTransferMonthlyTotalsForScenarioModel_(
-    scenarioModel,
+  assertUniqueScenarioAccountNames_(runModel.scenarioId, accounts);
+  var incomeTotalsByAccount = updateIncomeMonthlyTotalsForRunModel_(runModel);
+  var expenseTotalsByAccount = updateExpenseMonthlyTotalsForRunModel_(runModel);
+  var transferTotals = updateTransferMonthlyTotalsForRunModel_(
+    runModel,
     incomeTotalsByAccount,
     expenseTotalsByAccount
   );
-  updateAccountMonthlyFlowAveragesForScenarioModel_(
-    scenarioModel.scenarioId,
+  updateAccountMonthlyFlowAveragesForRunModel_(
+    runModel.scenarioId,
     accounts,
     incomeTotalsByAccount,
     transferTotals,
@@ -879,7 +926,7 @@ function refreshAccountSummariesForScenarioModel_(scenarioModel) {
   );
 }
 
-function buildIncomeMonthlyTotalsForScenarioModel_(incomeRules) {
+function buildIncomeMonthlyTotalsForRunModel_(incomeRules) {
   var totals = {};
   (incomeRules || []).forEach(function (rule) {
     if (!rule || !rule.paidTo || !rule.frequency) {
@@ -899,7 +946,7 @@ function buildIncomeMonthlyTotalsForScenarioModel_(incomeRules) {
   return totals;
 }
 
-function buildExpenseMonthlyTotalsForScenarioModel_(expenseRules) {
+function buildExpenseMonthlyTotalsForRunModel_(expenseRules) {
   var totals = {};
   (expenseRules || []).forEach(function (rule) {
     if (!rule || !rule.paidFrom || !rule.frequency) {
@@ -919,7 +966,7 @@ function buildExpenseMonthlyTotalsForScenarioModel_(expenseRules) {
   return totals;
 }
 
-function buildTransferMonthlyTotalsForScenarioModel_(
+function buildTransferMonthlyTotalsForRunModel_(
   transferRules,
   accounts,
   incomeTotalsByAccount,
@@ -984,9 +1031,9 @@ function buildTransferMonthlyTotalsForScenarioModel_(
   return { credits: credits, debits: debits };
 }
 
-function updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel) {
-  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
-  var totals = buildIncomeMonthlyTotalsForScenarioModel_(scenarioModel.incomeRules || []);
+function updateIncomeMonthlyTotalsForRunModel_(runModel) {
+  runModel = runModel || buildRunModel_(Config.SCENARIOS.DEFAULT);
+  var totals = buildIncomeMonthlyTotalsForRunModel_(runModel.incomeRules || []);
 
   var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.INCOME);
   if (!sheet) {
@@ -1019,7 +1066,7 @@ function updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel) {
     return totals;
   }
 
-  var activeScenarioId = normalizeScenario_(scenarioModel.scenarioId);
+  var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var out = rows.map(function (row) {
     var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
@@ -1051,9 +1098,9 @@ function updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel) {
   return totals;
 }
 
-function updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel) {
-  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
-  var totals = buildExpenseMonthlyTotalsForScenarioModel_(scenarioModel.expenseRules || []);
+function updateExpenseMonthlyTotalsForRunModel_(runModel) {
+  runModel = runModel || buildRunModel_(Config.SCENARIOS.DEFAULT);
+  var totals = buildExpenseMonthlyTotalsForRunModel_(runModel.expenseRules || []);
 
   var sheet = SpreadsheetApp.getActive().getSheetByName(Config.SHEETS.EXPENSE);
   if (!sheet) {
@@ -1086,7 +1133,7 @@ function updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel) {
     return totals;
   }
 
-  var activeScenarioId = normalizeScenario_(scenarioModel.scenarioId);
+  var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var out = rows.map(function (row) {
     var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
@@ -1118,17 +1165,17 @@ function updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel) {
   return totals;
 }
 
-function updateTransferMonthlyTotalsForScenarioModel_(
-  scenarioModel,
+function updateTransferMonthlyTotalsForRunModel_(
+  runModel,
   incomeTotalsByAccount,
   expenseTotalsByAccount
 ) {
-  scenarioModel = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  runModel = runModel || buildRunModel_(Config.SCENARIOS.DEFAULT);
   incomeTotalsByAccount = normalizeAccountTotalsKeys_(incomeTotalsByAccount);
   expenseTotalsByAccount = normalizeAccountTotalsKeys_(expenseTotalsByAccount);
-  var transferTotals = buildTransferMonthlyTotalsForScenarioModel_(
-    scenarioModel.transferRules || [],
-    scenarioModel.accounts || [],
+  var transferTotals = buildTransferMonthlyTotalsForRunModel_(
+    runModel.transferRules || [],
+    runModel.accounts || [],
     incomeTotalsByAccount,
     expenseTotalsByAccount
   );
@@ -1169,14 +1216,14 @@ function updateTransferMonthlyTotalsForScenarioModel_(
   }
 
   var accountBalances = {};
-  (scenarioModel.accounts || []).forEach(function (account) {
+  (runModel.accounts || []).forEach(function (account) {
     if (!account || !account.name) {
       return;
     }
     accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
   });
 
-  var activeScenarioId = normalizeScenario_(scenarioModel.scenarioId);
+  var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var out = rows.map(function (row) {
     return [row[totalIdx]];
@@ -1286,7 +1333,7 @@ function resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances,
   return null;
 }
 
-function updateAccountMonthlyFlowAveragesForScenarioModel_(
+function updateAccountMonthlyFlowAveragesForRunModel_(
   scenarioId,
   accounts,
   incomeTotalsByAccount,
@@ -1852,15 +1899,15 @@ function isValidAccountSummaryNumber_(value) {
 }
 
 function updateExpenseMonthlyTotals_() {
-  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
-  return updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
+  var runModel = buildRunModel_(Config.SCENARIOS.DEFAULT);
+  return updateExpenseMonthlyTotalsForRunModel_(runModel);
 }
 
 function updateAccountMonthlyFlowAverages_(incomeTotalsByAccount, transferTotals, expenseTotalsByAccount) {
-  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
-  updateAccountMonthlyFlowAveragesForScenarioModel_(
+  var runModel = buildRunModel_(Config.SCENARIOS.DEFAULT);
+  updateAccountMonthlyFlowAveragesForRunModel_(
     Config.SCENARIOS.DEFAULT,
-    scenarioModel.accounts || [],
+    runModel.accounts || [],
     normalizeAccountTotalsKeys_(incomeTotalsByAccount),
     normalizeTransferTotalsKeys_(transferTotals),
     normalizeAccountTotalsKeys_(expenseTotalsByAccount)
@@ -1877,24 +1924,24 @@ function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {
 }
 
 function updateIncomeMonthlyTotals_() {
-  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
-  return updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
+  var runModel = buildRunModel_(Config.SCENARIOS.DEFAULT);
+  return updateIncomeMonthlyTotalsForRunModel_(runModel);
 }
 
 function updateTransferMonthlyTotals_(incomeTotalsByAccount, expenseTotalsByAccount) {
-  var scenarioModel = buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+  var runModel = buildRunModel_(Config.SCENARIOS.DEFAULT);
   var normalizedIncomeTotals = normalizeAccountTotalsKeys_(incomeTotalsByAccount);
   var normalizedExpenseTotals = normalizeAccountTotalsKeys_(expenseTotalsByAccount);
 
   if (!Object.keys(normalizedIncomeTotals).length) {
-    normalizedIncomeTotals = updateIncomeMonthlyTotalsForScenarioModel_(scenarioModel);
+    normalizedIncomeTotals = updateIncomeMonthlyTotalsForRunModel_(runModel);
   }
   if (!Object.keys(normalizedExpenseTotals).length) {
-    normalizedExpenseTotals = updateExpenseMonthlyTotalsForScenarioModel_(scenarioModel);
+    normalizedExpenseTotals = updateExpenseMonthlyTotalsForRunModel_(runModel);
   }
 
-  return updateTransferMonthlyTotalsForScenarioModel_(
-    scenarioModel,
+  return updateTransferMonthlyTotalsForRunModel_(
+    runModel,
     normalizedIncomeTotals,
     normalizedExpenseTotals
   );
@@ -1997,15 +2044,16 @@ function monthlyFactorForRecurrence_(frequency, repeatEvery) {
   return periodsPerYear / 12;
 }
 
-function buildJournalArtifactsForScenarioModel_(scenarioModel) {
-  var model = scenarioModel || buildScenarioModel_(Config.SCENARIOS.DEFAULT);
+function buildJournalArtifactsForRunModel_(runModel) {
+  var model = runModel || buildRunModelWithExtensions_(Config.SCENARIOS.DEFAULT);
   var activeScenarioId = resolveScenarioId_(model.scenarioId);
   var accounts = model.accounts || [];
   assertUniqueScenarioAccountNames_(activeScenarioId, accounts);
   var accountTypes = buildAccountTypeMap_(accounts);
-  var policies = model.policies || [];
-  var events = CoreCompileRules.buildSortedEventsForScenarioModel(model);
-  var journalData = CoreApplyEvents.buildJournalRows({
+  var runExtensions = buildRunExtensions_(model);
+  var policies = runExtensions.policies || [];
+  var events = CoreCompileRules.buildSortedEvents(model);
+  var journalData = CoreApplyEvents.applyEventsToJournal({
     accounts: accounts,
     events: events,
     policies: policies,
@@ -2019,7 +2067,7 @@ function buildJournalArtifactsForScenarioModel_(scenarioModel) {
   };
 }
 
-function runJournalForScenarioIds_(scenarioIds) {
+function runJournalForIds_(scenarioIds) {
   var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
   ids = ids
     .map(function (value) { return resolveScenarioId_(value); })
@@ -2038,7 +2086,7 @@ function runJournalForScenarioIds_(scenarioIds) {
   try {
     toastStep_('Reading input sheets...');
     var artifacts = ids.map(function (scenarioId) {
-      return buildJournalArtifactsForScenarioModel_(buildScenarioModel_(scenarioId));
+      return buildJournalArtifactsForRunModel_(buildRunModelWithExtensions_(scenarioId));
     });
 
     toastStep_('Combining journal rows...');
@@ -2093,6 +2141,11 @@ function runJournalForScenarioIds_(scenarioIds) {
   }
 }
 
+function runJournalForScenarioIds_(scenarioIds) {
+  // Deprecated wrapper: use runJournalForIds_.
+  runJournalForIds_(scenarioIds);
+}
+
 function getJournalBaseColumnCount_() {
   if (typeof Schema !== 'undefined' && Schema && Array.isArray(Schema.outputs)) {
     var journalSpec = Schema.outputs.filter(function (spec) {
@@ -2106,7 +2159,7 @@ function getJournalBaseColumnCount_() {
 }
 
 function buildJournalRows_(accounts, events, policies, scenarioId) {
-  return CoreApplyEvents.buildJournalRows({
+  return CoreApplyEvents.applyEventsToJournal({
     accounts: accounts || [],
     events: events || [],
     policies: policies || [],

@@ -2,6 +2,9 @@
 const Events = {
   buildIncomeEvents: function (incomeRules) {
     return incomeRules.flatMap(function (rule) {
+      if (!rule || !rule.paidTo) {
+        return [];
+      }
       var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,
@@ -27,6 +30,9 @@ const Events = {
 
   buildExpenseEvents: function (expenseRules) {
     return expenseRules.flatMap(function (rule) {
+      if (!rule || !rule.paidFrom) {
+        return [];
+      }
       var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,
@@ -61,6 +67,9 @@ const Events = {
 
   buildTransferEvents: function (transferRules) {
     return transferRules.flatMap(function (rule) {
+      if (!rule || !rule.paidFrom || !rule.paidTo) {
+        return [];
+      }
       var dates = Recurrence.expand({
         startDate: rule.startDate,
         frequency: rule.frequency,

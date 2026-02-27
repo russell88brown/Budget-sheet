@@ -1,5 +1,6 @@
-// Builds a single scenario-sliced model shared by run pipelines.
-const ScenarioModel = {
+// Builds a single run model shared by run pipelines.
+// Core model scope is Accounts + Income + Transfers + Expenses.
+const CoreRunModel = {
   build: function (scenarioId) {
     var activeScenarioId = normalizeScenario_(scenarioId);
     var accounts = filterScenarioRowsForModel_(Readers.readAccounts(), activeScenarioId)
@@ -12,14 +13,23 @@ const ScenarioModel = {
       incomeRules: filterScenarioRowsForModel_(Readers.readIncome(), activeScenarioId),
       transferRules: filterScenarioRowsForModel_(Readers.readTransfers(), activeScenarioId),
       expenseRules: filterScenarioRowsForModel_(Readers.readExpenses(), activeScenarioId),
-      policies: filterScenarioRowsForModel_(Readers.readPolicies(), activeScenarioId),
-      goals: filterScenarioRowsForModel_(Readers.readGoals(), activeScenarioId),
     };
+  },
+
+  withExtensions: function (scenarioId) {
+    var model = CoreRunModel.build(scenarioId);
+    model.policies = filterScenarioRowsForModel_(Readers.readPolicies(), model.scenarioId);
+    model.goals = filterScenarioRowsForModel_(Readers.readGoals(), model.scenarioId);
+    return model;
   },
 };
 
-function buildScenarioModel_(scenarioId) {
-  return ScenarioModel.build(scenarioId);
+function buildRunModel_(scenarioId) {
+  return CoreRunModel.build(scenarioId);
+}
+
+function buildRunModelWithExtensions_(scenarioId) {
+  return CoreRunModel.withExtensions(scenarioId);
 }
 
 function filterScenarioRowsForModel_(rows, scenarioId) {
