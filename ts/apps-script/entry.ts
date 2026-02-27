@@ -115,6 +115,7 @@ import {
   getDeficitCoverageNeedForEvent,
   getInterestBucket,
 } from "../core/journalDeficitInterest";
+import { applyAutoDeficitCoverRowsBeforeEvent } from "../core/journalAutoDeficit";
 import {
   alignToWindow,
   expandRecurrence,
@@ -211,6 +212,7 @@ export const TypedBudget = {
   accrueDailyInterest,
   computeInterestAmount,
   getInterestBucket,
+  applyAutoDeficitCoverRowsBeforeEvent,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

@@ -832,6 +832,39 @@ function getInterestBucketTyped_(runState, accountName) {
   return null;
 }
 
+function applyAutoDeficitCoverRowsBeforeEventTyped_(
+  balances,
+  event,
+  accountTypesByKey,
+  policyRules,
+  forecastAccounts,
+  scenarioId
+) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.applyAutoDeficitCoverRowsBeforeEvent === 'function') {
+    return api.applyAutoDeficitCoverRowsBeforeEvent(
+      balances || {},
+      event || {},
+      accountTypesByKey || {},
+      policyRules || [],
+      forecastAccounts || [],
+      scenarioId,
+      {
+        getApplicableAutoDeficitPolicies: coreGetApplicableAutoDeficitPolicies_,
+        getDeficitCoverageNeedForEvent: coreGetDeficitCoverageNeedForEvent_,
+        accountKey: coreAccountKey_,
+        roundMoney: function (value) { return roundUpCents_(value || 0); },
+        toNumber: toNumber_,
+        applyEventWithSnapshots: coreApplyEventWithSnapshots_,
+        buildJournalEventRows: coreBuildJournalEventRows_,
+        autoDeficitCoverPolicyType: Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+        transferAmountType: Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
+      }
+    );
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

@@ -302,6 +302,18 @@ function coreApplyAutoDeficitCoverRowsBeforeEvent_(
   forecastAccounts,
   scenarioId
 ) {
+  var typed = applyAutoDeficitCoverRowsBeforeEventTyped_(
+    balances,
+    event,
+    accountTypesByKey,
+    policyRules,
+    forecastAccounts,
+    scenarioId
+  );
+  if (typed) {
+    return typed;
+  }
+
   var applicablePolicies = coreGetApplicableAutoDeficitPolicies_(policyRules, event);
   if (!applicablePolicies.length) {
     return [];
