@@ -827,6 +827,17 @@ function formatDuplicateAccountErrorMessageTyped_(scenarioId, duplicates) {
   return null;
 }
 
+function mapSheetRowsTyped_(headers, values) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapSheetRows === 'function') {
+    return api.mapSheetRows(
+      Array.isArray(headers) ? headers : [],
+      Array.isArray(values) ? values : []
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

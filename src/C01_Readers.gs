@@ -211,6 +211,10 @@ function readSheetRows_(sheetName) {
 
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var typed = mapSheetRowsTyped_(headers, values);
+  if (typed) {
+    return typed;
+  }
 
   return values
     .map(function (row) {

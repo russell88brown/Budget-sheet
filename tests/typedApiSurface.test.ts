@@ -44,6 +44,7 @@ const required = [
   "buildRunLogEntryRow",
   "isRowInActiveScenario",
   "formatDuplicateAccountErrorMessage",
+  "mapSheetRows",
 ];
 
 for (const key of required) {
