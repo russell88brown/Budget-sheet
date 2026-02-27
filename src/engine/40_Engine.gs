@@ -1170,18 +1170,7 @@ function updateTransferMonthlyTotalsForScenarioModel_(
     var toKey = normalizeAccountLookupKey_(row[toIdx]);
     var monthlyTotal = null;
     var behavior = normalizeTransferType_(row[typeIdx], amount);
-    var requiresAmount =
-      behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
-      behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT ||
-      behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT;
-    if (
-      include &&
-      recurring &&
-      recurrence.frequency &&
-      fromKey &&
-      toKey &&
-      (!requiresAmount || (amount !== null && amount >= 0))
-    ) {
+    if (shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fromKey, toKey, behavior, amount)) {
       var factor = monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery);
       if (factor > 0) {
         if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
@@ -1191,14 +1180,8 @@ function updateTransferMonthlyTotalsForScenarioModel_(
             toKey: toKey,
             keepAmount: amount || 0,
           });
-        } else if (
-          behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
-          behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT
-        ) {
-          monthlyTotal = roundUpCents_(amount * factor);
-        } else if (behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
-          var debt = roundUpCents_(Math.max(0, -(accountBalances[toKey] || 0)));
-          monthlyTotal = roundUpCents_(debt * factor);
+        } else {
+          monthlyTotal = resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances, toKey);
         }
       }
     }
@@ -1230,6 +1213,38 @@ function updateTransferMonthlyTotalsForScenarioModel_(
 
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return normalizeTransferTotalsKeys_({ credits: credits, debits: debits });
+}
+
+function shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fromKey, toKey, behavior, amount) {
+  if (!include || !recurring || !recurrence || !recurrence.frequency || !fromKey || !toKey) {
+    return false;
+  }
+  if (!isTransferAmountRequiredForMonthlyTotal_(behavior)) {
+    return true;
+  }
+  return amount !== null && amount >= 0;
+}
+
+function isTransferAmountRequiredForMonthlyTotal_(behavior) {
+  return (
+    behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
+    behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT ||
+    behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT
+  );
+}
+
+function resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances, toKey) {
+  if (
+    behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
+    behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT
+  ) {
+    return roundUpCents_(amount * factor);
+  }
+  if (behavior === Config.TRANSFER_TYPES.REPAYMENT_ALL) {
+    var debt = roundUpCents_(Math.max(0, -(accountBalances[toKey] || 0)));
+    return roundUpCents_(debt * factor);
+  }
+  return null;
 }
 
 function updateAccountMonthlyFlowAveragesForScenarioModel_(
@@ -1795,44 +1810,6 @@ function isValidAccountSummaryNumber_(value) {
     return true;
   }
   return typeof value === 'number' && !isNaN(value);
-}
-
-var EVENT_SORT_ORDER_ = [
-  'Income',
-  'Transfer:' + Config.TRANSFER_TYPES.TRANSFER_AMOUNT,
-  'Transfer:' + Config.TRANSFER_TYPES.REPAYMENT_AMOUNT,
-  'Transfer:' + Config.TRANSFER_TYPES.REPAYMENT_ALL,
-  'Expense',
-  'InterestAccrual',
-  'Interest',
-  'Transfer:' + Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
-];
-
-var EVENT_SORT_ORDER_LOOKUP_ = EVENT_SORT_ORDER_.reduce(function (lookup, key, idx) {
-  lookup[key] = idx;
-  return lookup;
-}, {});
-
-function getEventSortKey_(event) {
-  if (!event || !event.kind) {
-    return '';
-  }
-  if (event.kind === 'Transfer') {
-    var behavior = normalizeTransferType_(event.transferBehavior || event.behavior, event.amount);
-    return 'Transfer:' + behavior;
-  }
-  if (event.kind === 'Interest' && event.interestAccrual === true) {
-    return 'InterestAccrual';
-  }
-  return event.kind;
-}
-
-function eventSortPriority_(event) {
-  var key = getEventSortKey_(event);
-  if (Object.prototype.hasOwnProperty.call(EVENT_SORT_ORDER_LOOKUP_, key)) {
-    return EVENT_SORT_ORDER_LOOKUP_[key];
-  }
-  return EVENT_SORT_ORDER_.length + 1;
 }
 
 function updateExpenseMonthlyTotals_() {
