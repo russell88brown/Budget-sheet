@@ -5,7 +5,7 @@
 - Start date (YYYY-MM-DD): 2026-02-27
 - End date (YYYY-MM-DD): 2026-02-27
 - Owner: User + Codex
-- Branch: `codex/skill-changes`
+- Branch: `2026-02-27_feat_codex-skill-changes`
 
 ## Objective
 Consolidate Codex workflow into one skill and one metadata structure under `codex/`.

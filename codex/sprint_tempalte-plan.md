@@ -5,10 +5,14 @@
 - Start date (YYYY-MM-DD): YYYY-MM-DD
 - End date (YYYY-MM-DD): YYYY-MM-DD
 - Owner: Team/Person
-- Branch: user-driven (default `sprint/<sprint-id>` or project convention)
+- Branch: `feat/<slug>`
 
 ## Objective
 Describe the single most important sprint outcome in one sentence.
+
+## Desired End State
+- TypeScript owns most business logic and tests.
+- Apps Script files remain runtime wrappers/integration boundaries.
 
 ## Scope In
 - In-scope item 1
