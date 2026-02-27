@@ -71,6 +71,11 @@ function coreBuildOpeningRows_(accounts, date, forecastAccounts, balances, scena
 }
 
 function coreBuildBalanceMap_(accounts) {
+  var typed = buildBalanceMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
   var map = {};
   accounts.forEach(function (account) {
     var key = coreAccountKey_(account && account.name);
@@ -83,6 +88,11 @@ function coreBuildBalanceMap_(accounts) {
 }
 
 function coreBuildForecastableMap_(accounts) {
+  var typed = buildForecastableMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
   var map = {};
   accounts.forEach(function (account) {
     var key = coreAccountKey_(account && account.name);
@@ -95,6 +105,11 @@ function coreBuildForecastableMap_(accounts) {
 }
 
 function coreBuildForecastBalanceCells_(balances, forecastAccounts) {
+  var typed = buildForecastBalanceCellsTyped_(balances, forecastAccounts);
+  if (typed) {
+    return typed;
+  }
+
   return forecastAccounts.map(function (name) {
     return balances[coreAccountKey_(name)] || 0;
   });
@@ -178,6 +193,11 @@ function coreBuildJournalEventRows_(
 }
 
 function coreBuildAlerts_(cashNegative, creditPaidOff, explicitAlert) {
+  var typed = buildAlertsTyped_(cashNegative, creditPaidOff, explicitAlert);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var alerts = [];
   if (cashNegative) {
     alerts.push('NEGATIVE_CASH');

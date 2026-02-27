@@ -932,6 +932,196 @@ var TypedBudget = (() => {
     return typeof value === "number" && !Number.isNaN(value);
   }
 
+  // ts/core/monthlyReconciliation.ts
+  function monthKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+  function reconcileMonthlyWithDaily(monthly, daily, ctx) {
+    if (!monthly || !monthly.rows || !monthly.rows.length) {
+      return "Monthly summary has no rows for selected tag set.";
+    }
+    if (!daily || !daily.rows || !daily.rows.length) {
+      return "Monthly reconciliation failed: Daily summary has no rows.";
+    }
+    const includeScenarioColumn = daily.includeScenarioColumn === true;
+    const dailyScenarioIndex = includeScenarioColumn ? 1 : -1;
+    const dailyCashIndex = includeScenarioColumn ? 2 : 1;
+    const dailyDebtIndex = includeScenarioColumn ? 3 : 2;
+    const dailyNetIndex = includeScenarioColumn ? 4 : 3;
+    const dailyAccountStart = includeScenarioColumn ? 5 : 4;
+    const monthlyScenarioIndex = monthly.includeScenarioColumn === true ? 1 : -1;
+    const monthlyCashIndex = monthlyScenarioIndex !== -1 ? 2 : 1;
+    const monthlyDebtIndex = monthlyScenarioIndex !== -1 ? 3 : 2;
+    const monthlyNetIndex = monthlyScenarioIndex !== -1 ? 4 : 3;
+    const monthlyAccountStart = monthlyScenarioIndex !== -1 ? 5 : 4;
+    const dailyByMonth = {};
+    daily.rows.forEach((row) => {
+      const date = ctx.normalizeDate(row[0]);
+      const baseMonthKey = monthKey(date);
+      const scenarioPart = dailyScenarioIndex === -1 ? "" : ctx.normalizeTag(row[dailyScenarioIndex]);
+      const key = dailyScenarioIndex === -1 ? baseMonthKey : `${scenarioPart}|${baseMonthKey}`;
+      if (!dailyByMonth[key]) {
+        dailyByMonth[key] = [];
+      }
+      dailyByMonth[key].push(row);
+    });
+    const monthlyByMonth = {};
+    monthly.rows.forEach((row) => {
+      const monthDate = ctx.normalizeDate(row[0]);
+      const baseMonthKey = monthKey(monthDate);
+      const scenarioPart = monthlyScenarioIndex === -1 ? "" : ctx.normalizeTag(row[monthlyScenarioIndex]);
+      const key = monthlyScenarioIndex === -1 ? baseMonthKey : `${scenarioPart}|${baseMonthKey}`;
+      monthlyByMonth[key] = row;
+    });
+    const monthKeys = Object.keys(dailyByMonth).sort();
+    if (monthKeys.length !== Object.keys(monthlyByMonth).length) {
+      return "Monthly reconciliation failed: month row count does not match Daily.";
+    }
+    for (const key of monthKeys) {
+      const monthRows = dailyByMonth[key];
+      const monthRow = monthlyByMonth[key];
+      if (!monthRow) {
+        return `Monthly reconciliation failed: missing month row for ${key}.`;
+      }
+      const first = monthRows[0];
+      const last = monthRows[monthRows.length - 1];
+      if (!ctx.valuesWithinTolerance(monthRow[monthlyCashIndex], last[dailyCashIndex])) {
+        return `Monthly reconciliation failed: Total Cash mismatch for ${key}.`;
+      }
+      if (!ctx.valuesWithinTolerance(monthRow[monthlyDebtIndex], last[dailyDebtIndex])) {
+        return `Monthly reconciliation failed: Total Debt mismatch for ${key}.`;
+      }
+      if (!ctx.valuesWithinTolerance(monthRow[monthlyNetIndex], last[dailyNetIndex])) {
+        return `Monthly reconciliation failed: Net Position mismatch for ${key}.`;
+      }
+      const accountCount = (daily.accountNames || []).length;
+      for (let i = 0; i < accountCount; i += 1) {
+        const dailyIndex = dailyAccountStart + i;
+        const monthlyIndex = monthlyAccountStart + i * 4;
+        const startValue = typeof first[dailyIndex] === "number" ? first[dailyIndex] : 0;
+        const endValue = typeof last[dailyIndex] === "number" ? last[dailyIndex] : 0;
+        let minValue = startValue;
+        let maxValue = startValue;
+        monthRows.forEach((dayRow) => {
+          const value = typeof dayRow[dailyIndex] === "number" ? dayRow[dailyIndex] : 0;
+          if (value < minValue) minValue = value;
+          if (value > maxValue) maxValue = value;
+        });
+        if (!ctx.valuesWithinTolerance(monthRow[monthlyIndex], minValue)) {
+          return `Monthly reconciliation failed: Min mismatch for ${key}.`;
+        }
+        if (!ctx.valuesWithinTolerance(monthRow[monthlyIndex + 1], maxValue)) {
+          return `Monthly reconciliation failed: Max mismatch for ${key}.`;
+        }
+        if (!ctx.valuesWithinTolerance(monthRow[monthlyIndex + 2], endValue - startValue)) {
+          return `Monthly reconciliation failed: Net Change mismatch for ${key}.`;
+        }
+        if (!ctx.valuesWithinTolerance(monthRow[monthlyIndex + 3], endValue)) {
+          return `Monthly reconciliation failed: Ending mismatch for ${key}.`;
+        }
+      }
+    }
+    return null;
+  }
+
+  // ts/core/journalAssembly.ts
+  function buildAccountTypeMap(accounts) {
+    const map = {};
+    (accounts || []).forEach((account) => {
+      const name = account?.name;
+      if (!name) return;
+      map[String(name)] = account?.type;
+    });
+    return map;
+  }
+  function deriveJournalTransactionType(event) {
+    if (!event || !event.kind) {
+      return "";
+    }
+    if (event.kind === "Income") return "Income";
+    if (event.kind === "Expense") return "Expense";
+    if (event.kind === "Transfer") {
+      const transferDetail = event.behavior || event.transferBehavior;
+      if (transferDetail) {
+        return `Transfer (${transferDetail})`;
+      }
+      return "Transfer";
+    }
+    if (event.kind === "Interest") return "Interest";
+    return String(event.kind);
+  }
+  function mergeJournalArtifacts(artifacts, baseColumnCount) {
+    const forecastLookup = {};
+    const globalForecastAccounts = [];
+    const accountTypes = {};
+    (artifacts || []).forEach((artifact) => {
+      (artifact?.forecastAccounts || []).forEach((name) => {
+        if (forecastLookup[name]) return;
+        forecastLookup[name] = true;
+        globalForecastAccounts.push(name);
+      });
+      Object.keys(artifact?.accountTypes || {}).forEach((name) => {
+        if (!accountTypes[name]) {
+          accountTypes[name] = (artifact?.accountTypes || {})[name];
+        }
+      });
+    });
+    const combinedRows = [];
+    (artifacts || []).forEach((artifact) => {
+      const localIndex = {};
+      (artifact?.forecastAccounts || []).forEach((name, idx) => {
+        localIndex[name] = idx;
+      });
+      (artifact?.rows || []).forEach((row) => {
+        const base = row.slice(0, baseColumnCount);
+        const localSnapshot = row.slice(baseColumnCount);
+        const aligned = globalForecastAccounts.map((name) => {
+          const idx = localIndex[name];
+          if (idx === void 0) return "";
+          return idx < localSnapshot.length ? localSnapshot[idx] : "";
+        });
+        combinedRows.push(base.concat(aligned));
+      });
+    });
+    return {
+      combinedRows,
+      forecastAccounts: globalForecastAccounts,
+      accountTypes
+    };
+  }
+
+  // ts/core/journalApplyHelpers.ts
+  function buildBalanceMap(accounts, accountKey, roundMoney) {
+    const map = {};
+    (accounts || []).forEach((account) => {
+      const key = accountKey(account?.name);
+      if (!key) return;
+      map[key] = roundMoney(account?.balance || 0);
+    });
+    return map;
+  }
+  function buildForecastableMap(accounts, accountKey) {
+    const map = {};
+    (accounts || []).forEach((account) => {
+      const key = accountKey(account?.name);
+      if (!key) return;
+      map[key] = account?.forecast === true;
+    });
+    return map;
+  }
+  function buildForecastBalanceCells(balances, forecastAccounts, accountKey) {
+    return (forecastAccounts || []).map((name) => {
+      return (balances || {})[accountKey(name)] || 0;
+    });
+  }
+  function buildAlerts(cashNegative, creditPaidOff, explicitAlert) {
+    const alerts = [];
+    if (cashNegative) alerts.push("NEGATIVE_CASH");
+    if (creditPaidOff) alerts.push("CREDIT_PAID_OFF");
+    if (explicitAlert) alerts.push(String(explicitAlert));
+    return alerts.join(" | ");
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1128,7 +1318,15 @@ var TypedBudget = (() => {
     normalizeInterestFrequency,
     normalizeAccountType,
     isValidNumberOrBlank,
-    isValidAccountSummaryNumber
+    isValidAccountSummaryNumber,
+    reconcileMonthlyWithDaily,
+    buildAccountTypeMap,
+    deriveJournalTransactionType,
+    mergeJournalArtifacts,
+    buildBalanceMap,
+    buildForecastableMap,
+    buildForecastBalanceCells,
+    buildAlerts
   };
   return __toCommonJS(entry_exports);
 })();

@@ -91,6 +91,18 @@ import {
   normalizeInterestFrequency,
   normalizeInterestMethod,
 } from "../core/journalNormalization";
+import { reconcileMonthlyWithDaily } from "../core/monthlyReconciliation";
+import {
+  buildAccountTypeMap,
+  deriveJournalTransactionType,
+  mergeJournalArtifacts,
+} from "../core/journalAssembly";
+import {
+  buildAlerts,
+  buildBalanceMap,
+  buildForecastBalanceCells,
+  buildForecastableMap,
+} from "../core/journalApplyHelpers";
 import {
   alignToWindow,
   expandRecurrence,
@@ -170,6 +182,14 @@ export const TypedBudget = {
   normalizeAccountType,
   isValidNumberOrBlank,
   isValidAccountSummaryNumber,
+  reconcileMonthlyWithDaily,
+  buildAccountTypeMap,
+  deriveJournalTransactionType,
+  mergeJournalArtifacts,
+  buildBalanceMap,
+  buildForecastableMap,
+  buildForecastBalanceCells,
+  buildAlerts,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

@@ -258,6 +258,14 @@ function assertDailyReconcilesWithJournal_(daily, scenarioId) {
 }
 
 function assertMonthlyReconcilesWithDaily_(monthly, daily) {
+  var typedError = reconcileMonthlyWithDailyTyped_(monthly, daily);
+  if (typedError === null) {
+    return;
+  }
+  if (typedError) {
+    throw new Error(typedError);
+  }
+
   if (!monthly || !monthly.rows || !monthly.rows.length) {
     throw new Error('Monthly summary has no rows for selected tag set.');
   }

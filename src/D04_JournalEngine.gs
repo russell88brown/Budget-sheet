@@ -2171,44 +2171,47 @@ function runJournalForIds_(scenarioIds) {
     });
 
     toastStep_('Combining journal rows...');
-    var forecastLookup = {};
-    var globalForecastAccounts = [];
-    var accountTypes = {};
-    artifacts.forEach(function (artifact) {
-      (artifact.forecastAccounts || []).forEach(function (name) {
-        if (forecastLookup[name]) {
-          return;
-        }
-        forecastLookup[name] = true;
-        globalForecastAccounts.push(name);
-      });
-      Object.keys(artifact.accountTypes || {}).forEach(function (name) {
-        if (!accountTypes[name]) {
-          accountTypes[name] = artifact.accountTypes[name];
-        }
-      });
-    });
-
-    var combinedRows = [];
     var baseColumnCount = getJournalBaseColumnCount_();
-    artifacts.forEach(function (artifact) {
-      var localIndex = {};
-      (artifact.forecastAccounts || []).forEach(function (name, idx) {
-        localIndex[name] = idx;
-      });
-      (artifact.rows || []).forEach(function (row) {
-        var base = row.slice(0, baseColumnCount);
-        var localSnapshot = row.slice(baseColumnCount);
-        var aligned = globalForecastAccounts.map(function (name) {
-          var idx = localIndex[name];
-          if (idx === undefined) {
-            return '';
+    var merged = mergeJournalArtifactsTyped_(artifacts, baseColumnCount);
+    var globalForecastAccounts = merged ? merged.forecastAccounts : [];
+    var accountTypes = merged ? merged.accountTypes : {};
+    var combinedRows = merged ? merged.combinedRows : [];
+    if (!merged) {
+      var forecastLookup = {};
+      artifacts.forEach(function (artifact) {
+        (artifact.forecastAccounts || []).forEach(function (name) {
+          if (forecastLookup[name]) {
+            return;
           }
-          return idx < localSnapshot.length ? localSnapshot[idx] : '';
+          forecastLookup[name] = true;
+          globalForecastAccounts.push(name);
         });
-        combinedRows.push(base.concat(aligned));
+        Object.keys(artifact.accountTypes || {}).forEach(function (name) {
+          if (!accountTypes[name]) {
+            accountTypes[name] = artifact.accountTypes[name];
+          }
+        });
       });
-    });
+
+      artifacts.forEach(function (artifact) {
+        var localIndex = {};
+        (artifact.forecastAccounts || []).forEach(function (name, idx) {
+          localIndex[name] = idx;
+        });
+        (artifact.rows || []).forEach(function (row) {
+          var base = row.slice(0, baseColumnCount);
+          var localSnapshot = row.slice(baseColumnCount);
+          var aligned = globalForecastAccounts.map(function (name) {
+            var idx = localIndex[name];
+            if (idx === undefined) {
+              return '';
+            }
+            return idx < localSnapshot.length ? localSnapshot[idx] : '';
+          });
+          combinedRows.push(base.concat(aligned));
+        });
+      });
+    }
 
     toastStep_('Writing journal...');
     Writers.writeJournal(combinedRows, globalForecastAccounts, accountTypes);
@@ -2244,6 +2247,11 @@ function buildJournalRows_(accounts, events, policies, scenarioId) {
 }
 
 function buildAccountTypeMap_(accounts) {
+  var typed = buildAccountTypeMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
@@ -2252,6 +2260,11 @@ function buildAccountTypeMap_(accounts) {
 }
 
 function deriveJournalTransactionType_(event) {
+  var typed = deriveJournalTransactionTypeTyped_(event);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (!event || !event.kind) {
     return '';
   }

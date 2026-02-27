@@ -609,6 +609,78 @@ function isValidAccountSummaryNumberTyped_(value) {
   return null;
 }
 
+function reconcileMonthlyWithDailyTyped_(monthly, daily) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.reconcileMonthlyWithDaily === 'function') {
+    return api.reconcileMonthlyWithDaily(monthly || {}, daily || {}, {
+      normalizeDate: normalizeDateTyped_,
+      normalizeTag: normalizeTagTyped_,
+      valuesWithinTolerance: function (left, right) {
+        return valuesWithinToleranceTyped_(left, right, SUMMARY_RECON_TOLERANCE_);
+      },
+    });
+  }
+  return undefined;
+}
+
+function buildAccountTypeMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountTypeMap === 'function') {
+    return api.buildAccountTypeMap(accounts || []);
+  }
+  return null;
+}
+
+function deriveJournalTransactionTypeTyped_(event) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.deriveJournalTransactionType === 'function') {
+    return api.deriveJournalTransactionType(event || {});
+  }
+  return null;
+}
+
+function mergeJournalArtifactsTyped_(artifacts, baseColumnCount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mergeJournalArtifacts === 'function') {
+    return api.mergeJournalArtifacts(artifacts || [], baseColumnCount || 8);
+  }
+  return null;
+}
+
+function buildBalanceMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildBalanceMap === 'function') {
+    return api.buildBalanceMap(accounts || [], coreAccountKey_, function (value) {
+      return roundUpCents_(value || 0);
+    });
+  }
+  return null;
+}
+
+function buildForecastableMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildForecastableMap === 'function') {
+    return api.buildForecastableMap(accounts || [], coreAccountKey_);
+  }
+  return null;
+}
+
+function buildForecastBalanceCellsTyped_(balances, forecastAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildForecastBalanceCells === 'function') {
+    return api.buildForecastBalanceCells(balances || {}, forecastAccounts || [], coreAccountKey_);
+  }
+  return null;
+}
+
+function buildAlertsTyped_(cashNegative, creditPaidOff, explicitAlert) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAlerts === 'function') {
+    return api.buildAlerts(cashNegative, creditPaidOff, explicitAlert);
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {
