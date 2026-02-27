@@ -15,12 +15,11 @@ The agent MUST follow this file when doing sprint work.
 
 1. Sprint ID format MUST be: `YYYY-MM-DD_feat_<kebab-name>`
 2. Sprint docs MUST live in: `codex/branch/<sprint-id>/`
-3. Active sprint marker MUST be: `codex/current-sprint`
-4. Active phase marker MUST be: `codex/current-phase`
-5. One sprint MUST use one git branch.
+3. Active sprint/task marker MUST be: `codex/current-sprint`
+4. One sprint MUST use one git branch.
 
-`codex/current-phase` format MUST be:
-`<phase>|<status>`
+`codex/current-sprint` format MUST be:
+`<sprint-id>|<phase>|<status>`
 
 Allowed `phase` values:
 - `create_plan_from_prompt`
@@ -40,7 +39,7 @@ The agent receives:
 1. User prompt (feature/goal request)
 2. Repository state
 3. This `SKILL.md`
-4. Current action/task state from `codex/current-phase`
+4. Current action/task state from `codex/current-sprint`
 
 The agent MUST derive:
 1. `slug`: concise `kebab-name` from prompt
@@ -60,8 +59,7 @@ The agent MUST derive:
    - `sprint-plan.md`
    - `PR.md`
 5. If missing, create them from templates in Section 10.
-6. Set `codex/current-sprint` to `<sprint-id>`.
-7. Set `codex/current-phase` to `create_plan_from_prompt|in_progress`.
+6. Set `codex/current-sprint` to `<sprint-id>|create_plan_from_prompt|in_progress`.
 8. Read `sprint-plan.md` and `PR.md` before coding.
 
 ## 5) Execution Rules (MUST)
@@ -93,7 +91,7 @@ Use the phase that matches the current task being performed:
 6. Final Checks And Housekeeping (Pre-PR)
    - Run relevant validation, ensure docs are current, and clean up residual process debt.
 
-The agent MUST update `codex/current-phase` when sprint docs are updated.
+The agent MUST update `codex/current-sprint` phase/status when sprint docs are updated.
 
 ## 6) Validation Rules (MUST)
 

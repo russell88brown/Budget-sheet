@@ -10,9 +10,17 @@ const repoRoot = path.resolve(__dirname, '..');
 const codexRoot = path.join(repoRoot, 'codex');
 const branchDir = path.join(codexRoot, 'branch');
 const currentSprintFile = path.join(codexRoot, 'current-sprint');
-const currentPhaseFile = path.join(codexRoot, 'current-phase');
 const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
 const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
+const allowedPhaseValues = [
+  'create_plan_from_prompt',
+  'review_and_finalize_plan',
+  'execute_task_chunk',
+  'review_pr_against_code',
+  'determine_remaining_actions',
+  'final_checks_and_housekeeping',
+];
+const allowedStatusValues = ['in_progress', 'completed'];
 
 const requiredSections = {
   'sprint-plan.md': [
@@ -55,6 +63,17 @@ function readFile(filePath) {
 
 function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf8');
+}
+
+function parseCurrentSprintState(rawValue) {
+  const parts = rawValue.trim().split('|');
+  if (parts.length === 1) {
+    return { sprintId: parts[0], phase: null, status: null };
+  }
+  if (parts.length !== 3) {
+    return null;
+  }
+  return { sprintId: parts[0], phase: parts[1], status: parts[2] };
 }
 
 function copyTemplate(templatePath, targetFilePath, sprintId) {
@@ -105,10 +124,9 @@ function startSprint(sprintId, options) {
   copyTemplate(planTemplateFile, path.join(sprintPath, 'sprint-plan.md'), sprintId);
   copyTemplate(prTemplateFile, path.join(sprintPath, 'PR.md'), sprintId);
 
-  writeFile(currentSprintFile, `${sprintId}\n`);
-  info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${sprintId}`);
-  writeFile(currentPhaseFile, 'create_plan_from_prompt|in_progress\n');
-  info(`Updated: ${path.relative(repoRoot, currentPhaseFile)} -> create_plan_from_prompt|in_progress`);
+  const stateValue = `${sprintId}|create_plan_from_prompt|in_progress`;
+  writeFile(currentSprintFile, `${stateValue}\n`);
+  info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${stateValue}`);
 
   if (!options.noBranch) {
     runGitCreateBranch(`sprint/${sprintId}`);
@@ -193,21 +211,24 @@ function checkSprint() {
     fail(`Missing ${path.relative(repoRoot, currentSprintFile)}. Run sprint:start first.`);
   }
 
-  const sprintId = readFile(currentSprintFile).trim();
-  if (!sprintId) {
+  const state = parseCurrentSprintState(readFile(currentSprintFile));
+  if (!state || !state.sprintId) {
     fail(`${path.relative(repoRoot, currentSprintFile)} is empty.`);
   }
+  const sprintId = state.sprintId;
 
   const sprintPath = path.join(branchDir, sprintId);
   if (!fs.existsSync(sprintPath)) {
     fail(`Current sprint folder missing: ${path.relative(repoRoot, sprintPath)}`);
   }
-  if (!fs.existsSync(currentPhaseFile)) {
-    fail(`Missing ${path.relative(repoRoot, currentPhaseFile)}.`);
-  }
-  const phaseStatus = readFile(currentPhaseFile).trim();
-  if (!/^[a-z_]+\|(in_progress|completed)$/.test(phaseStatus)) {
-    fail(`${path.relative(repoRoot, currentPhaseFile)} must match <phase>|<status>.`);
+
+  if (state.phase !== null || state.status !== null) {
+    if (!allowedPhaseValues.includes(state.phase)) {
+      fail(`${path.relative(repoRoot, currentSprintFile)} has invalid phase "${state.phase}".`);
+    }
+    if (!allowedStatusValues.includes(state.status)) {
+      fail(`${path.relative(repoRoot, currentSprintFile)} has invalid status "${state.status}".`);
+    }
   }
 
   const failures = [];
