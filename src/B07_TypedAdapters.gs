@@ -535,6 +535,28 @@ function validatePolicyRowsTyped_(rows, idx, validAccounts) {
   return null;
 }
 
+function validateGoalRowsTyped_(rows, idx, validAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateGoalRows === 'function') {
+    return api.validateGoalRows({
+      rows: Array.isArray(rows) ? rows : [],
+      idx: idx || {},
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      goalFundingPolicies: Config.GOAL_FUNDING_POLICIES,
+      toBoolean: toBoolean_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      hasValidAccountForScenario: function (scenarioId, accountKey) {
+        return hasValidAccountForScenario_(validAccounts || {}, scenarioId, accountKey);
+      },
+      toNumber: toNumber_,
+      toDate: toDate_,
+      toPositiveInt: toPositiveInt_,
+    });
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

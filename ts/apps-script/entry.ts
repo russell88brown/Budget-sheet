@@ -165,6 +165,7 @@ import {
   validateAccountsRows,
 } from "../core/journalAccountRows";
 import { validatePolicyRows } from "../core/journalPolicyRows";
+import { validateGoalRows } from "../core/journalGoalRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -179,6 +180,7 @@ export const TypedBudget = {
   buildAccountLookupFromRows,
   validateAccountsRows,
   validatePolicyRows,
+  validateGoalRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

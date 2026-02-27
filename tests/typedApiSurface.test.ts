@@ -22,6 +22,7 @@ const required = [
   "buildAccountLookupFromRows",
   "validateAccountsRows",
   "validatePolicyRows",
+  "validateGoalRows",
 ];
 
 for (const key of required) {

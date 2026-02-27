@@ -38,6 +38,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Extract `D04_JournalEngine.gs` unknown-scenario row disable transform to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` account lookup/validation row transforms to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` policy-row validation transform to typed core and keep GAS fallback.
+- [x] Extract `D04_JournalEngine.gs` goal-row validation transform to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` policy-row validation transform to typed core and keep GAS fallback.
 
 ## Acceptance Criteria

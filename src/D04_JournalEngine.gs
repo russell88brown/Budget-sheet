@@ -692,60 +692,66 @@ function validateGoalsSheet_(validAccounts) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = 0;
-  values.forEach(function (row, rowIndex) {
-    if (!toBoolean_(row[idx.include])) {
-      return;
-    }
-    var reasons = [];
-    var goalName = row[idx.name] ? String(row[idx.name]).trim() : '';
-    var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
-    var targetAmount = toNumber_(row[idx.targetAmount]);
-    var targetDate = toDate_(row[idx.targetDate]);
-    var fundingAccount = normalizeAccountLookupKey_(row[idx.fundingAccount]);
-    var fundingPolicy = row[idx.fundingPolicy];
-    var amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber_(row[idx.amountPerMonth]);
-    var percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber_(row[idx.percentOfInflow]);
+  var typedGoals = validateGoalRowsTyped_(values, idx, validAccounts);
+  if (typedGoals && Array.isArray(typedGoals.rows) && typeof typedGoals.updated === 'number') {
+    values = typedGoals.rows;
+    updated = typedGoals.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[idx.include])) {
+        return;
+      }
+      var reasons = [];
+      var goalName = row[idx.name] ? String(row[idx.name]).trim() : '';
+      var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
+      var targetAmount = toNumber_(row[idx.targetAmount]);
+      var targetDate = toDate_(row[idx.targetDate]);
+      var fundingAccount = normalizeAccountLookupKey_(row[idx.fundingAccount]);
+      var fundingPolicy = row[idx.fundingPolicy];
+      var amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber_(row[idx.amountPerMonth]);
+      var percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber_(row[idx.percentOfInflow]);
 
-    if (!goalName) {
-      reasons.push('missing goal name');
-    }
-    if (targetAmount === null || targetAmount <= 0) {
-      reasons.push('target amount must be > 0');
-    }
-    if (!targetDate) {
-      reasons.push('invalid target date');
-    }
-    if (!fundingAccount) {
-      reasons.push('missing funding account');
-    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fundingAccount)) {
-      reasons.push('unknown funding account');
-    }
-    if (
-      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.FIXED &&
-      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.LEFTOVER &&
-      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.PERCENT
-    ) {
-      reasons.push('invalid funding policy');
-    }
-    if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
-      reasons.push('invalid priority');
-    }
-    if (fundingPolicy === Config.GOAL_FUNDING_POLICIES.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
-      reasons.push('amount per month must be > 0 for fixed policy');
-    }
-    if (
-      fundingPolicy === Config.GOAL_FUNDING_POLICIES.PERCENT &&
-      (percentOfInflow === null || percentOfInflow <= 0)
-    ) {
-      reasons.push('percent of inflow must be > 0 for percent policy');
-    }
+      if (!goalName) {
+        reasons.push('missing goal name');
+      }
+      if (targetAmount === null || targetAmount <= 0) {
+        reasons.push('target amount must be > 0');
+      }
+      if (!targetDate) {
+        reasons.push('invalid target date');
+      }
+      if (!fundingAccount) {
+        reasons.push('missing funding account');
+      } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fundingAccount)) {
+        reasons.push('unknown funding account');
+      }
+      if (
+        fundingPolicy !== Config.GOAL_FUNDING_POLICIES.FIXED &&
+        fundingPolicy !== Config.GOAL_FUNDING_POLICIES.LEFTOVER &&
+        fundingPolicy !== Config.GOAL_FUNDING_POLICIES.PERCENT
+      ) {
+        reasons.push('invalid funding policy');
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
+        reasons.push('invalid priority');
+      }
+      if (fundingPolicy === Config.GOAL_FUNDING_POLICIES.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
+        reasons.push('amount per month must be > 0 for fixed policy');
+      }
+      if (
+        fundingPolicy === Config.GOAL_FUNDING_POLICIES.PERCENT &&
+        (percentOfInflow === null || percentOfInflow <= 0)
+      ) {
+        reasons.push('percent of inflow must be > 0 for percent policy');
+      }
 
-    if (!reasons.length) {
-      return;
-    }
-    row[idx.include] = false;
-    updated += 1;
-  });
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);

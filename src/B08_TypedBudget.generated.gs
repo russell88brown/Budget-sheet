@@ -2344,6 +2344,71 @@ var TypedBudget = (() => {
     return { rows, updated };
   }
 
+  // ts/core/journalGoalRows.ts
+  function validateGoalRows(params) {
+    const {
+      rows: sourceRows,
+      idx,
+      defaultScenarioId,
+      goalFundingPolicies,
+      toBoolean: toBoolean2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey,
+      hasValidAccountForScenario,
+      toNumber: toNumber2,
+      toDate: toDate2,
+      toPositiveInt: toPositiveInt2
+    } = params;
+    const rows = sourceRows.map((row) => row.slice());
+    let updated = 0;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[idx.include])) {
+        return;
+      }
+      const reasons = [];
+      const goalName = row[idx.name] ? String(row[idx.name]).trim() : "";
+      const rowScenarioId = idx.scenario === -1 ? defaultScenarioId : normalizeScenarioId(row[idx.scenario]);
+      const targetAmount = toNumber2(row[idx.targetAmount]);
+      const targetDate = toDate2(row[idx.targetDate]);
+      const fundingAccount = normalizeAccountLookupKey(row[idx.fundingAccount]);
+      const fundingPolicy = row[idx.fundingPolicy];
+      const amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber2(row[idx.amountPerMonth]);
+      const percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber2(row[idx.percentOfInflow]);
+      if (!goalName) {
+        reasons.push("missing goal name");
+      }
+      if (targetAmount === null || targetAmount <= 0) {
+        reasons.push("target amount must be > 0");
+      }
+      if (!targetDate) {
+        reasons.push("invalid target date");
+      }
+      if (!fundingAccount) {
+        reasons.push("missing funding account");
+      } else if (!hasValidAccountForScenario(rowScenarioId, fundingAccount)) {
+        reasons.push("unknown funding account");
+      }
+      if (fundingPolicy !== goalFundingPolicies.FIXED && fundingPolicy !== goalFundingPolicies.LEFTOVER && fundingPolicy !== goalFundingPolicies.PERCENT) {
+        reasons.push("invalid funding policy");
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== "" && toPositiveInt2(row[idx.priority]) === null) {
+        reasons.push("invalid priority");
+      }
+      if (fundingPolicy === goalFundingPolicies.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
+        reasons.push("amount per month must be > 0 for fixed policy");
+      }
+      if (fundingPolicy === goalFundingPolicies.PERCENT && (percentOfInflow === null || percentOfInflow <= 0)) {
+        reasons.push("percent of inflow must be > 0 for percent policy");
+      }
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+    return { rows, updated };
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
     Config: CONFIG,
@@ -2358,6 +2423,7 @@ var TypedBudget = (() => {
     buildAccountLookupFromRows,
     validateAccountsRows,
     validatePolicyRows,
+    validateGoalRows,
     DEFAULT_TAG: "Base",
     normalizeTag,
     normalizeAvailableTags,
