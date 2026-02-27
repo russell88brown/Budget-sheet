@@ -81,6 +81,10 @@ This project is structured around operational pipeline stages plus shared utilit
   - `core/policyRules`
   - `core/tagScope`
   - `core/summaryStats`
+  - `core/summaryExplainability`
+  - `core/monthlyRecurrence`
+  - `core/transferMonthlyTotals`
+  - `core/accountSummaries`
 - Build command: `npm run build:typed`.
 - Typecheck command: `npm run typecheck`.
 - Test command: `npm test`.

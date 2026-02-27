@@ -1286,6 +1286,19 @@ function updateTransferMonthlyTotalsForRunModel_(
 }
 
 function shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fromKey, toKey, behavior, amount) {
+  var typed = shouldCalculateTransferMonthlyTotalTyped_(
+    include,
+    recurring,
+    recurrence,
+    fromKey,
+    toKey,
+    behavior,
+    amount
+  );
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (!include || !recurring || !recurrence || !recurrence.frequency || !fromKey || !toKey) {
     return false;
   }
@@ -1296,6 +1309,11 @@ function shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fr
 }
 
 function isTransferAmountRequiredForMonthlyTotal_(behavior) {
+  var typed = isTransferAmountRequiredForMonthlyTotalTyped_(behavior);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   return (
     behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
     behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT ||
@@ -1304,6 +1322,11 @@ function isTransferAmountRequiredForMonthlyTotal_(behavior) {
 }
 
 function resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances, toKey) {
+  var typed = resolveTransferMonthlyTotalTyped_(behavior, amount, factor, accountBalances, toKey);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (
     behavior === Config.TRANSFER_TYPES.TRANSFER_AMOUNT ||
     behavior === Config.TRANSFER_TYPES.REPAYMENT_AMOUNT
@@ -1899,6 +1922,11 @@ function updateAccountMonthlyFlowAverages_(incomeTotalsByAccount, transferTotals
 }
 
 function computeEstimatedMonthlyInterest_(balance, ratePercent, method) {
+  var typed = computeEstimatedMonthlyInterestTyped_(balance, ratePercent, method);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var annualRate = ratePercent / 100;
   var monthlyRate = annualRate / 12;
   if (method === Config.INTEREST_METHODS.APY_COMPOUND) {
@@ -1932,6 +1960,11 @@ function updateTransferMonthlyTotals_(incomeTotalsByAccount, expenseTotalsByAcco
 }
 
 function normalizeAccountTotalsKeys_(totalsByAccount) {
+  var typed = normalizeAccountTotalsKeysTyped_(totalsByAccount);
+  if (typed) {
+    return typed;
+  }
+
   var normalized = {};
   if (!totalsByAccount) {
     return normalized;
@@ -1983,6 +2016,11 @@ function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
 }
 
 function normalizeTransferTotalsKeys_(transferTotals) {
+  var typed = normalizeTransferTotalsKeysTyped_(transferTotals);
+  if (typed) {
+    return typed;
+  }
+
   return {
     credits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.credits),
     debits: normalizeAccountTotalsKeys_(transferTotals && transferTotals.debits),
@@ -1990,6 +2028,11 @@ function normalizeTransferTotalsKeys_(transferTotals) {
 }
 
 function getAccountSummaryHeaderIndexes_(headers) {
+  var typed = getAccountSummaryHeaderIndexesTyped_(headers);
+  if (typed) {
+    return typed;
+  }
+
   return {
     credits: headers.indexOf('Money In / Month'),
     debits: headers.indexOf('Money Out / Month'),
@@ -2007,6 +2050,11 @@ function isRecurringExpense_(startDateValue, endDateValue) {
 }
 
 function isRecurringForMonthlyAverage_(rule) {
+  var typed = isRecurringForMonthlyAverageTyped_(rule);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (rule && rule.isSingleOccurrence) {
     return false;
   }
@@ -2021,6 +2069,11 @@ function isRecurringForMonthlyAverage_(rule) {
 }
 
 function monthlyFactorForRecurrence_(frequency, repeatEvery) {
+  var typed = monthlyFactorForRecurrenceTyped_(frequency, repeatEvery);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var periodsPerYear = Recurrence.periodsPerYear(frequency, repeatEvery);
   if (!periodsPerYear) {
     return 0;

@@ -433,6 +433,120 @@ function computeSeriesStatsTyped_(rows, index) {
   return null;
 }
 
+function summarizeNegativeCashTopSourcesTyped_(rows, alertsIndex, amountIndex, sourceRuleIdIndex) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.summarizeNegativeCashTopSourcesFromRows === 'function') {
+    return api.summarizeNegativeCashTopSourcesFromRows(
+      rows || [],
+      alertsIndex,
+      amountIndex,
+      sourceRuleIdIndex,
+      toNumberTyped_,
+      function (value) { return roundUpCents_(value || 0); }
+    );
+  }
+  return null;
+}
+
+function isRecurringForMonthlyAverageTyped_(rule) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isRecurringForMonthlyAverage === 'function') {
+    return api.isRecurringForMonthlyAverage(rule || {}, {
+      toDate: toDateTyped_,
+      normalizeDate: normalizeDateTyped_,
+      periodsPerYear: periodsPerYearTyped_,
+    });
+  }
+  return null;
+}
+
+function monthlyFactorForRecurrenceTyped_(frequency, repeatEvery) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.monthlyFactorForRecurrence === 'function') {
+    return api.monthlyFactorForRecurrence(frequency, repeatEvery, periodsPerYearTyped_);
+  }
+  return null;
+}
+
+function isTransferAmountRequiredForMonthlyTotalTyped_(behavior) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isTransferAmountRequiredForMonthlyTotal === 'function') {
+    return api.isTransferAmountRequiredForMonthlyTotal(behavior, Config.TRANSFER_TYPES);
+  }
+  return null;
+}
+
+function shouldCalculateTransferMonthlyTotalTyped_(include, recurring, recurrence, fromKey, toKey, behavior, amount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.shouldCalculateTransferMonthlyTotal === 'function') {
+    return api.shouldCalculateTransferMonthlyTotal(
+      include,
+      recurring,
+      recurrence || {},
+      fromKey,
+      toKey,
+      behavior,
+      amount,
+      Config.TRANSFER_TYPES
+    );
+  }
+  return null;
+}
+
+function resolveTransferMonthlyTotalTyped_(behavior, amount, factor, accountBalances, toKey) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.resolveTransferMonthlyTotal === 'function') {
+    return api.resolveTransferMonthlyTotal(behavior, amount, factor, accountBalances || {}, toKey, {
+      transferTypes: Config.TRANSFER_TYPES,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+    });
+  }
+  return null;
+}
+
+function normalizeAccountTotalsKeysTyped_(totalsByAccount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeAccountTotalsKeys === 'function') {
+    return api.normalizeAccountTotalsKeys(totalsByAccount || {}, {
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      toNumber: toNumber_,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+    });
+  }
+  return null;
+}
+
+function normalizeTransferTotalsKeysTyped_(transferTotals) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeTransferTotalsKeys === 'function') {
+    return api.normalizeTransferTotalsKeys(transferTotals || { credits: {}, debits: {} }, {
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      toNumber: toNumber_,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+    });
+  }
+  return null;
+}
+
+function getAccountSummaryHeaderIndexesTyped_(headers) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.getAccountSummaryHeaderIndexes === 'function') {
+    return api.getAccountSummaryHeaderIndexes(headers || []);
+  }
+  return null;
+}
+
+function computeEstimatedMonthlyInterestTyped_(balance, ratePercent, method) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeEstimatedMonthlyInterest === 'function') {
+    return api.computeEstimatedMonthlyInterest(balance, ratePercent, method, {
+      apyCompoundMethod: Config.INTEREST_METHODS.APY_COMPOUND,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+    });
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

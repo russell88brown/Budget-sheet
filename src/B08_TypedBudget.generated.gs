@@ -707,6 +707,122 @@ var TypedBudget = (() => {
     };
   }
 
+  // ts/core/summaryExplainability.ts
+  function summarizeNegativeCashTopSourcesFromRows(rows, alertsIndex, amountIndex, sourceRuleIdIndex, toNumber2, roundMoney) {
+    const totals = {};
+    (rows || []).forEach((row) => {
+      const alerts = String(row && row[alertsIndex] || "");
+      if (alerts.indexOf("NEGATIVE_CASH") === -1) {
+        return;
+      }
+      const rawAmount = toNumber2(row && row[amountIndex]);
+      if (rawAmount === null || rawAmount >= 0) {
+        return;
+      }
+      const key = String(row && row[sourceRuleIdIndex] || "").trim() || "(Unattributed)";
+      const amount = Math.abs(rawAmount);
+      if (!totals[key]) {
+        totals[key] = { total: 0, events: 0 };
+      }
+      totals[key].total = roundMoney(totals[key].total + amount);
+      totals[key].events += 1;
+    });
+    const keys = Object.keys(totals).sort((left, right) => {
+      const diff = totals[right].total - totals[left].total;
+      if (diff !== 0) {
+        return diff;
+      }
+      return left < right ? -1 : left > right ? 1 : 0;
+    });
+    return keys.slice(0, 5).map((key) => [key, totals[key].total, totals[key].events]);
+  }
+
+  // ts/core/monthlyRecurrence.ts
+  function isRecurringForMonthlyAverage(rule, ctx) {
+    if (rule && rule.isSingleOccurrence) {
+      return false;
+    }
+    const start = ctx.toDate(rule ? rule.startDate : null);
+    const end = ctx.toDate(rule ? rule.endDate : null);
+    if (!start || !end) {
+      return true;
+    }
+    return ctx.normalizeDate(start).getTime() !== ctx.normalizeDate(end).getTime();
+  }
+  function monthlyFactorForRecurrence(frequency, repeatEvery, periodsPerYear2) {
+    const periods = periodsPerYear2(frequency, repeatEvery);
+    if (!periods) {
+      return 0;
+    }
+    return periods / 12;
+  }
+
+  // ts/core/transferMonthlyTotals.ts
+  function isTransferAmountRequiredForMonthlyTotal(behavior, transferTypes) {
+    return behavior === transferTypes.TRANSFER_AMOUNT || behavior === transferTypes.REPAYMENT_AMOUNT || behavior === transferTypes.TRANSFER_EVERYTHING_EXCEPT;
+  }
+  function shouldCalculateTransferMonthlyTotal(include, recurring, recurrence, fromKey, toKey, behavior, amount, transferTypes) {
+    if (!include || !recurring || !recurrence || !recurrence.frequency || !fromKey || !toKey) {
+      return false;
+    }
+    if (!isTransferAmountRequiredForMonthlyTotal(behavior, transferTypes)) {
+      return true;
+    }
+    return amount !== null && amount >= 0;
+  }
+  function resolveTransferMonthlyTotal(behavior, amount, factor, accountBalances, toKey, ctx) {
+    if (behavior === ctx.transferTypes.TRANSFER_AMOUNT || behavior === ctx.transferTypes.REPAYMENT_AMOUNT) {
+      return amount === null ? null : ctx.roundMoney(amount * factor);
+    }
+    if (behavior === ctx.transferTypes.REPAYMENT_ALL) {
+      const debt = ctx.roundMoney(Math.max(0, -(accountBalances[toKey] || 0)));
+      return ctx.roundMoney(debt * factor);
+    }
+    return null;
+  }
+
+  // ts/core/accountSummaries.ts
+  function normalizeAccountTotalsKeys(totalsByAccount, ctx) {
+    const normalized = {};
+    if (!totalsByAccount) {
+      return normalized;
+    }
+    Object.keys(totalsByAccount).forEach((key) => {
+      const normalizedKey = ctx.normalizeAccountLookupKey(key);
+      if (!normalizedKey) {
+        return;
+      }
+      const value = ctx.toNumber(totalsByAccount[key]);
+      if (value === null) {
+        return;
+      }
+      normalized[normalizedKey] = ctx.roundMoney((normalized[normalizedKey] || 0) + value);
+    });
+    return normalized;
+  }
+  function normalizeTransferTotalsKeys(transferTotals, ctx) {
+    return {
+      credits: normalizeAccountTotalsKeys(transferTotals?.credits || {}, ctx),
+      debits: normalizeAccountTotalsKeys(transferTotals?.debits || {}, ctx)
+    };
+  }
+  function getAccountSummaryHeaderIndexes(headers) {
+    return {
+      credits: headers.indexOf("Money In / Month"),
+      debits: headers.indexOf("Money Out / Month"),
+      interest: headers.indexOf("Net Interest / Month"),
+      net: headers.indexOf("Net Change / Month")
+    };
+  }
+  function computeEstimatedMonthlyInterest(balance, ratePercent, method, ctx) {
+    const annualRate = ratePercent / 100;
+    let monthlyRate = annualRate / 12;
+    if (method === ctx.apyCompoundMethod) {
+      monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+    }
+    return ctx.roundMoney(balance * monthlyRate);
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -886,7 +1002,17 @@ var TypedBudget = (() => {
     shouldIncludeScenarioColumn,
     valuesWithinTolerance,
     countDaysBelow,
-    computeSeriesStats
+    computeSeriesStats,
+    summarizeNegativeCashTopSourcesFromRows,
+    isRecurringForMonthlyAverage,
+    monthlyFactorForRecurrence,
+    isTransferAmountRequiredForMonthlyTotal,
+    shouldCalculateTransferMonthlyTotal,
+    resolveTransferMonthlyTotal,
+    normalizeAccountTotalsKeys,
+    normalizeTransferTotalsKeys,
+    getAccountSummaryHeaderIndexes,
+    computeEstimatedMonthlyInterest
   };
   return __toCommonJS(entry_exports);
 })();

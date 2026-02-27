@@ -677,6 +677,11 @@ function buildNegativeCashTopSources_(scenarioId) {
 }
 
 function summarizeNegativeCashTopSourcesFromRows_(rows, alertsIndex, amountIndex, sourceRuleIdIndex) {
+  var typed = summarizeNegativeCashTopSourcesTyped_(rows, alertsIndex, amountIndex, sourceRuleIdIndex);
+  if (typed) {
+    return typed;
+  }
+
   var totals = {};
   (rows || []).forEach(function (row) {
     var alerts = String(row[alertsIndex] || '');

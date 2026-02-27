@@ -66,6 +66,22 @@ import {
   valuesWithinTolerance,
   type SeriesStats,
 } from "../core/summaryStats";
+import { summarizeNegativeCashTopSourcesFromRows } from "../core/summaryExplainability";
+import {
+  isRecurringForMonthlyAverage,
+  monthlyFactorForRecurrence,
+} from "../core/monthlyRecurrence";
+import {
+  isTransferAmountRequiredForMonthlyTotal,
+  resolveTransferMonthlyTotal,
+  shouldCalculateTransferMonthlyTotal,
+} from "../core/transferMonthlyTotals";
+import {
+  computeEstimatedMonthlyInterest,
+  getAccountSummaryHeaderIndexes,
+  normalizeAccountTotalsKeys,
+  normalizeTransferTotalsKeys,
+} from "../core/accountSummaries";
 import {
   alignToWindow,
   expandRecurrence,
@@ -128,6 +144,16 @@ export const TypedBudget = {
   valuesWithinTolerance,
   countDaysBelow,
   computeSeriesStats,
+  summarizeNegativeCashTopSourcesFromRows,
+  isRecurringForMonthlyAverage,
+  monthlyFactorForRecurrence,
+  isTransferAmountRequiredForMonthlyTotal,
+  shouldCalculateTransferMonthlyTotal,
+  resolveTransferMonthlyTotal,
+  normalizeAccountTotalsKeys,
+  normalizeTransferTotalsKeys,
+  getAccountSummaryHeaderIndexes,
+  computeEstimatedMonthlyInterest,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
