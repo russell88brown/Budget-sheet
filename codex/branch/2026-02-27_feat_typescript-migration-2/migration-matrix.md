@@ -9,6 +9,8 @@ Scope: `src/*.gs` (23 files)
 - `src` without generated bundle: **8,786 LOC**
 - `ts/**/*.ts` total: **3,629 LOC**
 - Estimated migrated to TypeScript (by maintained source LOC): **~41.3%** (`3,629 / 8,786`)
+- Percent migrated: **~41.3%**
+- Percent to migrate: **~58.7%**
 
 Notes:
 - "Runtime-bound" means not a good fit for pure `ts/core`; it can still be authored in TS and transpiled for Apps Script.

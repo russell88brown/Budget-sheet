@@ -186,6 +186,7 @@ import { composeRunLogNotes } from "../core/runLogNotes";
 import { listDuplicateAccountNames } from "../core/accountNameDuplicates";
 import { resolveRunLogWriteRow } from "../core/runLogRow";
 import { buildRunLogEntryRow } from "../core/runLogEntry";
+import { isRowInActiveScenario } from "../core/scenarioRow";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -220,6 +221,7 @@ export const TypedBudget = {
   listDuplicateAccountNames,
   resolveRunLogWriteRow,
   buildRunLogEntryRow,
+  isRowInActiveScenario,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

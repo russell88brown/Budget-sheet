@@ -42,6 +42,7 @@ const required = [
   "listDuplicateAccountNames",
   "resolveRunLogWriteRow",
   "buildRunLogEntryRow",
+  "isRowInActiveScenario",
 ];
 
 for (const key of required) {

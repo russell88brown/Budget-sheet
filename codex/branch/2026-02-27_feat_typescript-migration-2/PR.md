@@ -32,6 +32,7 @@ Target architecture agreed for implementation:
 - [x] Extract `D04_JournalEngine.gs` duplicate-account-name fallback helper to typed core (`ts/core/accountNameDuplicates.ts`) and keep GAS fallback wiring.
 - [x] Extract `D04_JournalEngine.gs` run-log write-row selection helper to typed core (`ts/core/runLogRow.ts`) and keep GAS fallback wiring.
 - [x] Extract `D04_JournalEngine.gs` run-log entry row builder helper to typed core (`ts/core/runLogEntry.ts`) and keep GAS fallback wiring.
+- [x] Extract shared D04 row-scenario matching helper to typed core (`ts/core/scenarioRow.ts`) and keep GAS fallback wiring.
 
 ## PR Review Against Code
 - [x] PR notes match implemented code changes.
@@ -92,6 +93,9 @@ Target architecture agreed for implementation:
 | 2026-02-28 | Added `tests/runLogRow.test.ts` and expanded typed API surface checks for `resolveRunLogWriteRow`. | Guard run-log write-row selection extraction and keep typed runtime contract explicit. | Export and behavior regressions for run-log row selection are caught earlier in Node tests. |
 | 2026-02-28 | Extracted D04 run-log entry row builder helper into `ts/core/runLogEntry.ts`, exported via typed runtime, and wired `appendRunLogEntry_` row construction to typed-first execution with fallback. | Continue extracting pure run-log row-construction logic while preserving GAS sheet write behavior. | Run-log entry row construction is now testable TS logic and reduces inline row-building branches in D04 logging. |
 | 2026-02-28 | Added `tests/runLogEntry.test.ts` and expanded typed API surface checks for `buildRunLogEntryRow`. | Guard run-log entry-row extraction and keep typed runtime contract explicit. | Export and behavior regressions for run-log entry row construction are caught earlier in Node tests. |
+| 2026-02-28 | Extracted shared D04 row-scenario matching helper into `ts/core/scenarioRow.ts`, exported via typed runtime, and wired fallback branches in monthly worksheet loops to typed-first scenario matching. | Continue reducing repeated scenario-row matching logic across D04 while preserving existing fallback behavior. | Row-scenario matching is now testable TS logic and reduces repeated inline checks in D04 fallback paths. |
+| 2026-02-28 | Added `tests/scenarioRow.test.ts` and expanded typed API surface checks for `isRowInActiveScenario`. | Guard shared row-scenario helper extraction and keep typed runtime contract explicit. | Export and behavior regressions for row-scenario matching are caught earlier in Node tests. |
+| 2026-02-28 | Updated migration matrix estimation summary to include explicit `percent migrated` and `percent to migrate` lines. | Make migration progress easier to scan during sprint review. | Matrix now provides direct progress and remaining-work percentages without manual calculation. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 

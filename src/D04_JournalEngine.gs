@@ -1165,8 +1165,12 @@ function updateIncomeMonthlyTotalsForRunModel_(runModel) {
   );
   if (!Array.isArray(out)) {
     out = rows.map(function (row) {
-      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-      if (rowScenarioId !== activeScenarioId) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
         return [row[totalIdx]];
       }
       var include = toBoolean_(row[includeIdx]);
@@ -1259,8 +1263,12 @@ function updateExpenseMonthlyTotalsForRunModel_(runModel) {
   );
   if (!Array.isArray(out)) {
     out = rows.map(function (row) {
-      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-      if (rowScenarioId !== activeScenarioId) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
         return [row[totalIdx]];
       }
       var include = toBoolean_(row[includeIdx]);
@@ -1396,8 +1404,12 @@ function updateTransferMonthlyTotalsForRunModel_(
     var everythingExceptRows = [];
 
     rows.forEach(function (row, rowIndex) {
-      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-      if (rowScenarioId !== activeScenarioId) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
         return;
       }
 
@@ -1605,8 +1617,12 @@ function updateAccountMonthlyFlowAveragesForRunModel_(
       var existingExpense = expenseAvgIdx === -1 ? '' : row[expenseAvgIdx];
       var existingIncome = incomeAvgIdx === -1 ? '' : row[incomeAvgIdx];
       var existingNet = netFlowIdx === -1 ? '' : row[netFlowIdx];
-      var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-      if (rowScenarioId !== activeScenarioId) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
         interestAvgValues.push([existingInterest]);
         expenseAvgValues.push([existingExpense]);
         incomeAvgValues.push([existingIncome]);

@@ -801,6 +801,20 @@ function buildRunLogEntryRowTyped_(timestamp, modeLabel, scenarioId, status, not
   return null;
 }
 
+function isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isRowInActiveScenario === 'function') {
+    return api.isRowInActiveScenario(
+      Array.isArray(row) ? row : [],
+      scenarioIdx,
+      activeScenarioId,
+      Config.SCENARIOS.DEFAULT,
+      normalizeScenario_
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
