@@ -75,9 +75,9 @@ The agent MUST derive:
 4. Keep changes scoped; avoid unrelated edits.
 5. Commit continuously with descriptive messages.
 
-## 5.1) Repeating Sprint Loop (MUST)
+## 5.1) Phase Guide (MUST)
 
-Run these phases repeatedly until done:
+Use the phase that matches the current task being performed:
 
 1. Create Plan From Prompt
    - Convert prompt into concrete scope, checklist tasks, and acceptance criteria.
@@ -92,7 +92,7 @@ Run these phases repeatedly until done:
 6. Final Checks And Housekeeping (Pre-PR)
    - Run relevant validation, ensure docs are current, and clean up residual process debt.
 
-The agent MUST update `codex/current-phase` whenever phase/status changes.
+The agent MUST update `codex/current-phase` when sprint docs are updated.
 
 ## 6) Validation Rules (MUST)
 
