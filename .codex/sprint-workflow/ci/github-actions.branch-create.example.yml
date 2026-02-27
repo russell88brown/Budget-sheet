@@ -1,0 +1,32 @@
+name: Codex Sprint Scaffold
+
+on:
+  create:
+
+permissions:
+  contents: write
+
+jobs:
+  scaffold:
+    if: github.event.ref_type == 'branch' && startsWith(github.event.ref, 'sprint/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout created branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.ref }}
+
+      - name: Initialize sprint workspace
+        shell: pwsh
+        run: |
+          ./codex/sprint-workflow/scripts/init-sprint.ps1 -SprintId "${{ github.event.ref }}" -SprintLead "ci"
+
+      - name: Commit scaffold files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add codex/sprints/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: initialize sprint workspace for ${{ github.event.ref }}"
+            git push
+          fi
