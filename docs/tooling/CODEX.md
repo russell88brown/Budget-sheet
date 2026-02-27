@@ -52,11 +52,22 @@ Recommended path:
 
 ## Backlog And Sprint Automation
 
-Codex backlog and sprint execution are documented as a distinct workflow in:
+Sprint execution is managed in:
 
-- `codex/README.md`
+- `.codex/templates/`
+- `.codex/sprints/<sprint-id>/`
+- `.codex/current-sprint`
 
-Use that file for:
-- automatic idea backlog structure,
-- sprint planning and execution segmentation,
-- CI trigger patterns (including branch-create trigger for `sprint/*`).
+Use these commands:
+
+1. Start a sprint:
+   - `npm run sprint:start -- <sprint-id>`
+2. Validate sprint docs:
+   - `npm run sprint:check`
+
+By convention:
+
+- Create the sprint plan on `main`.
+- Implement on branch `sprint/<sprint-id>`.
+- Keep `.codex/sprints/<sprint-id>/PR.md` updated during execution.
+- Complete `.codex/sprints/<sprint-id>/retro.md` at sprint close.
