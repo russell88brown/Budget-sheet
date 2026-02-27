@@ -50,6 +50,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Extract `D04_JournalEngine.gs` transfer monthly worksheet row-calculation loop to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` income/expense monthly worksheet row-calculation loop to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` account-balance map builder helper to typed core and keep GAS fallback.
+- [x] Extract `D04_JournalEngine.gs` account lookup-map builder helper to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

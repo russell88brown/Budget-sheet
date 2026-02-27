@@ -1532,18 +1532,8 @@ function updateAccountMonthlyFlowAveragesForRunModel_(
   incomeTotalsByAccount = normalizeAccountTotalsKeys_(incomeTotalsByAccount || {});
   expenseTotalsByAccount = normalizeAccountTotalsKeys_(expenseTotalsByAccount || {});
 
-  var accountByKey = {};
+  var accountByKey = buildAccountLookupMap_(accounts || []);
   var activeScenarioId = normalizeScenario_(scenarioId);
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    var key = normalizeAccountLookupKey_(account.name);
-    if (!key || accountByKey[key]) {
-      return;
-    }
-    accountByKey[key] = account;
-  });
 
   var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var interestAvgValues = [];
@@ -2405,6 +2395,26 @@ function buildAccountBalanceMap_(accounts) {
       return;
     }
     map[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
+  });
+  return map;
+}
+
+function buildAccountLookupMap_(accounts) {
+  var typed = buildAccountLookupMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
+  var map = {};
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    var key = normalizeAccountLookupKey_(account.name);
+    if (!key || map[key]) {
+      return;
+    }
+    map[key] = account;
   });
   return map;
 }

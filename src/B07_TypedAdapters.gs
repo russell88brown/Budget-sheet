@@ -742,6 +742,17 @@ function buildAccountBalanceMapTyped_(accounts) {
   return null;
 }
 
+function buildAccountLookupMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountLookupMap === 'function') {
+    return api.buildAccountLookupMap(
+      accounts || [],
+      normalizeAccountLookupKey_
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
