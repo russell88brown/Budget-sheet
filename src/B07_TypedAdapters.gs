@@ -630,6 +630,26 @@ function normalizeRecurrenceRowsTyped_(rows, frequencyIdx, repeatIdx, startIdx, 
   return null;
 }
 
+function normalizeAccountRowsTyped_(rows, indexes) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeAccountRows === 'function') {
+    return api.normalizeAccountRows(
+      Array.isArray(rows) ? rows : [],
+      indexes || {},
+      {
+        normalizeAccountType: normalizeAccountType_,
+        toBoolean: toBoolean_,
+        isValidAccountSummaryNumber: isValidAccountSummaryNumber_,
+        isValidNumberOrBlank: isValidNumberOrBlank_,
+        normalizeInterestMethod: normalizeInterestMethod_,
+        normalizeInterestFrequency: normalizeInterestFrequency_,
+        toPositiveInt: toPositiveInt_,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

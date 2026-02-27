@@ -1838,70 +1838,88 @@ function normalizeAccountRows_() {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
-  values.forEach(function (row) {
-    var method = normalizeInterestMethod_(row[methodIdx]);
-    var frequency = normalizeInterestFrequency_(row[freqIdx]);
-    var methodLooksLikeFrequency = normalizeInterestFrequency_(row[methodIdx]);
-    var frequencyLooksLikeMethod = normalizeInterestMethod_(row[freqIdx]);
-    if (!method && !frequency && methodLooksLikeFrequency && frequencyLooksLikeMethod) {
-      method = frequencyLooksLikeMethod;
-      frequency = methodLooksLikeFrequency;
-    }
-
-    if (typeIdx !== -1 && row[typeIdx]) {
-      var normalizedType = normalizeAccountType_(row[typeIdx]);
-      if (normalizedType && normalizedType !== row[typeIdx]) {
-        row[typeIdx] = normalizedType;
-        updated = true;
-      }
-    }
-    if (includeIdx !== -1 && row[includeIdx] !== '' && row[includeIdx] !== null) {
-      var include = toBoolean_(row[includeIdx]);
-      if (include !== row[includeIdx]) {
-        row[includeIdx] = include;
-        updated = true;
-      }
-    }
-    if (expenseAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[expenseAvgIdx])) {
-      row[expenseAvgIdx] = '';
-      updated = true;
-    }
-    if (interestAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[interestAvgIdx])) {
-      row[interestAvgIdx] = '';
-      updated = true;
-    }
-    if (incomeAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[incomeAvgIdx])) {
-      row[incomeAvgIdx] = '';
-      updated = true;
-    }
-    if (netFlowIdx !== -1 && !isValidAccountSummaryNumber_(row[netFlowIdx])) {
-      row[netFlowIdx] = '';
-      updated = true;
-    }
-    if (rateIdx !== -1 && !isValidNumberOrBlank_(row[rateIdx])) {
-      row[rateIdx] = '';
-      updated = true;
-    }
-    if (feeIdx !== -1 && !isValidNumberOrBlank_(row[feeIdx])) {
-      row[feeIdx] = '';
-      updated = true;
-    }
-    if (method !== row[methodIdx]) {
-      row[methodIdx] = method || '';
-      updated = true;
-    }
-    if (frequency !== row[freqIdx]) {
-      row[freqIdx] = frequency || '';
-      updated = true;
-    }
-
-    var repeatEvery = toPositiveInt_(row[repeatIdx]);
-    var normalizedRepeat = frequency ? (repeatEvery || 1) : '';
-    if (normalizedRepeat !== row[repeatIdx]) {
-      row[repeatIdx] = normalizedRepeat;
-      updated = true;
-    }
+  var typed = normalizeAccountRowsTyped_(values, {
+    type: typeIdx,
+    include: includeIdx,
+    expenseAvg: expenseAvgIdx,
+    interestAvg: interestAvgIdx,
+    incomeAvg: incomeAvgIdx,
+    netFlow: netFlowIdx,
+    rate: rateIdx,
+    fee: feeIdx,
+    method: methodIdx,
+    frequency: freqIdx,
+    repeat: repeatIdx,
   });
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'boolean') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      var method = normalizeInterestMethod_(row[methodIdx]);
+      var frequency = normalizeInterestFrequency_(row[freqIdx]);
+      var methodLooksLikeFrequency = normalizeInterestFrequency_(row[methodIdx]);
+      var frequencyLooksLikeMethod = normalizeInterestMethod_(row[freqIdx]);
+      if (!method && !frequency && methodLooksLikeFrequency && frequencyLooksLikeMethod) {
+        method = frequencyLooksLikeMethod;
+        frequency = methodLooksLikeFrequency;
+      }
+
+      if (typeIdx !== -1 && row[typeIdx]) {
+        var normalizedType = normalizeAccountType_(row[typeIdx]);
+        if (normalizedType && normalizedType !== row[typeIdx]) {
+          row[typeIdx] = normalizedType;
+          updated = true;
+        }
+      }
+      if (includeIdx !== -1 && row[includeIdx] !== '' && row[includeIdx] !== null) {
+        var include = toBoolean_(row[includeIdx]);
+        if (include !== row[includeIdx]) {
+          row[includeIdx] = include;
+          updated = true;
+        }
+      }
+      if (expenseAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[expenseAvgIdx])) {
+        row[expenseAvgIdx] = '';
+        updated = true;
+      }
+      if (interestAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[interestAvgIdx])) {
+        row[interestAvgIdx] = '';
+        updated = true;
+      }
+      if (incomeAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[incomeAvgIdx])) {
+        row[incomeAvgIdx] = '';
+        updated = true;
+      }
+      if (netFlowIdx !== -1 && !isValidAccountSummaryNumber_(row[netFlowIdx])) {
+        row[netFlowIdx] = '';
+        updated = true;
+      }
+      if (rateIdx !== -1 && !isValidNumberOrBlank_(row[rateIdx])) {
+        row[rateIdx] = '';
+        updated = true;
+      }
+      if (feeIdx !== -1 && !isValidNumberOrBlank_(row[feeIdx])) {
+        row[feeIdx] = '';
+        updated = true;
+      }
+      if (method !== row[methodIdx]) {
+        row[methodIdx] = method || '';
+        updated = true;
+      }
+      if (frequency !== row[freqIdx]) {
+        row[freqIdx] = frequency || '';
+        updated = true;
+      }
+
+      var repeatEvery = toPositiveInt_(row[repeatIdx]);
+      var normalizedRepeat = frequency ? (repeatEvery || 1) : '';
+      if (normalizedRepeat !== row[repeatIdx]) {
+        row[repeatIdx] = normalizedRepeat;
+        updated = true;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);

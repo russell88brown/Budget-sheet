@@ -28,6 +28,7 @@ const required = [
   "validateExpenseRowReasons",
   "normalizeTransferRows",
   "normalizeRecurrenceRows",
+  "normalizeAccountRows",
 ];
 
 for (const key of required) {
