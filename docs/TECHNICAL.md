@@ -86,6 +86,7 @@ This project is structured around operational pipeline stages plus shared utilit
   - `core/transferMonthlyTotals`
   - `core/accountSummaries`
   - `core/accountValidation`
+  - `core/journalNormalization`
 - Build command: `npm run build:typed`.
 - Typecheck command: `npm run typecheck`.
 - Test command: `npm test`.

@@ -3,7 +3,7 @@
 ## Summary
 - Introduces TypeScript migration foundation with low-risk adapter wiring.
 - Keeps Apps Script runtime stable with typed-first + JS fallback behavior.
-- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, and account-validation utilities with tests.
+- Adds typed recurrence, reader-normalization, event-builder, apply-calculation, policy-rule, tag-scope, summary-stats, summary-explainability, monthly-recurrence, transfer-monthly-total, account-summary, account-validation, and journal-normalization utilities with tests.
 
 ## Implemented
 - TS build/test foundation (`tsconfig`, scripts, typed modules, tests).
@@ -26,6 +26,7 @@
   - transfer monthly-total decision/resolution helpers (`D04` routes through typed adapters)
   - account-summary normalization/indexing/interest helpers (`D04` routes through typed adapters)
   - duplicate account-name detection helper (`D04` routes through typed adapters)
+  - legacy frequency + account normalization helpers (`D04` routes through typed adapters)
 
 ## Local Validation Steps
 1. `npm install`

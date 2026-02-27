@@ -1697,6 +1697,11 @@ function normalizeRecurrenceRowsForSheet_(sheetName) {
 }
 
 function mapLegacyFrequency_(frequencyValue, repeatEveryValue, startDateValue, endDateValue) {
+  var typed = mapLegacyFrequencyTyped_(frequencyValue, repeatEveryValue, startDateValue, endDateValue);
+  if (typed) {
+    return typed;
+  }
+
   var frequency = frequencyValue;
   var repeatEvery = repeatEveryValue;
   var endDate = endDateValue;
@@ -1847,6 +1852,11 @@ function normalizeAccountRows_() {
 }
 
 function normalizeInterestMethod_(value) {
+  var typed = normalizeInterestMethodTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return '';
   }
@@ -1861,6 +1871,11 @@ function normalizeInterestMethod_(value) {
 }
 
 function normalizeInterestFrequency_(value) {
+  var typed = normalizeInterestFrequencyTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return '';
   }
@@ -1881,6 +1896,11 @@ function normalizeInterestFrequency_(value) {
 }
 
 function normalizeAccountType_(value) {
+  var typed = normalizeAccountTypeTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   var lower = String(value).trim().toLowerCase();
   if (lower === String(Config.ACCOUNT_TYPES.CASH).toLowerCase()) {
     return Config.ACCOUNT_TYPES.CASH;
@@ -1892,6 +1912,11 @@ function normalizeAccountType_(value) {
 }
 
 function isValidNumberOrBlank_(value) {
+  var typed = isValidNumberOrBlankTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return true;
   }
@@ -1899,6 +1924,11 @@ function isValidNumberOrBlank_(value) {
 }
 
 function isValidAccountSummaryNumber_(value) {
+  var typed = isValidAccountSummaryNumberTyped_(value);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (value === '' || value === null || value === undefined) {
     return true;
   }

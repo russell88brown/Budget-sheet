@@ -844,6 +844,94 @@ var TypedBudget = (() => {
     return duplicates.filter((name, idx, arr) => !!name && arr.indexOf(name) === idx);
   }
 
+  // ts/core/journalNormalization.ts
+  function mapLegacyFrequency(frequencyValue, repeatEveryValue, startDateValue, endDateValue, frequencies) {
+    let frequency = frequencyValue;
+    let repeatEvery = repeatEveryValue;
+    let endDate = endDateValue;
+    const lower = frequency ? String(frequency).trim().toLowerCase() : "";
+    if (lower === "weekly") {
+      frequency = frequencies.WEEKLY;
+    } else if (lower === "biweekly" || lower === "bi-weekly" || lower === "fortnightly") {
+      frequency = frequencies.WEEKLY;
+      repeatEvery = 2;
+    } else if (lower === "bi-monthly" || lower === "bimonthly") {
+      frequency = frequencies.MONTHLY;
+      repeatEvery = 2;
+    } else if (lower === "quarterly") {
+      frequency = frequencies.MONTHLY;
+      repeatEvery = 3;
+    } else if (lower === "semiannually" || lower === "semi-annually") {
+      frequency = frequencies.MONTHLY;
+      repeatEvery = 6;
+    } else if (lower === "annually") {
+      frequency = frequencies.YEARLY;
+      repeatEvery = 1;
+    } else if (lower === "once" || lower === "one-off" || lower === "one off") {
+      frequency = frequencies.ONCE;
+      repeatEvery = 1;
+      if (startDateValue && !endDateValue) {
+        endDate = startDateValue;
+      }
+    } else if (lower === "daily") {
+      frequency = frequencies.DAILY;
+    } else if (lower === "monthly") {
+      frequency = frequencies.MONTHLY;
+    } else if (lower === "yearly") {
+      frequency = frequencies.YEARLY;
+    }
+    if (frequency && (repeatEvery === "" || repeatEvery === null || repeatEvery === void 0)) {
+      repeatEvery = 1;
+    }
+    return { frequency, repeatEvery, endDate };
+  }
+  function normalizeInterestMethod(value, interestMethods) {
+    if (value === "" || value === null || value === void 0) {
+      return "";
+    }
+    const lower = String(value).trim().toLowerCase();
+    if (lower === String(interestMethods.APR_SIMPLE).toLowerCase()) {
+      return interestMethods.APR_SIMPLE;
+    }
+    if (lower === String(interestMethods.APY_COMPOUND).toLowerCase()) {
+      return interestMethods.APY_COMPOUND;
+    }
+    return "";
+  }
+  function normalizeInterestFrequency(value, frequencies) {
+    if (value === "" || value === null || value === void 0) {
+      return "";
+    }
+    const lower = String(value).trim().toLowerCase();
+    if (lower === String(frequencies.DAILY).toLowerCase()) return frequencies.DAILY;
+    if (lower === String(frequencies.WEEKLY).toLowerCase()) return frequencies.WEEKLY;
+    if (lower === String(frequencies.MONTHLY).toLowerCase()) return frequencies.MONTHLY;
+    if (lower === String(frequencies.YEARLY).toLowerCase()) return frequencies.YEARLY;
+    return "";
+  }
+  function normalizeAccountType(value, accountTypes) {
+    const lower = String(value || "").trim().toLowerCase();
+    if (lower === String(accountTypes.CASH).toLowerCase()) {
+      return accountTypes.CASH;
+    }
+    if (lower === String(accountTypes.CREDIT).toLowerCase()) {
+      return accountTypes.CREDIT;
+    }
+    return value;
+  }
+  function isValidNumberOrBlank(value, toNumber2) {
+    if (value === "" || value === null || value === void 0) {
+      return true;
+    }
+    return toNumber2(value) !== null;
+  }
+  function isValidAccountSummaryNumber(value) {
+    if (value === "" || value === null || value === void 0) {
+      return true;
+    }
+    return typeof value === "number" && !Number.isNaN(value);
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1034,7 +1122,13 @@ var TypedBudget = (() => {
     normalizeTransferTotalsKeys,
     getAccountSummaryHeaderIndexes,
     computeEstimatedMonthlyInterest,
-    findDuplicateAccountNames
+    findDuplicateAccountNames,
+    mapLegacyFrequency,
+    normalizeInterestMethod,
+    normalizeInterestFrequency,
+    normalizeAccountType,
+    isValidNumberOrBlank,
+    isValidAccountSummaryNumber
   };
   return __toCommonJS(entry_exports);
 })();

@@ -555,6 +555,60 @@ function findDuplicateAccountNamesTyped_(accounts) {
   return null;
 }
 
+function mapLegacyFrequencyTyped_(frequencyValue, repeatEveryValue, startDateValue, endDateValue) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapLegacyFrequency === 'function') {
+    return api.mapLegacyFrequency(
+      frequencyValue,
+      repeatEveryValue,
+      startDateValue,
+      endDateValue,
+      Config.FREQUENCIES
+    );
+  }
+  return null;
+}
+
+function normalizeInterestMethodTyped_(value) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeInterestMethod === 'function') {
+    return api.normalizeInterestMethod(value, Config.INTEREST_METHODS);
+  }
+  return null;
+}
+
+function normalizeInterestFrequencyTyped_(value) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeInterestFrequency === 'function') {
+    return api.normalizeInterestFrequency(value, Config.FREQUENCIES);
+  }
+  return null;
+}
+
+function normalizeAccountTypeTyped_(value) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeAccountType === 'function') {
+    return api.normalizeAccountType(value, Config.ACCOUNT_TYPES);
+  }
+  return null;
+}
+
+function isValidNumberOrBlankTyped_(value) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isValidNumberOrBlank === 'function') {
+    return api.isValidNumberOrBlank(value, toNumberTyped_);
+  }
+  return null;
+}
+
+function isValidAccountSummaryNumberTyped_(value) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isValidAccountSummaryNumber === 'function') {
+    return api.isValidAccountSummaryNumber(value);
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

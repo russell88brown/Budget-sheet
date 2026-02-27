@@ -84,6 +84,14 @@ import {
 } from "../core/accountSummaries";
 import { findDuplicateAccountNames } from "../core/accountValidation";
 import {
+  isValidAccountSummaryNumber,
+  isValidNumberOrBlank,
+  mapLegacyFrequency,
+  normalizeAccountType,
+  normalizeInterestFrequency,
+  normalizeInterestMethod,
+} from "../core/journalNormalization";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -156,6 +164,12 @@ export const TypedBudget = {
   getAccountSummaryHeaderIndexes,
   computeEstimatedMonthlyInterest,
   findDuplicateAccountNames,
+  mapLegacyFrequency,
+  normalizeInterestMethod,
+  normalizeInterestFrequency,
+  normalizeAccountType,
+  isValidNumberOrBlank,
+  isValidAccountSummaryNumber,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
