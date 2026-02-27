@@ -772,6 +772,66 @@ function applyEventWithSnapshotsTyped_(balances, event) {
   return null;
 }
 
+function getDeficitCoverageNeedForEventTyped_(balances, event, accountTypesByKey, threshold) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.getDeficitCoverageNeedForEvent === 'function') {
+    return api.getDeficitCoverageNeedForEvent(
+      balances || {},
+      event || {},
+      accountTypesByKey || {},
+      threshold,
+      {
+        accountKey: coreAccountKey_,
+        roundMoney: function (value) { return roundUpCents_(value || 0); },
+        toNumber: toNumber_,
+        estimateTransferOutgoingAmount: function (balanceMap, transferEvent) {
+          return coreEstimateTransferOutgoingAmount_(balanceMap, transferEvent);
+        },
+        creditAccountType: Config.ACCOUNT_TYPES.CREDIT,
+        autoDeficitCoverPolicyType: Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+      }
+    );
+  }
+  return null;
+}
+
+function accrueDailyInterestTyped_(balances, event, bucket) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.accrueDailyInterest === 'function') {
+    api.accrueDailyInterest(balances || {}, event || {}, bucket || {}, {
+      accountKey: coreAccountKey_,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+      normalizeDate: normalizeDateTyped_,
+      computeInterestFeePerPosting: coreComputeInterestFeePerPosting_,
+      apyCompoundMethod: Config.INTEREST_METHODS.APY_COMPOUND,
+    });
+    return true;
+  }
+  return false;
+}
+
+function computeInterestAmountTyped_(balances, event, bucket) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeInterestAmount === 'function') {
+    return api.computeInterestAmount(balances || {}, event || {}, bucket || {}, {
+      accountKey: coreAccountKey_,
+      roundMoney: function (value) { return roundUpCents_(value || 0); },
+      normalizeDate: normalizeDateTyped_,
+      computeInterestFeePerPosting: coreComputeInterestFeePerPosting_,
+      apyCompoundMethod: Config.INTEREST_METHODS.APY_COMPOUND,
+    });
+  }
+  return null;
+}
+
+function getInterestBucketTyped_(runState, accountName) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.getInterestBucket === 'function') {
+    return api.getInterestBucket(runState, accountName);
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

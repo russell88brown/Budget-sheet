@@ -428,6 +428,11 @@ function coreIsPolicyActiveOnDate_(policy, date) {
 }
 
 function coreGetDeficitCoverageNeedForEvent_(balances, event, accountTypesByKey, threshold) {
+  var typed = getDeficitCoverageNeedForEventTyped_(balances, event, accountTypesByKey, threshold);
+  if (typed) {
+    return typed;
+  }
+
   if (!event || !event.kind) {
     return null;
   }
@@ -575,6 +580,13 @@ function coreResolveTransferAmount_(balances, event, amount) {
 }
 
 function coreComputeInterestAmount_(balances, event) {
+  var interestAccountKey = coreAccountKey_(event && event.account);
+  var interestBucket = interestAccountKey ? coreGetInterestBucket_(interestAccountKey) : { accrued: 0, lastPostingDate: null };
+  var typed = computeInterestAmountTyped_(balances, event, interestBucket);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (!event) {
     return 0;
   }
@@ -595,6 +607,13 @@ function coreComputeInterestAmount_(balances, event) {
 }
 
 function coreAccrueDailyInterest_(balances, event) {
+  var interestAccountKey = coreAccountKey_(event && event.account);
+  var interestBucket = interestAccountKey ? coreGetInterestBucket_(interestAccountKey) : { accrued: 0, lastPostingDate: null };
+  var typedHandled = accrueDailyInterestTyped_(balances, event, interestBucket);
+  if (typedHandled) {
+    return;
+  }
+
   var accountKey = coreAccountKey_(event.account);
   if (!accountKey) {
     return;
@@ -634,6 +653,11 @@ function coreComputeInterestFeePerPosting_(event) {
 }
 
 function coreGetInterestBucket_(accountName) {
+  var typed = getInterestBucketTyped_(typeof runState_ === 'undefined' ? null : runState_, accountName);
+  if (typed) {
+    return typed;
+  }
+
   if (typeof runState_ === 'undefined' || !runState_) {
     return { accrued: 0, lastPostingDate: null };
   }

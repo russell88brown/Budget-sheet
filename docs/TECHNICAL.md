@@ -92,6 +92,7 @@ This project is structured around operational pipeline stages plus shared utilit
   - `core/journalApplyHelpers`
   - `core/journalRows`
   - `core/journalEventApplication`
+  - `core/journalDeficitInterest`
 - Build command: `npm run build:typed`.
 - Typecheck command: `npm run typecheck`.
 - Test command: `npm test`.

@@ -110,6 +110,12 @@ import {
   cloneBalances,
 } from "../core/journalEventApplication";
 import {
+  accrueDailyInterest,
+  computeInterestAmount,
+  getDeficitCoverageNeedForEvent,
+  getInterestBucket,
+} from "../core/journalDeficitInterest";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -201,6 +207,10 @@ export const TypedBudget = {
   cloneBalances,
   buildAccountTypesByKey,
   applyEventWithSnapshots,
+  getDeficitCoverageNeedForEvent,
+  accrueDailyInterest,
+  computeInterestAmount,
+  getInterestBucket,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;
