@@ -11,6 +11,11 @@ Summarize what changed and why it was needed.
 - [ ] Completed item 1
 - [ ] Completed item 2
 
+## PR Review Against Code
+- [ ] PR notes match implemented code changes.
+- [ ] Evidence table matches executed checks.
+- [ ] No undocumented behavioral changes remain.
+
 ## Change Log
 | Date | Change | Reason | Impact |
 |---|---|---|---|
@@ -35,4 +40,14 @@ Summarize what changed and why it was needed.
 ## Follow-Ups
 - Out-of-scope improvement 1
 - Out-of-scope improvement 2
+
+## Remaining Actions
+- Item 1 still required before PR.
+- Item 2 still required before PR.
+
+## Final Checks And Housekeeping (Pre-PR)
+- [ ] Relevant tests/checks executed and recorded.
+- [ ] Sprint checklist and PR notes are current.
+- [ ] Outstanding risks/follow-ups are explicit.
+- [ ] Branch is ready for PR handoff.
 

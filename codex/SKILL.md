@@ -58,6 +58,23 @@ The agent MUST derive:
 4. Keep changes scoped; avoid unrelated edits.
 5. Commit continuously with descriptive messages.
 
+## 5.1) Repeating Sprint Loop (MUST)
+
+Run these phases repeatedly until done:
+
+1. Create Plan From Prompt
+   - Convert prompt into concrete scope, checklist tasks, and acceptance criteria.
+2. Review And Finalize Plan
+   - Validate scope boundaries, risks, and test strategy before implementation.
+3. Execute Task Chunk
+   - Implement one meaningful chunk.
+4. Review PR Notes Against Code
+   - Ensure `PR.md` reflects actual code changes and evidence.
+5. Determine Remaining Actions
+   - Update remaining checklist items and explicit next actions.
+6. Final Checks And Housekeeping (Pre-PR)
+   - Run relevant validation, ensure docs are current, and clean up residual process debt.
+
 ## 6) Validation Rules (MUST)
 
 Run only relevant checks for changed scope, and record exact results in `PR.md`:
@@ -123,6 +140,12 @@ Describe the primary sprint outcome in one sentence.
 - [ ] Task 1 (maps to acceptance criteria)
 - [ ] Task 2 (maps to acceptance criteria)
 
+## Plan Review And Finalization
+- [ ] Scope in/out is explicit and realistic.
+- [ ] Acceptance criteria are testable.
+- [ ] Risks/mitigations are documented.
+- [ ] Validation approach is defined.
+
 ## Acceptance Criteria
 - Criterion 1 (testable/verifiable)
 - Criterion 2 (testable/verifiable)
@@ -157,6 +180,11 @@ Summarize what changed and why.
 - [ ] Completed item 1
 - [ ] Completed item 2
 
+## PR Review Against Code
+- [ ] PR notes match implemented code changes.
+- [ ] Evidence table matches executed checks.
+- [ ] No undocumented behavioral changes remain.
+
 ## Change Log
 | Date | Change | Reason | Impact |
 |---|---|---|---|
@@ -182,4 +210,14 @@ Summarize what changed and why.
 ## Follow-Ups
 - Out-of-scope improvement 1
 - Out-of-scope improvement 2
+
+## Remaining Actions
+- Item 1 still required before PR.
+- Item 2 still required before PR.
+
+## Final Checks And Housekeeping (Pre-PR)
+- [ ] Relevant tests/checks executed and recorded.
+- [ ] Sprint checklist and PR notes are current.
+- [ ] Outstanding risks/follow-ups are explicit.
+- [ ] Branch is ready for PR handoff.
 ```

@@ -26,6 +26,12 @@ Describe the single most important sprint outcome in one sentence.
 - [ ] Task 1 (maps to one or more acceptance criteria)
 - [ ] Task 2 (maps to one or more acceptance criteria)
 
+## Plan Review And Finalization
+- [ ] Scope in/out is explicit and realistic.
+- [ ] Acceptance criteria are testable.
+- [ ] Risks/mitigations are documented.
+- [ ] Validation approach is defined.
+
 ## Acceptance Criteria
 - Criterion 1: testable/verifiable outcome
 - Criterion 2: testable/verifiable outcome
