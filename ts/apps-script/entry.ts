@@ -121,6 +121,11 @@ import { getJournalBaseColumnCount, normalizeJournalRunIds } from "../core/journ
 import { buildJournalArtifactsForRunModel } from "../core/journalBuild";
 import { buildMultiRunJournalPayload } from "../core/journalMultiRun";
 import {
+  buildJournalRowsRuntime,
+  resolveJournalScenarioId,
+  shouldUseEngineDirect,
+} from "../core/journalRuntime";
+import {
   alignToWindow,
   expandRecurrence,
   getStepDays,
@@ -222,6 +227,9 @@ export const TypedBudget = {
   getJournalBaseColumnCount,
   buildJournalArtifactsForRunModel,
   buildMultiRunJournalPayload,
+  resolveJournalScenarioId,
+  buildJournalRowsRuntime,
+  shouldUseEngineDirect,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

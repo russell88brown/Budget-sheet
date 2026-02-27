@@ -1470,6 +1470,22 @@ var TypedBudget = (() => {
     };
   }
 
+  // ts/core/journalRuntime.ts
+  function resolveJournalScenarioId(scenarioId, normalizeTag2) {
+    return normalizeTag2(scenarioId);
+  }
+  function buildJournalRowsRuntime(accounts, events, policies, scenarioId, defaultTag, applyEventsToJournal) {
+    return applyEventsToJournal({
+      accounts: accounts || [],
+      events: events || [],
+      policies: policies || [],
+      scenarioId: scenarioId || defaultTag
+    });
+  }
+  function shouldUseEngineDirect(ids, hasEngineRunJournalForScenario) {
+    return Array.isArray(ids) && ids.length === 1 && hasEngineRunJournalForScenario;
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1689,7 +1705,10 @@ var TypedBudget = (() => {
     normalizeJournalRunIds,
     getJournalBaseColumnCount,
     buildJournalArtifactsForRunModel,
-    buildMultiRunJournalPayload
+    buildMultiRunJournalPayload,
+    resolveJournalScenarioId,
+    buildJournalRowsRuntime,
+    shouldUseEngineDirect
   };
   return __toCommonJS(entry_exports);
 })();

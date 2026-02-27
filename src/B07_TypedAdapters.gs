@@ -941,6 +941,39 @@ function buildMultiRunJournalPayloadTyped_(scenarioIds, baseColumnCount) {
   return null;
 }
 
+function resolveJournalScenarioIdTyped_(scenarioId) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.resolveJournalScenarioId === 'function') {
+    return api.resolveJournalScenarioId(scenarioId, normalizeScenario_);
+  }
+  return null;
+}
+
+function buildJournalRowsRuntimeTyped_(accounts, events, policies, scenarioId) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildJournalRowsRuntime === 'function') {
+    return api.buildJournalRowsRuntime(
+      accounts || [],
+      events || [],
+      policies || [],
+      scenarioId,
+      Config.SCENARIOS.DEFAULT,
+      function (options) {
+        return CoreApplyEvents.applyEventsToJournal(options || {});
+      }
+    );
+  }
+  return null;
+}
+
+function shouldUseEngineDirectTyped_(ids, hasEngineRunJournalForScenario) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.shouldUseEngineDirect === 'function') {
+    return api.shouldUseEngineDirect(ids || [], !!hasEngineRunJournalForScenario);
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {

@@ -127,6 +127,10 @@ function enforceCoreInputIntegrityForRun_() {
 }
 
 function resolveScenarioId_(scenarioId) {
+  var typed = resolveJournalScenarioIdTyped_(scenarioId);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
   return normalizeScenario_(scenarioId);
 }
 
@@ -2151,11 +2155,16 @@ function runJournalForIds_(scenarioIds) {
       ids = [Config.SCENARIOS.DEFAULT];
     }
   }
-  if (ids.length === 1) {
-    if (Engine && Engine.runJournalForScenario) {
-      Engine.runJournalForScenario(ids[0]);
-      return;
-    }
+  var useEngineDirect = shouldUseEngineDirectTyped_(
+    ids,
+    !!(Engine && Engine.runJournalForScenario)
+  );
+  if (useEngineDirect === null || useEngineDirect === undefined) {
+    useEngineDirect = ids.length === 1 && !!(Engine && Engine.runJournalForScenario);
+  }
+  if (useEngineDirect) {
+    Engine.runJournalForScenario(ids[0]);
+    return;
   }
 
   startRunProgress_('Journal (' + ids.join(', ') + ')', ids.length + 2);
@@ -2248,6 +2257,10 @@ function getJournalBaseColumnCount_() {
 }
 
 function buildJournalRows_(accounts, events, policies, scenarioId) {
+  var typed = buildJournalRowsRuntimeTyped_(accounts, events, policies, scenarioId);
+  if (typed) {
+    return typed;
+  }
   return CoreApplyEvents.applyEventsToJournal({
     accounts: accounts || [],
     events: events || [],
