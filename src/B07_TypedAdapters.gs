@@ -815,6 +815,18 @@ function isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId) {
   return null;
 }
 
+function formatDuplicateAccountErrorMessageTyped_(scenarioId, duplicates) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.formatDuplicateAccountErrorMessage === 'function') {
+    return api.formatDuplicateAccountErrorMessage(
+      scenarioId,
+      Array.isArray(duplicates) ? duplicates : [],
+      normalizeScenario_
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

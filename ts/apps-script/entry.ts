@@ -187,6 +187,7 @@ import { listDuplicateAccountNames } from "../core/accountNameDuplicates";
 import { resolveRunLogWriteRow } from "../core/runLogRow";
 import { buildRunLogEntryRow } from "../core/runLogEntry";
 import { isRowInActiveScenario } from "../core/scenarioRow";
+import { formatDuplicateAccountErrorMessage } from "../core/accountDuplicateError";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -222,6 +223,7 @@ export const TypedBudget = {
   resolveRunLogWriteRow,
   buildRunLogEntryRow,
   isRowInActiveScenario,
+  formatDuplicateAccountErrorMessage,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

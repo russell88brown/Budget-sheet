@@ -2302,16 +2302,19 @@ function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
   if (!duplicates.length) {
     return;
   }
-  var unique = duplicates
-    .map(function (name) { return String(name || '').trim(); })
-    .filter(function (name, idx, arr) { return name && arr.indexOf(name) === idx; });
-  throw new Error(
-    'Duplicate account names in tag "' +
+  var message = formatDuplicateAccountErrorMessageTyped_(scenarioId, duplicates);
+  if (!message) {
+    var unique = duplicates
+      .map(function (name) { return String(name || '').trim(); })
+      .filter(function (name, idx, arr) { return name && arr.indexOf(name) === idx; });
+    message =
+      'Duplicate account names in tag "' +
       normalizeScenario_(scenarioId) +
       '": ' +
       unique.join(', ') +
-      '.'
-  );
+      '.';
+  }
+  throw new Error(message);
 }
 
 function normalizeTransferTotalsKeys_(transferTotals) {

@@ -43,6 +43,7 @@ const required = [
   "resolveRunLogWriteRow",
   "buildRunLogEntryRow",
   "isRowInActiveScenario",
+  "formatDuplicateAccountErrorMessage",
 ];
 
 for (const key of required) {
