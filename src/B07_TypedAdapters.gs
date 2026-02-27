@@ -781,6 +781,18 @@ function listDuplicateAccountNamesTyped_(accounts) {
   return null;
 }
 
+function resolveRunLogWriteRowTyped_(columnValues, startRow, maxRows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.resolveRunLogWriteRow === 'function') {
+    return api.resolveRunLogWriteRow(
+      Array.isArray(columnValues) ? columnValues : [],
+      startRow,
+      maxRows
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

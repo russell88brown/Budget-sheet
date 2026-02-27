@@ -40,6 +40,7 @@ const required = [
   "computeAccountMonthlyFlowWorksheet",
   "composeRunLogNotes",
   "listDuplicateAccountNames",
+  "resolveRunLogWriteRow",
 ];
 
 for (const key of required) {

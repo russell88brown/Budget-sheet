@@ -184,6 +184,7 @@ import { buildAccountLookupMap } from "../core/accountLookupMap";
 import { computeAccountMonthlyFlowWorksheet } from "../core/accountMonthlyFlowWorksheet";
 import { composeRunLogNotes } from "../core/runLogNotes";
 import { listDuplicateAccountNames } from "../core/accountNameDuplicates";
+import { resolveRunLogWriteRow } from "../core/runLogRow";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -216,6 +217,7 @@ export const TypedBudget = {
   computeAccountMonthlyFlowWorksheet,
   composeRunLogNotes,
   listDuplicateAccountNames,
+  resolveRunLogWriteRow,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

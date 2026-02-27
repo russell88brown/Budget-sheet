@@ -54,6 +54,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Extract `D04_JournalEngine.gs` account monthly-flow worksheet row-calculation loop to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` run-log note composition helper to typed core and keep GAS fallback.
 - [x] Extract `D04_JournalEngine.gs` duplicate-account-name fallback helper to typed core and keep GAS fallback.
+- [x] Extract `D04_JournalEngine.gs` run-log write-row selection helper to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

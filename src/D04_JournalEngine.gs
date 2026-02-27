@@ -407,12 +407,24 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
 
   var row = 2;
   var maxRows = settingsSheet.getMaxRows();
-  while (row <= maxRows && settingsSheet.getRange(row, 10).getValue() !== '') {
-    row += 1;
-  }
-  if (row > maxRows) {
-    settingsSheet.insertRowsAfter(maxRows, 1);
-    row = maxRows + 1;
+  var rowSelector = resolveRunLogWriteRowTyped_(
+    settingsSheet.getRange(2, 10, Math.max(0, maxRows - 1), 1).getValues(),
+    2,
+    maxRows
+  );
+  if (rowSelector && typeof rowSelector.row === 'number') {
+    row = rowSelector.row;
+    if (rowSelector.insertAfterMax) {
+      settingsSheet.insertRowsAfter(maxRows, 1);
+    }
+  } else {
+    while (row <= maxRows && settingsSheet.getRange(row, 10).getValue() !== '') {
+      row += 1;
+    }
+    if (row > maxRows) {
+      settingsSheet.insertRowsAfter(maxRows, 1);
+      row = maxRows + 1;
+    }
   }
   settingsSheet.getRange(row, 10, 1, 5).setValues([
     [new Date(), modeLabel || 'Run', resolveScenarioId_(scenarioId), status || '', notes],
