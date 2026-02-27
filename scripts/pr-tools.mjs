@@ -11,6 +11,14 @@ const claspConfigPath = path.join(repoRoot, '.clasp.json');
 const claspExamplePath = path.join(repoRoot, '.clasp.example.json');
 const claspCredentialsPath = path.join(os.homedir(), '.clasprc.json');
 const claspCommand = process.platform === 'win32' ? 'clasp.cmd' : 'clasp';
+const defaultClaspTemplate = {
+  rootDir: 'src',
+  scriptExtensions: ['.js', '.gs'],
+  htmlExtensions: ['.html'],
+  jsonExtensions: ['.json'],
+  filePushOrder: [],
+  skipSubdirectories: false,
+};
 
 function fail(message) {
   console.error(message);
@@ -66,12 +74,17 @@ function writeCredentialsIfProvided() {
   console.log(`Wrote clasp credentials to ${claspCredentialsPath}`);
 }
 
-function withTemporaryClaspConfig(scriptId, fn) {
-  if (!fs.existsSync(claspExamplePath)) {
-    fail(`Missing ${claspExamplePath}.`);
+function readClaspTemplate() {
+  if (fs.existsSync(claspExamplePath)) {
+    return readJsonFile(claspExamplePath);
   }
 
-  const template = readJsonFile(claspExamplePath);
+  console.warn(`Missing ${claspExamplePath}; using built-in clasp template.`);
+  return defaultClaspTemplate;
+}
+
+function withTemporaryClaspConfig(scriptId, fn) {
+  const template = readClaspTemplate();
   const originalExists = fs.existsSync(claspConfigPath);
   const originalRaw = originalExists ? fs.readFileSync(claspConfigPath, 'utf8') : null;
 
