@@ -2161,17 +2161,22 @@ function runJournalForIds_(scenarioIds) {
   startRunProgress_('Journal (' + ids.join(', ') + ')', ids.length + 2);
   try {
     toastStep_('Reading input sheets...');
-    var artifacts = ids.map(function (scenarioId) {
-      return buildJournalArtifactsForRunModel_(buildRunModelWithExtensions_(scenarioId));
-    });
-
     toastStep_('Combining journal rows...');
     var baseColumnCount = getJournalBaseColumnCount_();
-    var merged = mergeJournalArtifactsTyped_(artifacts, baseColumnCount);
-    var globalForecastAccounts = merged ? merged.forecastAccounts : [];
-    var accountTypes = merged ? merged.accountTypes : {};
-    var combinedRows = merged ? merged.combinedRows : [];
-    if (!merged) {
+    var payload = buildMultiRunJournalPayloadTyped_(ids, baseColumnCount);
+    var globalForecastAccounts = payload ? payload.forecastAccounts : [];
+    var accountTypes = payload ? payload.accountTypes : {};
+    var combinedRows = payload ? payload.combinedRows : [];
+    if (!payload) {
+      var artifacts = ids.map(function (scenarioId) {
+        return buildJournalArtifactsForRunModel_(buildRunModelWithExtensions_(scenarioId));
+      });
+      var merged = mergeJournalArtifactsTyped_(artifacts, baseColumnCount);
+      if (merged) {
+        globalForecastAccounts = merged.forecastAccounts || [];
+        accountTypes = merged.accountTypes || {};
+        combinedRows = merged.combinedRows || [];
+      } else {
       var forecastLookup = {};
       artifacts.forEach(function (artifact) {
         (artifact.forecastAccounts || []).forEach(function (name) {
@@ -2206,6 +2211,7 @@ function runJournalForIds_(scenarioIds) {
           combinedRows.push(base.concat(aligned));
         });
       });
+      }
     }
 
     toastStep_('Writing journal...');

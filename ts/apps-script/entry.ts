@@ -119,6 +119,7 @@ import { applyAutoDeficitCoverRowsBeforeEvent } from "../core/journalAutoDeficit
 import { resolveTransferAmountForJournalWithDefault } from "../core/journalTransferResolution";
 import { getJournalBaseColumnCount, normalizeJournalRunIds } from "../core/journalOrchestration";
 import { buildJournalArtifactsForRunModel } from "../core/journalBuild";
+import { buildMultiRunJournalPayload } from "../core/journalMultiRun";
 import {
   alignToWindow,
   expandRecurrence,
@@ -220,6 +221,7 @@ export const TypedBudget = {
   normalizeJournalRunIds,
   getJournalBaseColumnCount,
   buildJournalArtifactsForRunModel,
+  buildMultiRunJournalPayload,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

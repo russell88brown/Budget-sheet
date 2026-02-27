@@ -927,6 +927,20 @@ function buildJournalArtifactsForRunModelTyped_(runModel) {
   return null;
 }
 
+function buildMultiRunJournalPayloadTyped_(scenarioIds, baseColumnCount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildMultiRunJournalPayload === 'function') {
+    return api.buildMultiRunJournalPayload(scenarioIds || [], baseColumnCount || 8, {
+      buildRunModelForId: function (scenarioId) {
+        return buildRunModelWithExtensions_(scenarioId);
+      },
+      buildJournalArtifactsForRunModel: buildJournalArtifactsForRunModel_,
+      mergeJournalArtifacts: mergeJournalArtifactsTyped_,
+    });
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {
