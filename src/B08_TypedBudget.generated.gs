@@ -1391,6 +1391,46 @@ var TypedBudget = (() => {
     return rows;
   }
 
+  // ts/core/journalTransferResolution.ts
+  function resolveTransferAmountForJournal(balances, event, amount, ctx) {
+    const typed = ctx.resolveTransferAmount(balances, event, amount);
+    if (typed.skip) {
+      event.appliedAmount = 0;
+      event.skipJournal = true;
+      if (typed.creditPaidOff) {
+        ctx.markCreditPaidOffWarning(event.name);
+      }
+      return { amount: 0, skip: true };
+    }
+    return { amount: typed.amount, skip: false };
+  }
+  function resolveTransferAmountForJournalWithDefault(balances, event, amount, transferResolverContext, markCreditPaidOffWarning) {
+    return resolveTransferAmountForJournal(balances, event, amount, {
+      resolveTransferAmount: (b, e, a) => resolveTransferAmount(b, e, a, transferResolverContext),
+      markCreditPaidOffWarning
+    });
+  }
+
+  // ts/core/journalOrchestration.ts
+  function normalizeJournalRunIds(scenarioIds, defaultTag, normalizeTag2) {
+    let ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
+    ids = ids.map((value) => normalizeTag2(value)).filter((value, idx, arr) => !!value && arr.indexOf(value) === idx);
+    if (!ids.length) {
+      return [defaultTag];
+    }
+    return ids;
+  }
+  function getJournalBaseColumnCount(outputs, journalSheetName, fallbackCount) {
+    if (!Array.isArray(outputs)) {
+      return fallbackCount;
+    }
+    const journalSpec = outputs.filter((spec) => spec && spec.name === journalSheetName)[0];
+    if (journalSpec && Array.isArray(journalSpec.columns) && journalSpec.columns.length) {
+      return journalSpec.columns.length;
+    }
+    return fallbackCount;
+  }
+
   // ts/core/recurrence.ts
   function normalizeRepeatEvery(repeatEvery) {
     const raw = Number(repeatEvery);
@@ -1605,7 +1645,10 @@ var TypedBudget = (() => {
     accrueDailyInterest,
     computeInterestAmount,
     getInterestBucket,
-    applyAutoDeficitCoverRowsBeforeEvent
+    applyAutoDeficitCoverRowsBeforeEvent,
+    resolveTransferAmountForJournalWithDefault,
+    normalizeJournalRunIds,
+    getJournalBaseColumnCount
   };
   return __toCommonJS(entry_exports);
 })();

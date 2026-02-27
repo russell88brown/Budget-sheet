@@ -516,7 +516,12 @@ function coreEstimateTransferOutgoingAmount_(balances, event) {
 }
 
 function coreResolveTransferAmount_(balances, event, amount) {
-  var typed = resolveTransferAmountTyped_(balances, event, amount);
+  var typed = resolveTransferAmountForJournalTyped_(balances, event, amount);
+  if (typed) {
+    return typed;
+  }
+
+  typed = resolveTransferAmountTyped_(balances, event, amount);
   if (typed) {
     if (typed.skip) {
       event.appliedAmount = 0;

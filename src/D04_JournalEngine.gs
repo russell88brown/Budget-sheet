@@ -2149,12 +2149,15 @@ function buildJournalArtifactsForRunModel_(runModel) {
 }
 
 function runJournalForIds_(scenarioIds) {
-  var ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
-  ids = ids
-    .map(function (value) { return resolveScenarioId_(value); })
-    .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
-  if (!ids.length) {
-    ids = [Config.SCENARIOS.DEFAULT];
+  var ids = normalizeJournalRunIdsTyped_(scenarioIds);
+  if (!ids) {
+    ids = Array.isArray(scenarioIds) ? scenarioIds : [scenarioIds];
+    ids = ids
+      .map(function (value) { return resolveScenarioId_(value); })
+      .filter(function (value, idx, arr) { return value && arr.indexOf(value) === idx; });
+    if (!ids.length) {
+      ids = [Config.SCENARIOS.DEFAULT];
+    }
   }
   if (ids.length === 1) {
     if (Engine && Engine.runJournalForScenario) {
@@ -2226,6 +2229,15 @@ function runJournalForIds_(scenarioIds) {
 }
 
 function getJournalBaseColumnCount_() {
+  var typed = getJournalBaseColumnCountTyped_(
+    typeof Schema !== 'undefined' && Schema ? Schema.outputs : null,
+    Config.SHEETS.JOURNAL,
+    8
+  );
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
+
   if (typeof Schema !== 'undefined' && Schema && Array.isArray(Schema.outputs)) {
     var journalSpec = Schema.outputs.filter(function (spec) {
       return spec && spec.name === Config.SHEETS.JOURNAL;

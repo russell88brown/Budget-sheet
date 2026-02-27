@@ -116,6 +116,8 @@ import {
   getInterestBucket,
 } from "../core/journalDeficitInterest";
 import { applyAutoDeficitCoverRowsBeforeEvent } from "../core/journalAutoDeficit";
+import { resolveTransferAmountForJournalWithDefault } from "../core/journalTransferResolution";
+import { getJournalBaseColumnCount, normalizeJournalRunIds } from "../core/journalOrchestration";
 import {
   alignToWindow,
   expandRecurrence,
@@ -213,6 +215,9 @@ export const TypedBudget = {
   computeInterestAmount,
   getInterestBucket,
   applyAutoDeficitCoverRowsBeforeEvent,
+  resolveTransferAmountForJournalWithDefault,
+  normalizeJournalRunIds,
+  getJournalBaseColumnCount,
 };
 
 export type TypedBudgetApi = typeof TypedBudget;

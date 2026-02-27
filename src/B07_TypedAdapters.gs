@@ -865,6 +865,49 @@ function applyAutoDeficitCoverRowsBeforeEventTyped_(
   return null;
 }
 
+function resolveTransferAmountForJournalTyped_(balances, event, amount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.resolveTransferAmountForJournalWithDefault === 'function') {
+    return api.resolveTransferAmountForJournalWithDefault(
+      balances || {},
+      event || {},
+      amount,
+      {
+        transferTypes: Config.TRANSFER_TYPES,
+        accountKey: coreAccountKey_,
+        roundMoney: function (value) { return roundUpCents_(value || 0); },
+      },
+      function (name) {
+        if (typeof runState_ === 'undefined' || !runState_) {
+          return;
+        }
+        runState_.creditPaidOffWarned = runState_.creditPaidOffWarned || {};
+        var key = String(name || '');
+        if (!runState_.creditPaidOffWarned[key]) {
+          runState_.creditPaidOffWarned[key] = true;
+        }
+      }
+    );
+  }
+  return null;
+}
+
+function normalizeJournalRunIdsTyped_(scenarioIds) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeJournalRunIds === 'function') {
+    return api.normalizeJournalRunIds(scenarioIds, Config.SCENARIOS.DEFAULT, resolveScenarioId_);
+  }
+  return null;
+}
+
+function getJournalBaseColumnCountTyped_(outputs, journalSheetName, fallbackCount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.getJournalBaseColumnCount === 'function') {
+    return api.getJournalBaseColumnCount(outputs, journalSheetName, fallbackCount);
+  }
+  return null;
+}
+
 function normalizeActionsTyped_(actions) {
   var api = typedBudgetApi_();
   if (api && typeof api.normalizeActions === 'function') {
