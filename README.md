@@ -22,7 +22,7 @@ You now have a complete base forecast.
 
 1. Go to `Settings` sheet
 2. Add or edit scenario names in column `H` (`Base`, `Stress`, etc.)
-3. In input sheets (`Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`, `Risk`), set each row's `Scenario`
+3. In input sheets (`Accounts`, `Income`, `Expense`, `Transfers`, `Policies`, `Goals`), set each row's `Scenario`
 4. Open `Run Budget...`
 5. Choose scenario mode `Choose custom scenario(s)` and multi-select one or more scenarios
 6. Tick desired operations, then click `Run`
@@ -60,12 +60,16 @@ Practical combinations:
 - `Journal` only: refreshes core forecast ledger.
 - `Daily + Monthly + Dashboard` only: rebuilds reporting from current journal.
 
+Notes:
+- When multiple scenarios are selected for Daily/Monthly, output includes a `Scenario` column.
+- Journal rows keep generated order to preserve deterministic same-day closing snapshots.
+
 ## Scenario Case Studies
 
 | Scenario | User Story | Implementation | Output |
 |---|---|---|---|
 | Base | "I just want my normal month-to-month plan." | Keep rows blank or set `Scenario=Base`. Run Base journal + summaries. | Standard forecast baseline in Journal/Daily/Monthly/Dashboard. |
-| Stress | "What if my income drops and expenses rise?" | Create/enable `Stress` rows for income/expenses/risk assumptions. Run scenario actions for `Stress`. | Alternate downside forecast, comparable against Base. |
+| Stress | "What if my income drops and expenses rise?" | Create/enable `Stress` rows for income/expense assumptions. Run scenario actions for `Stress`. | Alternate downside forecast, comparable against Base. |
 | Debt Sprint | "I want to test an aggressive debt payoff plan." | Duplicate transfer/policy rows with `Scenario=Debt Sprint` and higher repayments. | Shows payoff speed, cash pressure, and negative-cash risk under sprint strategy. |
 | Job Change | "I may switch jobs in 3 months." | Add new income pattern as `Scenario=Job Change` with updated start date. | Timeline impact on cash runway and account balances. |
 | Family Expansion | "We're planning for a new recurring cost stack." | Add new expense rows (`childcare`, etc.) in dedicated scenario. | Clear picture of affordability before committing. |
@@ -92,3 +96,11 @@ Practical combinations:
 - `docs/CLASP.md`: Apps Script/clasp setup
 - `docs/CI.md`: CI + PR deploy/test automation
 - `docs/CODEX.md`: local development notes
+
+## Deterministic Regression Quick Check
+
+For deterministic checks after engine changes, run script editor functions:
+1. `runDeterministicFixtureTestsPhase2_All`
+2. `runDeterministicFixtureTestsPhase2_RunAllWithReport`
+
+These validate stable event ordering, journal balances, and summary assumptions used by Accounts + Monthly totals.

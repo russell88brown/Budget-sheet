@@ -20,7 +20,6 @@ Scenario-capable input sheets:
 - `Transfers`
 - `Policies`
 - `Goals`
-- `Risk`
 
 ## Default Data Integration
 

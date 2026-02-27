@@ -79,27 +79,6 @@ const Readers = {
       });
   },
 
-  readRiskSettings: function () {
-    var rows = readSheetRows_(Config.SHEETS.RISK);
-    return rows
-      .filter(function (row) {
-        return toBoolean_(row['Include']);
-      })
-      .map(function (row) {
-        var scenarioId = normalizeScenario_(row['Scenario']);
-        return {
-          ruleId: row['Rule ID'],
-          scenarioId: scenarioId,
-          scenarioName: row['Scenario Name'],
-          emergencyBufferAccount: row['Emergency Buffer Account'],
-          emergencyBufferMinimum: toNumber_(row['Emergency Buffer Minimum']) || 0,
-          incomeShockPercent: toNumber_(row['Income Shock Percent']) || 0,
-          expenseShockPercent: toNumber_(row['Expense Shock Percent']) || 0,
-          notes: row['Notes'],
-        };
-      });
-  },
-
   readIncome: function () {
     var rows = readSheetRows_(Config.SHEETS.INCOME);
     return rows

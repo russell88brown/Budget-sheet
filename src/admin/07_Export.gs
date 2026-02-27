@@ -17,7 +17,6 @@ function getExportableSheetNames_() {
     Config.SHEETS.ACCOUNTS,
     Config.SHEETS.POLICIES,
     Config.SHEETS.GOALS,
-    Config.SHEETS.RISK,
     Config.SHEETS.TRANSFERS,
     Config.SHEETS.INCOME,
     Config.SHEETS.EXPENSE,
@@ -27,46 +26,6 @@ function getExportableSheetNames_() {
     Config.LISTS_SHEET,
     Config.SHEETS.JOURNAL,
   ];
-}
-
-function exportAllSheetsToJson(selectedSheetNames) {
-  var request = normalizeExportRequest_(selectedSheetNames);
-  var ss = SpreadsheetApp.getActive();
-  var allowed = getExportableSheetNames_();
-  var sheetNames = request.sheetNames.length
-    ? request.sheetNames
-    : allowed.slice();
-  sheetNames = sheetNames.filter(function (name) {
-    return allowed.indexOf(name) !== -1;
-  });
-  var rows = [];
-  sheetNames.forEach(function (name) {
-    var sheet = ss.getSheetByName(name);
-    if (!sheet) {
-      return;
-    }
-    if (name === Config.SHEETS.JOURNAL) {
-      rows = rows.concat(exportJournalRows_(sheet, request.journal));
-      return;
-    }
-    var exportData = exportSheetRows_(sheet, name);
-    var compact = serializeCompact_(exportData.headers, exportData.rows);
-    rows = rows.concat(buildExportRows_(name, compact));
-  });
-
-  var exportName = Config.SHEETS.EXPORT;
-  var exportSheet = ss.getSheetByName(exportName);
-  if (!exportSheet) {
-    exportSheet = ss.insertSheet(exportName);
-  }
-  exportSheet.clear();
-  exportSheet.getRange(1, 1, Math.max(rows.length, 1), 2).clearContent();
-  exportSheet.getRange(1, 1, 1, 2).setValues([['Sheet', 'Data']]).setFontWeight('bold');
-  if (rows.length) {
-    exportSheet.getRange(2, 1, rows.length, 2).setValues(rows);
-  }
-
-  return rows;
 }
 
 function buildExportZipPayload_(selectedSheetNames) {
@@ -345,92 +304,6 @@ function exportSheetRows_(sheet, sheetName) {
   return { headers: headers, rows: rows };
 }
 
-function exportJournalRows_(sheet, journalOptions) {
-  var data = sheet.getDataRange().getValues();
-  if (!data || data.length === 0) {
-    return [];
-  }
-  var headers = data[0] || [];
-  var options = normalizeJournalOptions_(journalOptions);
-  var meaningfulRows = data.slice(1).filter(function (row) {
-    return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
-  });
-  meaningfulRows = filterJournalRowsByOptions_(meaningfulRows, headers, options);
-  if (!meaningfulRows.length) {
-    return [];
-  }
-  if (options.mode === 'entries') {
-    var rows = [];
-    var part = 0;
-    for (var i = 0; i < meaningfulRows.length; i += options.entriesPerFile) {
-      part += 1;
-      var chunk = meaningfulRows.slice(i, i + options.entriesPerFile);
-      rows = rows.concat(
-        buildExportRows_(
-          Config.SHEETS.JOURNAL + ' (part ' + part + ', ' + options.entriesPerFile + ' entries)',
-          serializeCompact_(headers, chunk)
-        )
-      );
-    }
-    return rows;
-  }
-  if (options.mode === 'dateRange') {
-    return buildExportRows_(
-      Config.SHEETS.JOURNAL + ' (' + options.startDate + ' to ' + options.endDate + ')',
-      serializeCompact_(headers, meaningfulRows)
-    );
-  }
-  return buildExportRows_(Config.SHEETS.JOURNAL, serializeCompact_(headers, meaningfulRows));
-}
-
-function exportJournalByMonth_(sheet) {
-  var exportRows = [];
-  var data = sheet.getDataRange().getValues();
-  if (!data || data.length === 0) {
-    return exportRows;
-  }
-  var headers = data[0] || [];
-  var dateIndex = headers.indexOf('Date');
-  var scenarioIndex = headers.indexOf('Scenario');
-  if (dateIndex === -1) {
-    var fallback = serializeCompact_(headers, data.slice(1));
-    exportRows.push([Config.SHEETS.JOURNAL, fallback]);
-    return exportRows;
-  }
-
-  var groups = {};
-  data
-    .slice(1)
-    .filter(function (row) {
-      return isMeaningfulRow_(row, headers, Config.SHEETS.JOURNAL);
-    })
-    .forEach(function (row) {
-      var date = row[dateIndex];
-      var scenarioKey = getJournalScenarioKey_(row, scenarioIndex);
-      var key = scenarioKey + '-Unknown';
-      if (date instanceof Date) {
-        key = scenarioKey + '-' + Utilities.formatDate(date, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM');
-      }
-      if (!groups[key]) {
-        groups[key] = { scenario: scenarioKey, rows: [] };
-      }
-      groups[key].rows.push(row);
-    });
-
-  Object.keys(groups)
-    .sort()
-    .forEach(function (groupKey) {
-      var group = groups[groupKey];
-      var monthKey = groupKey.slice(group.scenario.length + 1);
-      var compact = serializeCompact_(headers, group.rows);
-      exportRows = exportRows.concat(
-        buildExportRows_(Config.SHEETS.JOURNAL + ' ' + group.scenario + ' ' + monthKey, compact)
-      );
-    });
-
-  return exportRows;
-}
-
 function filterJournalRowsByOptions_(rows, headers, options) {
   if (options.mode !== 'dateRange') {
     return rows;
@@ -450,13 +323,6 @@ function filterJournalRowsByOptions_(rows, headers, options) {
     var time = value.getTime();
     return time >= start && time <= end;
   });
-}
-
-function getJournalScenarioKey_(row, scenarioIndex) {
-  if (scenarioIndex === -1) {
-    return Config.SCENARIOS.DEFAULT;
-  }
-  return normalizeScenario_(row[scenarioIndex]);
 }
 
 function isMeaningfulRow_(row, headers, sheetName) {
@@ -479,60 +345,4 @@ function isMeaningfulRow_(row, headers, sheetName) {
     return false;
   }
   return true;
-}
-
-function buildExportRows_(label, json) {
-  var maxLen = 45000;
-  if (!json || json.length <= maxLen) {
-    return [[label, json || '']];
-  }
-  var parts = [];
-  for (var i = 0; i < json.length; i += maxLen) {
-    parts.push(json.slice(i, i + maxLen));
-  }
-  return parts.map(function (part, idx) {
-    return [label + ' (part ' + (idx + 1) + '/' + parts.length + ')', part];
-  });
-}
-
-function serializeCompact_(headers, rows) {
-  if (!headers || headers.length === 0) {
-    return '';
-  }
-  var lines = [];
-  lines.push(serializeRow_(headers));
-  rows.forEach(function (row) {
-    lines.push(serializeRow_(row));
-  });
-  return lines.join('\n');
-}
-
-function serializeRow_(row) {
-  var values = row.map(function (cell) {
-    return formatCell_(cell);
-  });
-  while (values.length && values[values.length - 1] === '') {
-    values.pop();
-  }
-  return values.join('\t');
-}
-
-function formatCell_(value) {
-  if (value === null || value === undefined || value === false) {
-    return '';
-  }
-  if (value === true) {
-    return '1';
-  }
-  if (value instanceof Date) {
-    return Utilities.formatDate(value, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
-  }
-  if (typeof value === 'number') {
-    return Number(value).toString();
-  }
-  var text = String(value);
-  if (text === '') {
-    return '';
-  }
-  return text.replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
 }
