@@ -1,6 +1,6 @@
 # Codex Prompt Stages
 
-## Stage 1: Start Request
+## Stage 1: Draft Plan From Branch Folder Path
 
 Copy/paste:
 
@@ -8,20 +8,19 @@ Copy/paste:
 Follow codex/SKILL.md for full process.
 
 Request:
-<YOUR_PROMPT>
+Draft and prepare a sprint plan from this branch folder path:
+<PASTE_BRANCH_FOLDER_PATH>
 ```
 
 Examples:
-- `I would like to improve dashboards by this, this, and this.`
-- `I have a bug with the calculation of ZBC LD.`
-- `I would like to do a review on this.`
+- `C:\Users\User\Dev\Budget-sheet\codex\branch\2026-02-27_feat_typescript-migration-2`
 
 ## Stage 2: Plan Confirmation
 
 Copy/paste:
 
 ```text
-Create the sprint plan from this prompt, then review and finalize the plan with me before implementation.
+Review and finalize the drafted sprint plan with me before implementation.
 ```
 
 ## Stage 3: Delivery + PR Readiness
