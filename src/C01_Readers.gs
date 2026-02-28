@@ -128,6 +128,10 @@ const Readers = {
 
   readExpenses: function () {
     var rows = readSheetRows_(Config.SHEETS.EXPENSE);
+    var typed = mapExpenseReaderRowsTyped_(rows);
+    if (typed) {
+      return typed;
+    }
     return rows
       .filter(function (row) {
         return toBoolean_(row['Include']);

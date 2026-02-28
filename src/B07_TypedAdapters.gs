@@ -921,6 +921,24 @@ function mapIncomeReaderRowsTyped_(rows) {
   return null;
 }
 
+function mapExpenseReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapExpenseReaderRows === 'function') {
+    return api.mapExpenseReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizeRecurrence: normalizeRecurrence_,
+        toNumber: toNumber_,
+        expenseBehaviorLabel: Config.BEHAVIOR_LABELS.Expense,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {
