@@ -203,38 +203,44 @@ function assignMissingRuleIdsForSheet_(sheetName, prefix) {
   }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var existing = {};
-  values.forEach(function (row) {
-    var id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
-    if (id) {
-      existing[id] = true;
-    }
-  });
-
-  var nextNumber = 1;
+  var typedAssigned = assignMissingRuleIdsRowsTyped_(values, ruleIdIdx, prefix);
   var assigned = 0;
-  values.forEach(function (row) {
-    var current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
-    if (current) {
-      return;
-    }
-    if (!hasMeaningfulRowDataForRuleId_(row, ruleIdIdx)) {
-      return;
-    }
-
-    var candidate = '';
-    while (!candidate) {
-      var serial = ('00000' + nextNumber).slice(-5);
-      var trial = prefix + '-' + serial;
-      nextNumber += 1;
-      if (!existing[trial]) {
-        candidate = trial;
+  if (typedAssigned && typeof typedAssigned.assigned === 'number' && Array.isArray(typedAssigned.rows)) {
+    values = typedAssigned.rows;
+    assigned = typedAssigned.assigned;
+  } else {
+    var existing = {};
+    values.forEach(function (row) {
+      var id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+      if (id) {
+        existing[id] = true;
       }
-    }
-    row[ruleIdIdx] = candidate;
-    existing[candidate] = true;
-    assigned += 1;
-  });
+    });
+
+    var nextNumber = 1;
+    values.forEach(function (row) {
+      var current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : '';
+      if (current) {
+        return;
+      }
+      if (!hasMeaningfulRowDataForRuleId_(row, ruleIdIdx)) {
+        return;
+      }
+
+      var candidate = '';
+      while (!candidate) {
+        var serial = ('00000' + nextNumber).slice(-5);
+        var trial = prefix + '-' + serial;
+        nextNumber += 1;
+        if (!existing[trial]) {
+          candidate = trial;
+        }
+      }
+      row[ruleIdIdx] = candidate;
+      existing[candidate] = true;
+      assigned += 1;
+    });
+  }
 
   if (assigned > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -243,6 +249,10 @@ function assignMissingRuleIdsForSheet_(sheetName, prefix) {
 }
 
 function hasMeaningfulRowDataForRuleId_(row, ruleIdIdx) {
+  var typed = hasMeaningfulRowDataForRuleIdTyped_(row, ruleIdIdx);
+  if (typed !== null && typed !== undefined) {
+    return typed;
+  }
   for (var i = 0; i < row.length; i += 1) {
     if (i === ruleIdIdx) {
       continue;
@@ -325,17 +335,29 @@ function disableRowsWithUnknownScenario_(sheetName, validScenarios) {
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
   var disabledCount = 0;
-  values.forEach(function (row) {
-    if (!toBoolean_(row[includeIdx])) {
-      return;
-    }
-    var scenarioId = resolveScenarioId_(row[scenarioIdx]);
-    if (!validScenarios[scenarioId]) {
-      row[includeIdx] = false;
-      updated = true;
-      disabledCount += 1;
-    }
-  });
+  var typedResult = disableUnknownScenarioRowsTyped_(values, includeIdx, scenarioIdx, validScenarios);
+  if (
+    typedResult &&
+    Array.isArray(typedResult.rows) &&
+    typeof typedResult.disabledCount === 'number' &&
+    typeof typedResult.updated === 'boolean'
+  ) {
+    values = typedResult.rows;
+    disabledCount = typedResult.disabledCount;
+    updated = typedResult.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[includeIdx])) {
+        return;
+      }
+      var scenarioId = resolveScenarioId_(row[scenarioIdx]);
+      if (!validScenarios[scenarioId]) {
+        row[includeIdx] = false;
+        updated = true;
+        disabledCount += 1;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -367,31 +389,54 @@ function appendRunLogEntry_(settingsSheet, modeLabel, scenarioId, status, detail
   var scenarioValidation = details && details.scenarioValidation ? details.scenarioValidation : null;
   var coreValidation = details && details.coreValidation ? details.coreValidation : null;
   var explicitNote = details && details.note ? String(details.note).trim() : '';
-  var notes = '';
-  if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
-    notes = 'Disabled unknown tag rows: ' + scenarioValidation.totalDisabled;
-  }
-  if (coreValidation && coreValidation.totalDisabled > 0) {
-    notes = notes
-      ? notes + ' | Disabled invalid core rows: ' + coreValidation.totalDisabled
-      : 'Disabled invalid core rows: ' + coreValidation.totalDisabled;
-  }
-  if (explicitNote) {
-    notes = notes ? notes + ' | ' + explicitNote : explicitNote;
+  var notes = composeRunLogNotesTyped_(scenarioValidation, coreValidation, explicitNote);
+  if (notes === null || notes === undefined) {
+    notes = '';
+    if (scenarioValidation && scenarioValidation.totalDisabled > 0) {
+      notes = 'Disabled unknown tag rows: ' + scenarioValidation.totalDisabled;
+    }
+    if (coreValidation && coreValidation.totalDisabled > 0) {
+      notes = notes
+        ? notes + ' | Disabled invalid core rows: ' + coreValidation.totalDisabled
+        : 'Disabled invalid core rows: ' + coreValidation.totalDisabled;
+    }
+    if (explicitNote) {
+      notes = notes ? notes + ' | ' + explicitNote : explicitNote;
+    }
   }
 
   var row = 2;
   var maxRows = settingsSheet.getMaxRows();
-  while (row <= maxRows && settingsSheet.getRange(row, 10).getValue() !== '') {
-    row += 1;
+  var rowSelector = resolveRunLogWriteRowTyped_(
+    settingsSheet.getRange(2, 10, Math.max(0, maxRows - 1), 1).getValues(),
+    2,
+    maxRows
+  );
+  if (rowSelector && typeof rowSelector.row === 'number') {
+    row = rowSelector.row;
+    if (rowSelector.insertAfterMax) {
+      settingsSheet.insertRowsAfter(maxRows, 1);
+    }
+  } else {
+    while (row <= maxRows && settingsSheet.getRange(row, 10).getValue() !== '') {
+      row += 1;
+    }
+    if (row > maxRows) {
+      settingsSheet.insertRowsAfter(maxRows, 1);
+      row = maxRows + 1;
+    }
   }
-  if (row > maxRows) {
-    settingsSheet.insertRowsAfter(maxRows, 1);
-    row = maxRows + 1;
+  var logEntryRow = buildRunLogEntryRowTyped_(
+    new Date(),
+    modeLabel || 'Run',
+    resolveScenarioId_(scenarioId),
+    status || '',
+    notes
+  );
+  if (!Array.isArray(logEntryRow) || logEntryRow.length !== 5) {
+    logEntryRow = [new Date(), modeLabel || 'Run', resolveScenarioId_(scenarioId), status || '', notes];
   }
-  settingsSheet.getRange(row, 10, 1, 5).setValues([
-    [new Date(), modeLabel || 'Run', resolveScenarioId_(scenarioId), status || '', notes],
-  ]);
+  settingsSheet.getRange(row, 10, 1, 5).setValues([logEntryRow]);
   settingsSheet.getRange(row, 10).setNumberFormat('yyyy-mm-dd hh:mm');
 }
 
@@ -416,6 +461,10 @@ function buildAccountLookup_() {
     return lookup;
   }
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var typedLookup = buildAccountLookupFromRowsTyped_(values, nameIdx, includeIdx, scenarioIdx);
+  if (typedLookup) {
+    return typedLookup;
+  }
   values.forEach(function (row) {
     if (includeIdx !== -1 && !toBoolean_(row[includeIdx])) {
       return;
@@ -476,40 +525,49 @@ function validateAccountsSheet_() {
   }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var seen = {};
   var updated = 0;
-
-  values.forEach(function (row) {
-    if (!toBoolean_(row[includeIdx])) {
-      return;
-    }
-    var name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
-    var scenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    var normalizedName = normalizeAccountLookupKey_(name);
-    var type = normalizeAccountType_(row[typeIdx]);
-    var balance = toNumber_(row[balanceIdx]);
-    var reasons = [];
-
-    if (!name) {
-      reasons.push('missing account name');
-    } else {
-      var duplicateKey = scenarioId + '|' + normalizedName;
-      if (seen[duplicateKey]) {
-        reasons.push('duplicate account name');
+  var typedValidation = validateAccountsRowsTyped_(values, includeIdx, nameIdx, scenarioIdx, typeIdx, balanceIdx);
+  if (
+    typedValidation &&
+    Array.isArray(typedValidation.rows) &&
+    typeof typedValidation.updated === 'number'
+  ) {
+    values = typedValidation.rows;
+    updated = typedValidation.updated;
+  } else {
+    var seen = {};
+    values.forEach(function (row) {
+      if (!toBoolean_(row[includeIdx])) {
+        return;
       }
-      seen[duplicateKey] = true;
-    }
-    if (type !== Config.ACCOUNT_TYPES.CASH && type !== Config.ACCOUNT_TYPES.CREDIT) {
-      reasons.push('invalid account type');
-    }
-    if (balance === null) {
-      reasons.push('invalid balance');
-    }
-    if (reasons.length) {
-      row[includeIdx] = false;
-      updated += 1;
-    }
-  });
+      var name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+      var scenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+      var normalizedName = normalizeAccountLookupKey_(name);
+      var type = normalizeAccountType_(row[typeIdx]);
+      var balance = toNumber_(row[balanceIdx]);
+      var reasons = [];
+
+      if (!name) {
+        reasons.push('missing account name');
+      } else {
+        var duplicateKey = scenarioId + '|' + normalizedName;
+        if (seen[duplicateKey]) {
+          reasons.push('duplicate account name');
+        }
+        seen[duplicateKey] = true;
+      }
+      if (type !== Config.ACCOUNT_TYPES.CASH && type !== Config.ACCOUNT_TYPES.CREDIT) {
+        reasons.push('invalid account type');
+      }
+      if (balance === null) {
+        reasons.push('invalid balance');
+      }
+      if (reasons.length) {
+        row[includeIdx] = false;
+        updated += 1;
+      }
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -554,60 +612,66 @@ function validatePoliciesSheet_(validAccounts) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = 0;
-  values.forEach(function (row, rowIndex) {
-    if (!toBoolean_(row[idx.include])) {
-      return;
-    }
-    var reasons = [];
-    var policyType = normalizePolicyType_(row[idx.type]);
-    var name = row[idx.name] ? String(row[idx.name]).trim() : '';
-    var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
-    var trigger = normalizeAccountLookupKey_(row[idx.trigger]);
-    var funding = normalizeAccountLookupKey_(row[idx.funding]);
-    var threshold = idx.threshold === -1 ? null : toNumber_(row[idx.threshold]);
-    var maxPerEvent = idx.maxPerEvent === -1 ? null : toNumber_(row[idx.maxPerEvent]);
+  var typedPolicies = validatePolicyRowsTyped_(values, idx, validAccounts);
+  if (typedPolicies && Array.isArray(typedPolicies.rows) && typeof typedPolicies.updated === 'number') {
+    values = typedPolicies.rows;
+    updated = typedPolicies.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[idx.include])) {
+        return;
+      }
+      var reasons = [];
+      var policyType = normalizePolicyType_(row[idx.type]);
+      var name = row[idx.name] ? String(row[idx.name]).trim() : '';
+      var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
+      var trigger = normalizeAccountLookupKey_(row[idx.trigger]);
+      var funding = normalizeAccountLookupKey_(row[idx.funding]);
+      var threshold = idx.threshold === -1 ? null : toNumber_(row[idx.threshold]);
+      var maxPerEvent = idx.maxPerEvent === -1 ? null : toNumber_(row[idx.maxPerEvent]);
 
-    if (policyType !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
-      reasons.push('invalid policy type');
-    }
-    if (!name) {
-      reasons.push('missing name');
-    }
-    if (!trigger) {
-      reasons.push('missing trigger account');
-    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, trigger)) {
-      reasons.push('unknown trigger account');
-    }
-    if (!funding) {
-      reasons.push('missing funding account');
-    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, funding)) {
-      reasons.push('unknown funding account');
-    }
-    if (trigger && funding && trigger === funding) {
-      reasons.push('trigger and funding account cannot match');
-    }
-    if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
-      reasons.push('invalid priority');
-    }
-    if (idx.start !== -1 && row[idx.start] && !toDate_(row[idx.start])) {
-      reasons.push('invalid start date');
-    }
-    if (idx.end !== -1 && row[idx.end] && !toDate_(row[idx.end])) {
-      reasons.push('invalid end date');
-    }
-    if (threshold !== null && threshold < 0) {
-      reasons.push('threshold must be >= 0');
-    }
-    if (maxPerEvent !== null && maxPerEvent <= 0) {
-      reasons.push('max per event must be > 0');
-    }
+      if (policyType !== Config.POLICY_TYPES.AUTO_DEFICIT_COVER) {
+        reasons.push('invalid policy type');
+      }
+      if (!name) {
+        reasons.push('missing name');
+      }
+      if (!trigger) {
+        reasons.push('missing trigger account');
+      } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, trigger)) {
+        reasons.push('unknown trigger account');
+      }
+      if (!funding) {
+        reasons.push('missing funding account');
+      } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, funding)) {
+        reasons.push('unknown funding account');
+      }
+      if (trigger && funding && trigger === funding) {
+        reasons.push('trigger and funding account cannot match');
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
+        reasons.push('invalid priority');
+      }
+      if (idx.start !== -1 && row[idx.start] && !toDate_(row[idx.start])) {
+        reasons.push('invalid start date');
+      }
+      if (idx.end !== -1 && row[idx.end] && !toDate_(row[idx.end])) {
+        reasons.push('invalid end date');
+      }
+      if (threshold !== null && threshold < 0) {
+        reasons.push('threshold must be >= 0');
+      }
+      if (maxPerEvent !== null && maxPerEvent <= 0) {
+        reasons.push('max per event must be > 0');
+      }
 
-    if (!reasons.length) {
-      return;
-    }
-    row[idx.include] = false;
-    updated += 1;
-  });
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -651,60 +715,66 @@ function validateGoalsSheet_(validAccounts) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = 0;
-  values.forEach(function (row, rowIndex) {
-    if (!toBoolean_(row[idx.include])) {
-      return;
-    }
-    var reasons = [];
-    var goalName = row[idx.name] ? String(row[idx.name]).trim() : '';
-    var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
-    var targetAmount = toNumber_(row[idx.targetAmount]);
-    var targetDate = toDate_(row[idx.targetDate]);
-    var fundingAccount = normalizeAccountLookupKey_(row[idx.fundingAccount]);
-    var fundingPolicy = row[idx.fundingPolicy];
-    var amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber_(row[idx.amountPerMonth]);
-    var percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber_(row[idx.percentOfInflow]);
+  var typedGoals = validateGoalRowsTyped_(values, idx, validAccounts);
+  if (typedGoals && Array.isArray(typedGoals.rows) && typeof typedGoals.updated === 'number') {
+    values = typedGoals.rows;
+    updated = typedGoals.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[idx.include])) {
+        return;
+      }
+      var reasons = [];
+      var goalName = row[idx.name] ? String(row[idx.name]).trim() : '';
+      var rowScenarioId = idx.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[idx.scenario]);
+      var targetAmount = toNumber_(row[idx.targetAmount]);
+      var targetDate = toDate_(row[idx.targetDate]);
+      var fundingAccount = normalizeAccountLookupKey_(row[idx.fundingAccount]);
+      var fundingPolicy = row[idx.fundingPolicy];
+      var amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber_(row[idx.amountPerMonth]);
+      var percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber_(row[idx.percentOfInflow]);
 
-    if (!goalName) {
-      reasons.push('missing goal name');
-    }
-    if (targetAmount === null || targetAmount <= 0) {
-      reasons.push('target amount must be > 0');
-    }
-    if (!targetDate) {
-      reasons.push('invalid target date');
-    }
-    if (!fundingAccount) {
-      reasons.push('missing funding account');
-    } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fundingAccount)) {
-      reasons.push('unknown funding account');
-    }
-    if (
-      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.FIXED &&
-      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.LEFTOVER &&
-      fundingPolicy !== Config.GOAL_FUNDING_POLICIES.PERCENT
-    ) {
-      reasons.push('invalid funding policy');
-    }
-    if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
-      reasons.push('invalid priority');
-    }
-    if (fundingPolicy === Config.GOAL_FUNDING_POLICIES.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
-      reasons.push('amount per month must be > 0 for fixed policy');
-    }
-    if (
-      fundingPolicy === Config.GOAL_FUNDING_POLICIES.PERCENT &&
-      (percentOfInflow === null || percentOfInflow <= 0)
-    ) {
-      reasons.push('percent of inflow must be > 0 for percent policy');
-    }
+      if (!goalName) {
+        reasons.push('missing goal name');
+      }
+      if (targetAmount === null || targetAmount <= 0) {
+        reasons.push('target amount must be > 0');
+      }
+      if (!targetDate) {
+        reasons.push('invalid target date');
+      }
+      if (!fundingAccount) {
+        reasons.push('missing funding account');
+      } else if (!hasValidAccountForScenario_(validAccounts, rowScenarioId, fundingAccount)) {
+        reasons.push('unknown funding account');
+      }
+      if (
+        fundingPolicy !== Config.GOAL_FUNDING_POLICIES.FIXED &&
+        fundingPolicy !== Config.GOAL_FUNDING_POLICIES.LEFTOVER &&
+        fundingPolicy !== Config.GOAL_FUNDING_POLICIES.PERCENT
+      ) {
+        reasons.push('invalid funding policy');
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== '' && toPositiveInt_(row[idx.priority]) === null) {
+        reasons.push('invalid priority');
+      }
+      if (fundingPolicy === Config.GOAL_FUNDING_POLICIES.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
+        reasons.push('amount per month must be > 0 for fixed policy');
+      }
+      if (
+        fundingPolicy === Config.GOAL_FUNDING_POLICIES.PERCENT &&
+        (percentOfInflow === null || percentOfInflow <= 0)
+      ) {
+        reasons.push('percent of inflow must be > 0 for percent policy');
+      }
 
-    if (!reasons.length) {
-      return;
-    }
-    row[idx.include] = false;
-    updated += 1;
-  });
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -713,6 +783,10 @@ function validateGoalsSheet_(validAccounts) {
 
 function validateIncomeSheet_(validAccounts) {
   return validateAndDeactivateRows_(Config.SHEETS.INCOME, 'Income', function (row, indexes) {
+    var typed = validateIncomeRowReasonsTyped_(row, indexes, validAccounts);
+    if (Array.isArray(typed)) {
+      return typed;
+    }
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
@@ -743,6 +817,10 @@ function validateIncomeSheet_(validAccounts) {
 
 function validateTransferSheet_(validAccounts) {
   return validateAndDeactivateRows_(Config.SHEETS.TRANSFERS, 'Transfer', function (row, indexes) {
+    var typed = validateTransferRowReasonsTyped_(row, indexes, validAccounts);
+    if (Array.isArray(typed)) {
+      return typed;
+    }
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.name]) {
@@ -788,6 +866,10 @@ function validateTransferSheet_(validAccounts) {
 
 function validateExpenseSheet_(validAccounts) {
   return validateAndDeactivateRows_(Config.SHEETS.EXPENSE, 'Expense', function (row, indexes) {
+    var typed = validateExpenseRowReasonsTyped_(row, indexes, validAccounts);
+    if (Array.isArray(typed)) {
+      return typed;
+    }
     var reasons = [];
     var rowScenarioId = indexes.scenario === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[indexes.scenario]);
     if (!row[indexes.type]) {
@@ -854,17 +936,23 @@ function validateAndDeactivateRows_(sheetName, label, validator) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = 0;
-  values.forEach(function (row, idx) {
-    if (!toBoolean_(row[indexes.include])) {
-      return;
-    }
-    var reasons = validator(row, indexes) || [];
-    if (!reasons.length) {
-      return;
-    }
-    row[indexes.include] = false;
-    updated += 1;
-  });
+  var typed = deactivateRowsByValidatorTyped_(values, indexes.include, toBoolean_, validator, indexes);
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'number') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      if (!toBoolean_(row[indexes.include])) {
+        return;
+      }
+      var reasons = validator(row, indexes) || [];
+      if (!reasons.length) {
+        return;
+      }
+      row[indexes.include] = false;
+      updated += 1;
+    });
+  }
 
   if (updated > 0) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -898,6 +986,10 @@ function refreshAccountSummariesForRunModel_(runModel) {
 }
 
 function buildIncomeMonthlyTotalsForRunModel_(incomeRules) {
+  var typed = buildIncomeMonthlyTotalsTyped_(incomeRules || []);
+  if (typed) {
+    return typed;
+  }
   var totals = {};
   (incomeRules || []).forEach(function (rule) {
     if (!rule || !rule.paidTo || !rule.frequency) {
@@ -918,6 +1010,10 @@ function buildIncomeMonthlyTotalsForRunModel_(incomeRules) {
 }
 
 function buildExpenseMonthlyTotalsForRunModel_(expenseRules) {
+  var typed = buildExpenseMonthlyTotalsTyped_(expenseRules || []);
+  if (typed) {
+    return typed;
+  }
   var totals = {};
   (expenseRules || []).forEach(function (rule) {
     if (!rule || !rule.paidFrom || !rule.frequency) {
@@ -943,15 +1039,18 @@ function buildTransferMonthlyTotalsForRunModel_(
   incomeTotalsByAccount,
   expenseTotalsByAccount
 ) {
+  var typed = buildTransferMonthlyTotalsTyped_(
+    transferRules || [],
+    accounts || [],
+    incomeTotalsByAccount || {},
+    expenseTotalsByAccount || {}
+  );
+  if (typed) {
+    return typed;
+  }
   var credits = {};
   var debits = {};
-  var accountBalances = {};
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
-  });
+  var accountBalances = buildAccountBalanceMap_(accounts || []);
 
   (transferRules || []).forEach(function (rule) {
     if (!rule || !rule.frequency) {
@@ -1039,32 +1138,63 @@ function updateIncomeMonthlyTotalsForRunModel_(runModel) {
 
   var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var out = rows.map(function (row) {
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      return [row[totalIdx]];
+  var out = computeRuleMonthlyWorksheetTyped_(
+    rows,
+    {
+      include: includeIdx,
+      scenario: scenarioIdx,
+      amount: amountIdx,
+      frequency: freqIdx,
+      repeat: repeatIdx,
+      start: startIdx,
+      end: endIdx,
+      account: toIdx,
+      total: totalIdx,
+    },
+    {
+      activeScenarioId: activeScenarioId,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      normalizeScenarioId: normalizeScenario_,
+      toBoolean: toBoolean_,
+      toNumber: toNumber_,
+      normalizeRecurrence: normalizeRecurrence_,
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      roundMoney: roundUpCents_,
     }
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx === -1 ? null : row[startIdx],
-      endIdx === -1 ? null : row[endIdx]
-    );
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
+  );
+  if (!Array.isArray(out)) {
+    out = rows.map(function (row) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
+        return [row[totalIdx]];
+      }
+      var include = toBoolean_(row[includeIdx]);
+      var amount = toNumber_(row[amountIdx]);
+      var recurrence = normalizeRecurrence_(
+        row[freqIdx],
+        row[repeatIdx],
+        startIdx === -1 ? null : row[startIdx],
+        endIdx === -1 ? null : row[endIdx]
+      );
+      var recurring = isRecurringForMonthlyAverage_({
+        startDate: recurrence.startDate,
+        endDate: recurrence.endDate,
+        isSingleOccurrence: recurrence.isSingleOccurrence,
+      });
+      if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[toIdx]) {
+        return [''];
+      }
+      var monthlyTotal = roundUpCents_(
+        (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
+      );
+      return [monthlyTotal];
     });
-    if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[toIdx]) {
-      return [''];
-    }
-    var monthlyTotal = roundUpCents_(
-      (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
-    );
-    return [monthlyTotal];
-  });
+  }
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return totals;
 }
@@ -1106,32 +1236,63 @@ function updateExpenseMonthlyTotalsForRunModel_(runModel) {
 
   var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var out = rows.map(function (row) {
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      return [row[totalIdx]];
+  var out = computeRuleMonthlyWorksheetTyped_(
+    rows,
+    {
+      include: includeIdx,
+      scenario: scenarioIdx,
+      amount: amountIdx,
+      frequency: freqIdx,
+      repeat: repeatIdx,
+      start: startIdx,
+      end: endIdx,
+      account: fromIdx,
+      total: totalIdx,
+    },
+    {
+      activeScenarioId: activeScenarioId,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      normalizeScenarioId: normalizeScenario_,
+      toBoolean: toBoolean_,
+      toNumber: toNumber_,
+      normalizeRecurrence: normalizeRecurrence_,
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      roundMoney: roundUpCents_,
     }
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx === -1 ? null : row[startIdx],
-      endIdx === -1 ? null : row[endIdx]
-    );
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
+  );
+  if (!Array.isArray(out)) {
+    out = rows.map(function (row) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
+        return [row[totalIdx]];
+      }
+      var include = toBoolean_(row[includeIdx]);
+      var amount = toNumber_(row[amountIdx]);
+      var recurrence = normalizeRecurrence_(
+        row[freqIdx],
+        row[repeatIdx],
+        startIdx === -1 ? null : row[startIdx],
+        endIdx === -1 ? null : row[endIdx]
+      );
+      var recurring = isRecurringForMonthlyAverage_({
+        startDate: recurrence.startDate,
+        endDate: recurrence.endDate,
+        isSingleOccurrence: recurrence.isSingleOccurrence,
+      });
+      if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[fromIdx]) {
+        return [''];
+      }
+      var monthlyTotal = roundUpCents_(
+        (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
+      );
+      return [monthlyTotal];
     });
-    if (!include || !recurring || amount === null || amount < 0 || !recurrence.frequency || !row[fromIdx]) {
-      return [''];
-    }
-    var monthlyTotal = roundUpCents_(
-      (amount || 0) * monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery)
-    );
-    return [monthlyTotal];
-  });
+  }
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return totals;
 }
@@ -1186,13 +1347,7 @@ function updateTransferMonthlyTotalsForRunModel_(
     return transferTotals;
   }
 
-  var accountBalances = {};
-  (runModel.accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    accountBalances[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
-  });
+  var accountBalances = buildAccountBalanceMap_(runModel.accounts || []);
 
   var activeScenarioId = normalizeScenario_(runModel.scenarioId);
   var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
@@ -1201,72 +1356,122 @@ function updateTransferMonthlyTotalsForRunModel_(
   });
   var credits = {};
   var debits = {};
-  var everythingExceptRows = [];
-
-  rows.forEach(function (row, rowIndex) {
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      return;
+  var typedWorksheet = computeTransferMonthlyWorksheetTyped_(
+    rows,
+    {
+      include: includeIdx,
+      scenario: scenarioIdx,
+      type: typeIdx,
+      amount: amountIdx,
+      frequency: freqIdx,
+      repeat: repeatIdx,
+      start: startIdx,
+      end: endIdx,
+      from: fromIdx,
+      to: toIdx,
+      total: totalIdx,
+    },
+    {
+      activeScenarioId: activeScenarioId,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      normalizeScenarioId: normalizeScenario_,
+      toBoolean: toBoolean_,
+      toNumber: toNumber_,
+      normalizeRecurrence: normalizeRecurrence_,
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      normalizeTransferType: normalizeTransferType_,
+      shouldCalculateTransferMonthlyTotal: shouldCalculateTransferMonthlyTotal_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      resolveTransferMonthlyTotal: resolveTransferMonthlyTotal_,
+      roundMoney: roundUpCents_,
+      accountBalances: accountBalances,
+      incomeTotalsByAccount: incomeTotalsByAccount,
+      expenseTotalsByAccount: expenseTotalsByAccount,
+      transferEverythingExceptType: Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT,
     }
+  );
+  if (
+    typedWorksheet &&
+    Array.isArray(typedWorksheet.out) &&
+    typedWorksheet.credits &&
+    typedWorksheet.debits
+  ) {
+    out = typedWorksheet.out;
+    credits = typedWorksheet.credits;
+    debits = typedWorksheet.debits;
+  } else {
+    var everythingExceptRows = [];
 
-    var include = toBoolean_(row[includeIdx]);
-    var amount = toNumber_(row[amountIdx]);
-    var recurrence = normalizeRecurrence_(
-      row[freqIdx],
-      row[repeatIdx],
-      startIdx === -1 ? null : row[startIdx],
-      endIdx === -1 ? null : row[endIdx]
-    );
-    var recurring = isRecurringForMonthlyAverage_({
-      startDate: recurrence.startDate,
-      endDate: recurrence.endDate,
-      isSingleOccurrence: recurrence.isSingleOccurrence,
-    });
+    rows.forEach(function (row, rowIndex) {
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
+        return;
+      }
 
-    var fromKey = normalizeAccountLookupKey_(row[fromIdx]);
-    var toKey = normalizeAccountLookupKey_(row[toIdx]);
-    var monthlyTotal = null;
-    var behavior = normalizeTransferType_(row[typeIdx], amount);
-    if (shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fromKey, toKey, behavior, amount)) {
-      var factor = monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery);
-      if (factor > 0) {
-        if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
-          everythingExceptRows.push({
-            rowIndex: rowIndex,
-            fromKey: fromKey,
-            toKey: toKey,
-            keepAmount: amount || 0,
-          });
-        } else {
-          monthlyTotal = resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances, toKey);
+      var include = toBoolean_(row[includeIdx]);
+      var amount = toNumber_(row[amountIdx]);
+      var recurrence = normalizeRecurrence_(
+        row[freqIdx],
+        row[repeatIdx],
+        startIdx === -1 ? null : row[startIdx],
+        endIdx === -1 ? null : row[endIdx]
+      );
+      var recurring = isRecurringForMonthlyAverage_({
+        startDate: recurrence.startDate,
+        endDate: recurrence.endDate,
+        isSingleOccurrence: recurrence.isSingleOccurrence,
+      });
+
+      var fromKey = normalizeAccountLookupKey_(row[fromIdx]);
+      var toKey = normalizeAccountLookupKey_(row[toIdx]);
+      var monthlyTotal = null;
+      var behavior = normalizeTransferType_(row[typeIdx], amount);
+      if (shouldCalculateTransferMonthlyTotal_(include, recurring, recurrence, fromKey, toKey, behavior, amount)) {
+        var factor = monthlyFactorForRecurrence_(recurrence.frequency, recurrence.repeatEvery);
+        if (factor > 0) {
+          if (behavior === Config.TRANSFER_TYPES.TRANSFER_EVERYTHING_EXCEPT) {
+            everythingExceptRows.push({
+              rowIndex: rowIndex,
+              fromKey: fromKey,
+              toKey: toKey,
+              keepAmount: amount || 0,
+            });
+          } else {
+            monthlyTotal = resolveTransferMonthlyTotal_(behavior, amount, factor, accountBalances, toKey);
+          }
         }
       }
-    }
 
-    if (monthlyTotal !== null && monthlyTotal > 0) {
-      debits[fromKey] = roundUpCents_((debits[fromKey] || 0) + monthlyTotal);
-      credits[toKey] = roundUpCents_((credits[toKey] || 0) + monthlyTotal);
-      out[rowIndex] = [monthlyTotal];
-      return;
-    }
-    out[rowIndex] = [''];
-  });
+      if (monthlyTotal !== null && monthlyTotal > 0) {
+        debits[fromKey] = roundUpCents_((debits[fromKey] || 0) + monthlyTotal);
+        credits[toKey] = roundUpCents_((credits[toKey] || 0) + monthlyTotal);
+        out[rowIndex] = [monthlyTotal];
+        return;
+      }
+      out[rowIndex] = [''];
+    });
 
-  everythingExceptRows.forEach(function (item) {
-    var sourceBalance = accountBalances[item.fromKey] || 0;
-    var sourceIncome = incomeTotalsByAccount[item.fromKey] || 0;
-    var sourceExpense = expenseTotalsByAccount[item.fromKey] || 0;
-    var baseIn = roundUpCents_(sourceIncome + (credits[item.fromKey] || 0));
-    var baseOut = roundUpCents_(sourceExpense + (debits[item.fromKey] || 0));
-    var monthlySweep = roundUpCents_(Math.max(0, sourceBalance + baseIn - baseOut - item.keepAmount));
-    if (monthlySweep > 0) {
-      debits[item.fromKey] = roundUpCents_((debits[item.fromKey] || 0) + monthlySweep);
-      credits[item.toKey] = roundUpCents_((credits[item.toKey] || 0) + monthlySweep);
-      out[item.rowIndex] = [monthlySweep];
-      return;
-    }
-    out[item.rowIndex] = [''];
-  });
+    everythingExceptRows.forEach(function (item) {
+      var sourceBalance = accountBalances[item.fromKey] || 0;
+      var sourceIncome = incomeTotalsByAccount[item.fromKey] || 0;
+      var sourceExpense = expenseTotalsByAccount[item.fromKey] || 0;
+      var baseIn = roundUpCents_(sourceIncome + (credits[item.fromKey] || 0));
+      var baseOut = roundUpCents_(sourceExpense + (debits[item.fromKey] || 0));
+      var monthlySweep = roundUpCents_(Math.max(0, sourceBalance + baseIn - baseOut - item.keepAmount));
+      if (monthlySweep > 0) {
+        debits[item.fromKey] = roundUpCents_((debits[item.fromKey] || 0) + monthlySweep);
+        credits[item.toKey] = roundUpCents_((credits[item.toKey] || 0) + monthlySweep);
+        out[item.rowIndex] = [monthlySweep];
+        return;
+      }
+      out[item.rowIndex] = [''];
+    });
+  }
 
   sheet.getRange(2, totalIdx + 1, out.length, 1).setValues(out);
   return normalizeTransferTotalsKeys_({ credits: credits, debits: debits });
@@ -1362,73 +1567,104 @@ function updateAccountMonthlyFlowAveragesForRunModel_(
   incomeTotalsByAccount = normalizeAccountTotalsKeys_(incomeTotalsByAccount || {});
   expenseTotalsByAccount = normalizeAccountTotalsKeys_(expenseTotalsByAccount || {});
 
-  var accountByKey = {};
+  var accountByKey = buildAccountLookupMap_(accounts || []);
   var activeScenarioId = normalizeScenario_(scenarioId);
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    var key = normalizeAccountLookupKey_(account.name);
-    if (!key || accountByKey[key]) {
-      return;
-    }
-    accountByKey[key] = account;
-  });
 
   var rows = accountsSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var interestAvgValues = [];
   var expenseAvgValues = [];
   var incomeAvgValues = [];
   var netFlowValues = [];
-
-  rows.forEach(function (row) {
-    var existingInterest = interestAvgIdx === -1 ? '' : row[interestAvgIdx];
-    var existingExpense = expenseAvgIdx === -1 ? '' : row[expenseAvgIdx];
-    var existingIncome = incomeAvgIdx === -1 ? '' : row[incomeAvgIdx];
-    var existingNet = netFlowIdx === -1 ? '' : row[netFlowIdx];
-    var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
-    if (rowScenarioId !== activeScenarioId) {
-      interestAvgValues.push([existingInterest]);
-      expenseAvgValues.push([existingExpense]);
-      incomeAvgValues.push([existingIncome]);
-      netFlowValues.push([existingNet]);
-      return;
+  var typedWorksheet = computeAccountMonthlyFlowWorksheetTyped_(
+    rows,
+    {
+      name: nameIdx,
+      scenario: scenarioIdx,
+      interestAvg: interestAvgIdx,
+      expenseAvg: expenseAvgIdx,
+      incomeAvg: incomeAvgIdx,
+      netFlow: netFlowIdx,
+    },
+    {
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      activeScenarioId: activeScenarioId,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      accountByKey: accountByKey,
+      toNumber: toNumber_,
+      computeEstimatedMonthlyInterest: computeEstimatedMonthlyInterest_,
+      roundMoney: roundUpCents_,
+      incomeTotalsByAccount: incomeTotalsByAccount,
+      expenseTotalsByAccount: expenseTotalsByAccount,
+      transferCredits: transferCredits,
+      transferDebits: transferDebits,
     }
+  );
+  if (
+    typedWorksheet &&
+    Array.isArray(typedWorksheet.interestAvgValues) &&
+    Array.isArray(typedWorksheet.expenseAvgValues) &&
+    Array.isArray(typedWorksheet.incomeAvgValues) &&
+    Array.isArray(typedWorksheet.netFlowValues)
+  ) {
+    interestAvgValues = typedWorksheet.interestAvgValues;
+    expenseAvgValues = typedWorksheet.expenseAvgValues;
+    incomeAvgValues = typedWorksheet.incomeAvgValues;
+    netFlowValues = typedWorksheet.netFlowValues;
+  } else {
+    rows.forEach(function (row) {
+      var existingInterest = interestAvgIdx === -1 ? '' : row[interestAvgIdx];
+      var existingExpense = expenseAvgIdx === -1 ? '' : row[expenseAvgIdx];
+      var existingIncome = incomeAvgIdx === -1 ? '' : row[incomeAvgIdx];
+      var existingNet = netFlowIdx === -1 ? '' : row[netFlowIdx];
+      var inActiveScenario = isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId);
+      if (inActiveScenario === null || inActiveScenario === undefined) {
+        var rowScenarioId = scenarioIdx === -1 ? Config.SCENARIOS.DEFAULT : normalizeScenario_(row[scenarioIdx]);
+        inActiveScenario = rowScenarioId === activeScenarioId;
+      }
+      if (!inActiveScenario) {
+        interestAvgValues.push([existingInterest]);
+        expenseAvgValues.push([existingExpense]);
+        incomeAvgValues.push([existingIncome]);
+        netFlowValues.push([existingNet]);
+        return;
+      }
 
-    var name = row[nameIdx];
-    var key = normalizeAccountLookupKey_(name);
-    var account = accountByKey[key];
-    if (!account || account.forecast !== true) {
-      interestAvgValues.push(['']);
-      expenseAvgValues.push(['']);
-      incomeAvgValues.push(['']);
-      netFlowValues.push(['']);
-      return;
-    }
+      var name = row[nameIdx];
+      var key = normalizeAccountLookupKey_(name);
+      var account = accountByKey[key];
+      if (!account || account.forecast !== true) {
+        interestAvgValues.push(['']);
+        expenseAvgValues.push(['']);
+        incomeAvgValues.push(['']);
+        netFlowValues.push(['']);
+        return;
+      }
 
-    var rate = toNumber_(account.interestRate);
-    var balance = toNumber_(account.balance);
-    var frequency = account.interestPostingFrequency;
-    var method = account.interestMethod || '';
-    var fee = toNumber_(account.interestMonthlyFee);
+      var rate = toNumber_(account.interestRate);
+      var balance = toNumber_(account.balance);
+      var frequency = account.interestPostingFrequency;
+      var method = account.interestMethod || '';
+      var fee = toNumber_(account.interestMonthlyFee);
 
-    var interest = 0;
-    if (rate !== null && balance !== null && frequency) {
-      interest = computeEstimatedMonthlyInterest_(balance, rate, method);
-    }
+      var interest = 0;
+      if (rate !== null && balance !== null && frequency) {
+        interest = computeEstimatedMonthlyInterest_(balance, rate, method);
+      }
 
-    var income = roundUpCents_((incomeTotalsByAccount[key] || 0) + (transferCredits[key] || 0));
-    var expense = roundUpCents_((expenseTotalsByAccount[key] || 0) + (transferDebits[key] || 0));
-    if (fee !== null && fee > 0) {
-      expense = roundUpCents_(expense + fee);
-    }
-    var net = roundUpCents_(income + interest - expense);
+      var income = roundUpCents_((incomeTotalsByAccount[key] || 0) + (transferCredits[key] || 0));
+      var expense = roundUpCents_((expenseTotalsByAccount[key] || 0) + (transferDebits[key] || 0));
+      if (fee !== null && fee > 0) {
+        expense = roundUpCents_(expense + fee);
+      }
+      var net = roundUpCents_(income + interest - expense);
 
-    interestAvgValues.push([interest]);
-    expenseAvgValues.push([expense]);
-    incomeAvgValues.push([income]);
-    netFlowValues.push([net]);
-  });
+      interestAvgValues.push([interest]);
+      expenseAvgValues.push([expense]);
+      incomeAvgValues.push([income]);
+      netFlowValues.push([net]);
+    });
+  }
 
   if (expenseAvgIdx !== -1) {
     accountsSheet.getRange(2, expenseAvgIdx + 1, expenseAvgValues.length, 1).setValues(expenseAvgValues);
@@ -1615,18 +1851,24 @@ function normalizeTransferRows_() {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
-  values.forEach(function (row) {
-    var amount = toNumber_(row[amountIdx]);
-    var canonicalType = normalizeTransferType_(row[typeIdx], amount);
-    if (canonicalType && canonicalType !== row[typeIdx]) {
-      row[typeIdx] = canonicalType;
-      updated = true;
-    }
-    if (canonicalType === Config.TRANSFER_TYPES.REPAYMENT_ALL && amount !== 0) {
-      row[amountIdx] = 0;
-      updated = true;
-    }
-  });
+  var typed = normalizeTransferRowsTyped_(values, typeIdx, amountIdx);
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'boolean') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      var amount = toNumber_(row[amountIdx]);
+      var canonicalType = normalizeTransferType_(row[typeIdx], amount);
+      if (canonicalType && canonicalType !== row[typeIdx]) {
+        row[typeIdx] = canonicalType;
+        updated = true;
+      }
+      if (canonicalType === Config.TRANSFER_TYPES.REPAYMENT_ALL && amount !== 0) {
+        row[amountIdx] = 0;
+        updated = true;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -1661,22 +1903,27 @@ function normalizeRecurrenceRowsForSheet_(sheetName) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
-
-  values.forEach(function (row) {
-    var mapped = mapLegacyFrequency_(row[frequencyIdx], row[repeatIdx], startIdx === -1 ? null : row[startIdx], endIdx === -1 ? null : row[endIdx]);
-    if (mapped.frequency !== row[frequencyIdx]) {
-      row[frequencyIdx] = mapped.frequency;
-      updated = true;
-    }
-    if (mapped.repeatEvery !== row[repeatIdx]) {
-      row[repeatIdx] = mapped.repeatEvery;
-      updated = true;
-    }
-    if (endIdx !== -1 && mapped.endDate !== row[endIdx]) {
-      row[endIdx] = mapped.endDate;
-      updated = true;
-    }
-  });
+  var typed = normalizeRecurrenceRowsTyped_(values, frequencyIdx, repeatIdx, startIdx, endIdx);
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'boolean') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      var mapped = mapLegacyFrequency_(row[frequencyIdx], row[repeatIdx], startIdx === -1 ? null : row[startIdx], endIdx === -1 ? null : row[endIdx]);
+      if (mapped.frequency !== row[frequencyIdx]) {
+        row[frequencyIdx] = mapped.frequency;
+        updated = true;
+      }
+      if (mapped.repeatEvery !== row[repeatIdx]) {
+        row[repeatIdx] = mapped.repeatEvery;
+        updated = true;
+      }
+      if (endIdx !== -1 && mapped.endDate !== row[endIdx]) {
+        row[endIdx] = mapped.endDate;
+        updated = true;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -1768,70 +2015,88 @@ function normalizeAccountRows_() {
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var updated = false;
-  values.forEach(function (row) {
-    var method = normalizeInterestMethod_(row[methodIdx]);
-    var frequency = normalizeInterestFrequency_(row[freqIdx]);
-    var methodLooksLikeFrequency = normalizeInterestFrequency_(row[methodIdx]);
-    var frequencyLooksLikeMethod = normalizeInterestMethod_(row[freqIdx]);
-    if (!method && !frequency && methodLooksLikeFrequency && frequencyLooksLikeMethod) {
-      method = frequencyLooksLikeMethod;
-      frequency = methodLooksLikeFrequency;
-    }
-
-    if (typeIdx !== -1 && row[typeIdx]) {
-      var normalizedType = normalizeAccountType_(row[typeIdx]);
-      if (normalizedType && normalizedType !== row[typeIdx]) {
-        row[typeIdx] = normalizedType;
-        updated = true;
-      }
-    }
-    if (includeIdx !== -1 && row[includeIdx] !== '' && row[includeIdx] !== null) {
-      var include = toBoolean_(row[includeIdx]);
-      if (include !== row[includeIdx]) {
-        row[includeIdx] = include;
-        updated = true;
-      }
-    }
-    if (expenseAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[expenseAvgIdx])) {
-      row[expenseAvgIdx] = '';
-      updated = true;
-    }
-    if (interestAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[interestAvgIdx])) {
-      row[interestAvgIdx] = '';
-      updated = true;
-    }
-    if (incomeAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[incomeAvgIdx])) {
-      row[incomeAvgIdx] = '';
-      updated = true;
-    }
-    if (netFlowIdx !== -1 && !isValidAccountSummaryNumber_(row[netFlowIdx])) {
-      row[netFlowIdx] = '';
-      updated = true;
-    }
-    if (rateIdx !== -1 && !isValidNumberOrBlank_(row[rateIdx])) {
-      row[rateIdx] = '';
-      updated = true;
-    }
-    if (feeIdx !== -1 && !isValidNumberOrBlank_(row[feeIdx])) {
-      row[feeIdx] = '';
-      updated = true;
-    }
-    if (method !== row[methodIdx]) {
-      row[methodIdx] = method || '';
-      updated = true;
-    }
-    if (frequency !== row[freqIdx]) {
-      row[freqIdx] = frequency || '';
-      updated = true;
-    }
-
-    var repeatEvery = toPositiveInt_(row[repeatIdx]);
-    var normalizedRepeat = frequency ? (repeatEvery || 1) : '';
-    if (normalizedRepeat !== row[repeatIdx]) {
-      row[repeatIdx] = normalizedRepeat;
-      updated = true;
-    }
+  var typed = normalizeAccountRowsTyped_(values, {
+    type: typeIdx,
+    include: includeIdx,
+    expenseAvg: expenseAvgIdx,
+    interestAvg: interestAvgIdx,
+    incomeAvg: incomeAvgIdx,
+    netFlow: netFlowIdx,
+    rate: rateIdx,
+    fee: feeIdx,
+    method: methodIdx,
+    frequency: freqIdx,
+    repeat: repeatIdx,
   });
+  if (typed && Array.isArray(typed.rows) && typeof typed.updated === 'boolean') {
+    values = typed.rows;
+    updated = typed.updated;
+  } else {
+    values.forEach(function (row) {
+      var method = normalizeInterestMethod_(row[methodIdx]);
+      var frequency = normalizeInterestFrequency_(row[freqIdx]);
+      var methodLooksLikeFrequency = normalizeInterestFrequency_(row[methodIdx]);
+      var frequencyLooksLikeMethod = normalizeInterestMethod_(row[freqIdx]);
+      if (!method && !frequency && methodLooksLikeFrequency && frequencyLooksLikeMethod) {
+        method = frequencyLooksLikeMethod;
+        frequency = methodLooksLikeFrequency;
+      }
+
+      if (typeIdx !== -1 && row[typeIdx]) {
+        var normalizedType = normalizeAccountType_(row[typeIdx]);
+        if (normalizedType && normalizedType !== row[typeIdx]) {
+          row[typeIdx] = normalizedType;
+          updated = true;
+        }
+      }
+      if (includeIdx !== -1 && row[includeIdx] !== '' && row[includeIdx] !== null) {
+        var include = toBoolean_(row[includeIdx]);
+        if (include !== row[includeIdx]) {
+          row[includeIdx] = include;
+          updated = true;
+        }
+      }
+      if (expenseAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[expenseAvgIdx])) {
+        row[expenseAvgIdx] = '';
+        updated = true;
+      }
+      if (interestAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[interestAvgIdx])) {
+        row[interestAvgIdx] = '';
+        updated = true;
+      }
+      if (incomeAvgIdx !== -1 && !isValidAccountSummaryNumber_(row[incomeAvgIdx])) {
+        row[incomeAvgIdx] = '';
+        updated = true;
+      }
+      if (netFlowIdx !== -1 && !isValidAccountSummaryNumber_(row[netFlowIdx])) {
+        row[netFlowIdx] = '';
+        updated = true;
+      }
+      if (rateIdx !== -1 && !isValidNumberOrBlank_(row[rateIdx])) {
+        row[rateIdx] = '';
+        updated = true;
+      }
+      if (feeIdx !== -1 && !isValidNumberOrBlank_(row[feeIdx])) {
+        row[feeIdx] = '';
+        updated = true;
+      }
+      if (method !== row[methodIdx]) {
+        row[methodIdx] = method || '';
+        updated = true;
+      }
+      if (frequency !== row[freqIdx]) {
+        row[freqIdx] = frequency || '';
+        updated = true;
+      }
+
+      var repeatEvery = toPositiveInt_(row[repeatIdx]);
+      var normalizedRepeat = frequency ? (repeatEvery || 1) : '';
+      if (normalizedRepeat !== row[repeatIdx]) {
+        row[repeatIdx] = normalizedRepeat;
+        updated = true;
+      }
+    });
+  }
 
   if (updated) {
     sheet.getRange(2, 1, values.length, lastCol).setValues(values);
@@ -2015,35 +2280,41 @@ function assertUniqueScenarioAccountNames_(scenarioId, accounts) {
     return;
   }
 
-  var seen = {};
-  var duplicates = [];
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    var key = normalizeAccountLookupKey_(account.name);
-    if (!key) {
-      return;
-    }
-    if (seen[key]) {
-      duplicates.push(account.name);
-      return;
-    }
-    seen[key] = true;
-  });
+  var duplicates = listDuplicateAccountNamesTyped_(accounts);
+  if (!Array.isArray(duplicates)) {
+    var seen = {};
+    duplicates = [];
+    (accounts || []).forEach(function (account) {
+      if (!account || !account.name) {
+        return;
+      }
+      var key = normalizeAccountLookupKey_(account.name);
+      if (!key) {
+        return;
+      }
+      if (seen[key]) {
+        duplicates.push(account.name);
+        return;
+      }
+      seen[key] = true;
+    });
+  }
   if (!duplicates.length) {
     return;
   }
-  var unique = duplicates
-    .map(function (name) { return String(name || '').trim(); })
-    .filter(function (name, idx, arr) { return name && arr.indexOf(name) === idx; });
-  throw new Error(
-    'Duplicate account names in tag "' +
+  var message = formatDuplicateAccountErrorMessageTyped_(scenarioId, duplicates);
+  if (!message) {
+    var unique = duplicates
+      .map(function (name) { return String(name || '').trim(); })
+      .filter(function (name, idx, arr) { return name && arr.indexOf(name) === idx; });
+    message =
+      'Duplicate account names in tag "' +
       normalizeScenario_(scenarioId) +
       '": ' +
       unique.join(', ') +
-      '.'
-  );
+      '.';
+  }
+  throw new Error(message);
 }
 
 function normalizeTransferTotalsKeys_(transferTotals) {
@@ -2190,6 +2461,42 @@ function buildAccountTypeMap_(accounts) {
   var map = {};
   accounts.forEach(function (account) {
     map[account.name] = account.type;
+  });
+  return map;
+}
+
+function buildAccountBalanceMap_(accounts) {
+  var typed = buildAccountBalanceMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
+  var map = {};
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    map[normalizeAccountLookupKey_(account.name)] = toNumber_(account.balance) || 0;
+  });
+  return map;
+}
+
+function buildAccountLookupMap_(accounts) {
+  var typed = buildAccountLookupMapTyped_(accounts);
+  if (typed) {
+    return typed;
+  }
+
+  var map = {};
+  (accounts || []).forEach(function (account) {
+    if (!account || !account.name) {
+      return;
+    }
+    var key = normalizeAccountLookupKey_(account.name);
+    if (!key || map[key]) {
+      return;
+    }
+    map[key] = account;
   });
   return map;
 }

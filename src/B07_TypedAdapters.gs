@@ -441,6 +441,522 @@ function buildScenarioLookupTyped_(catalogValues) {
   return lookup;
 }
 
+function hasMeaningfulRowDataForRuleIdTyped_(row, ruleIdIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.hasMeaningfulRowDataForRuleId === 'function') {
+    return api.hasMeaningfulRowDataForRuleId(Array.isArray(row) ? row : [], ruleIdIdx);
+  }
+  return null;
+}
+
+function assignMissingRuleIdsRowsTyped_(rows, ruleIdIdx, prefix) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.assignMissingRuleIdsRows === 'function') {
+    return api.assignMissingRuleIdsRows(Array.isArray(rows) ? rows : [], ruleIdIdx, prefix || '');
+  }
+  return null;
+}
+
+function disableUnknownScenarioRowsTyped_(rows, includeIdx, scenarioIdx, validScenarios) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.disableUnknownScenarioRows === 'function') {
+    return api.disableUnknownScenarioRows(
+      Array.isArray(rows) ? rows : [],
+      includeIdx,
+      scenarioIdx,
+      validScenarios || {},
+      toBoolean_,
+      resolveScenarioId_
+    );
+  }
+  return null;
+}
+
+function buildAccountLookupFromRowsTyped_(rows, nameIdx, includeIdx, scenarioIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountLookupFromRows === 'function') {
+    return api.buildAccountLookupFromRows({
+      rows: Array.isArray(rows) ? rows : [],
+      nameIdx: nameIdx,
+      includeIdx: includeIdx,
+      scenarioIdx: scenarioIdx,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      toBoolean: toBoolean_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+    });
+  }
+  return null;
+}
+
+function validateAccountsRowsTyped_(rows, includeIdx, nameIdx, scenarioIdx, typeIdx, balanceIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateAccountsRows === 'function') {
+    return api.validateAccountsRows({
+      rows: Array.isArray(rows) ? rows : [],
+      includeIdx: includeIdx,
+      nameIdx: nameIdx,
+      scenarioIdx: scenarioIdx,
+      typeIdx: typeIdx,
+      balanceIdx: balanceIdx,
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      cashType: Config.ACCOUNT_TYPES.CASH,
+      creditType: Config.ACCOUNT_TYPES.CREDIT,
+      toBoolean: toBoolean_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      normalizeAccountType: normalizeAccountType_,
+      toNumber: toNumber_,
+    });
+  }
+  return null;
+}
+
+function validatePolicyRowsTyped_(rows, idx, validAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validatePolicyRows === 'function') {
+    return api.validatePolicyRows({
+      rows: Array.isArray(rows) ? rows : [],
+      idx: idx || {},
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      autoDeficitCoverPolicyType: Config.POLICY_TYPES.AUTO_DEFICIT_COVER,
+      toBoolean: toBoolean_,
+      normalizePolicyType: normalizePolicyType_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      hasValidAccountForScenario: function (scenarioId, accountKey) {
+        return hasValidAccountForScenario_(validAccounts || {}, scenarioId, accountKey);
+      },
+      toNumber: toNumber_,
+      toPositiveInt: toPositiveInt_,
+      toDate: toDate_,
+    });
+  }
+  return null;
+}
+
+function validateGoalRowsTyped_(rows, idx, validAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateGoalRows === 'function') {
+    return api.validateGoalRows({
+      rows: Array.isArray(rows) ? rows : [],
+      idx: idx || {},
+      defaultScenarioId: Config.SCENARIOS.DEFAULT,
+      goalFundingPolicies: Config.GOAL_FUNDING_POLICIES,
+      toBoolean: toBoolean_,
+      normalizeScenarioId: normalizeScenario_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      hasValidAccountForScenario: function (scenarioId, accountKey) {
+        return hasValidAccountForScenario_(validAccounts || {}, scenarioId, accountKey);
+      },
+      toNumber: toNumber_,
+      toDate: toDate_,
+      toPositiveInt: toPositiveInt_,
+    });
+  }
+  return null;
+}
+
+function journalRowValidationContextTyped_(validAccounts) {
+  return {
+    defaultScenarioId: Config.SCENARIOS.DEFAULT,
+    normalizeScenarioId: normalizeScenario_,
+    toNumber: toNumber_,
+    toDate: toDate_,
+    normalizeAccountLookupKey: normalizeAccountLookupKey_,
+    hasValidAccountForScenario: function (scenarioId, accountKey) {
+      return hasValidAccountForScenario_(validAccounts || {}, scenarioId, accountKey);
+    },
+    normalizeTransferType: normalizeTransferType_,
+    transferTypes: Config.TRANSFER_TYPES,
+  };
+}
+
+function validateIncomeRowReasonsTyped_(row, indexes, validAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateIncomeRowReasons === 'function') {
+    return api.validateIncomeRowReasons(row || [], indexes || {}, journalRowValidationContextTyped_(validAccounts));
+  }
+  return null;
+}
+
+function validateTransferRowReasonsTyped_(row, indexes, validAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateTransferRowReasons === 'function') {
+    return api.validateTransferRowReasons(
+      row || [],
+      indexes || {},
+      journalRowValidationContextTyped_(validAccounts)
+    );
+  }
+  return null;
+}
+
+function validateExpenseRowReasonsTyped_(row, indexes, validAccounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.validateExpenseRowReasons === 'function') {
+    return api.validateExpenseRowReasons(row || [], indexes || {}, journalRowValidationContextTyped_(validAccounts));
+  }
+  return null;
+}
+
+function normalizeTransferRowsTyped_(rows, typeIdx, amountIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeTransferRows === 'function') {
+    return api.normalizeTransferRows(
+      Array.isArray(rows) ? rows : [],
+      typeIdx,
+      amountIdx,
+      normalizeTransferType_,
+      toNumber_,
+      Config.TRANSFER_TYPES.REPAYMENT_ALL
+    );
+  }
+  return null;
+}
+
+function normalizeRecurrenceRowsTyped_(rows, frequencyIdx, repeatIdx, startIdx, endIdx) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeRecurrenceRows === 'function') {
+    return api.normalizeRecurrenceRows(
+      Array.isArray(rows) ? rows : [],
+      frequencyIdx,
+      repeatIdx,
+      startIdx,
+      endIdx,
+      mapLegacyFrequency_
+    );
+  }
+  return null;
+}
+
+function normalizeAccountRowsTyped_(rows, indexes) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.normalizeAccountRows === 'function') {
+    return api.normalizeAccountRows(
+      Array.isArray(rows) ? rows : [],
+      indexes || {},
+      {
+        normalizeAccountType: normalizeAccountType_,
+        toBoolean: toBoolean_,
+        isValidAccountSummaryNumber: isValidAccountSummaryNumber_,
+        isValidNumberOrBlank: isValidNumberOrBlank_,
+        normalizeInterestMethod: normalizeInterestMethod_,
+        normalizeInterestFrequency: normalizeInterestFrequency_,
+        toPositiveInt: toPositiveInt_,
+      }
+    );
+  }
+  return null;
+}
+
+function deactivateRowsByValidatorTyped_(rows, includeIdx, toBooleanFn, validator, indexes) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.deactivateRowsByValidator === 'function') {
+    return api.deactivateRowsByValidator(
+      Array.isArray(rows) ? rows : [],
+      includeIdx,
+      typeof toBooleanFn === 'function' ? toBooleanFn : toBoolean_,
+      typeof validator === 'function' ? validator : function () { return []; },
+      indexes || {}
+    );
+  }
+  return null;
+}
+
+function buildIncomeMonthlyTotalsTyped_(incomeRules) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildIncomeMonthlyTotals === 'function') {
+    return api.buildIncomeMonthlyTotals(incomeRules || [], {
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      toNumber: toNumber_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      roundMoney: roundUpCents_,
+    });
+  }
+  return null;
+}
+
+function buildExpenseMonthlyTotalsTyped_(expenseRules) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildExpenseMonthlyTotals === 'function') {
+    return api.buildExpenseMonthlyTotals(expenseRules || [], {
+      isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+      toNumber: toNumber_,
+      monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+      normalizeAccountLookupKey: normalizeAccountLookupKey_,
+      roundMoney: roundUpCents_,
+    });
+  }
+  return null;
+}
+
+function buildTransferMonthlyTotalsTyped_(transferRules, accounts, incomeTotalsByAccount, expenseTotalsByAccount) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildTransferMonthlyTotals === 'function') {
+    return api.buildTransferMonthlyTotals(
+      transferRules || [],
+      accounts || [],
+      incomeTotalsByAccount || {},
+      expenseTotalsByAccount || {},
+      {
+        normalizeAccountLookupKey: normalizeAccountLookupKey_,
+        toNumber: toNumber_,
+        normalizeTransferType: normalizeTransferType_,
+        monthlyFactorForRecurrence: monthlyFactorForRecurrence_,
+        isRecurringForMonthlyAverage: isRecurringForMonthlyAverage_,
+        roundMoney: roundUpCents_,
+        transferTypes: Config.TRANSFER_TYPES,
+      }
+    );
+  }
+  return null;
+}
+
+function computeTransferMonthlyWorksheetTyped_(rows, indexes, params) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeTransferMonthlyWorksheet === 'function') {
+    return api.computeTransferMonthlyWorksheet(rows || [], indexes || {}, params || {});
+  }
+  return null;
+}
+
+function computeRuleMonthlyWorksheetTyped_(rows, indexes, params) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeRuleMonthlyWorksheet === 'function') {
+    return api.computeRuleMonthlyWorksheet(rows || [], indexes || {}, params || {});
+  }
+  return null;
+}
+
+function buildAccountBalanceMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountBalanceMap === 'function') {
+    return api.buildAccountBalanceMap(
+      accounts || [],
+      normalizeAccountLookupKey_,
+      toNumber_
+    );
+  }
+  return null;
+}
+
+function buildAccountLookupMapTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildAccountLookupMap === 'function') {
+    return api.buildAccountLookupMap(
+      accounts || [],
+      normalizeAccountLookupKey_
+    );
+  }
+  return null;
+}
+
+function computeAccountMonthlyFlowWorksheetTyped_(rows, indexes, params) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.computeAccountMonthlyFlowWorksheet === 'function') {
+    return api.computeAccountMonthlyFlowWorksheet(rows || [], indexes || {}, params || {});
+  }
+  return null;
+}
+
+function composeRunLogNotesTyped_(scenarioValidation, coreValidation, explicitNote) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.composeRunLogNotes === 'function') {
+    return api.composeRunLogNotes({
+      scenarioValidation: scenarioValidation || null,
+      coreValidation: coreValidation || null,
+      explicitNote: explicitNote || '',
+    });
+  }
+  return null;
+}
+
+function listDuplicateAccountNamesTyped_(accounts) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.listDuplicateAccountNames === 'function') {
+    return api.listDuplicateAccountNames(accounts || [], normalizeAccountLookupKey_);
+  }
+  return null;
+}
+
+function resolveRunLogWriteRowTyped_(columnValues, startRow, maxRows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.resolveRunLogWriteRow === 'function') {
+    return api.resolveRunLogWriteRow(
+      Array.isArray(columnValues) ? columnValues : [],
+      startRow,
+      maxRows
+    );
+  }
+  return null;
+}
+
+function buildRunLogEntryRowTyped_(timestamp, modeLabel, scenarioId, status, notes) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildRunLogEntryRow === 'function') {
+    return api.buildRunLogEntryRow(timestamp, modeLabel, scenarioId, status, notes);
+  }
+  return null;
+}
+
+function isRowInActiveScenarioTyped_(row, scenarioIdx, activeScenarioId) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.isRowInActiveScenario === 'function') {
+    return api.isRowInActiveScenario(
+      Array.isArray(row) ? row : [],
+      scenarioIdx,
+      activeScenarioId,
+      Config.SCENARIOS.DEFAULT,
+      normalizeScenario_
+    );
+  }
+  return null;
+}
+
+function formatDuplicateAccountErrorMessageTyped_(scenarioId, duplicates) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.formatDuplicateAccountErrorMessage === 'function') {
+    return api.formatDuplicateAccountErrorMessage(
+      scenarioId,
+      Array.isArray(duplicates) ? duplicates : [],
+      normalizeScenario_
+    );
+  }
+  return null;
+}
+
+function mapSheetRowsTyped_(headers, values) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapSheetRows === 'function') {
+    return api.mapSheetRows(
+      Array.isArray(headers) ? headers : [],
+      Array.isArray(values) ? values : []
+    );
+  }
+  return null;
+}
+
+function buildScenarioCatalogTyped_(values) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.buildScenarioCatalog === 'function') {
+    return api.buildScenarioCatalog(
+      Array.isArray(values) ? values : [],
+      normalizeScenario_,
+      Config.SCENARIOS.DEFAULT
+    );
+  }
+  return null;
+}
+
+function mapAccountReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapAccountReaderRows === 'function') {
+    return api.mapAccountReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        normalizeRecurrence: normalizeRecurrence_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        toNumber: toNumber_,
+        toBoolean: toBoolean_,
+      }
+    );
+  }
+  return null;
+}
+
+function mapPolicyReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapPolicyReaderRows === 'function') {
+    return api.mapPolicyReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizePolicyType: normalizePolicyType_,
+        toPositiveInt: toPositiveInt_,
+        toDate: toDate_,
+        toNumber: toNumber_,
+      }
+    );
+  }
+  return null;
+}
+
+function mapGoalReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapGoalReaderRows === 'function') {
+    return api.mapGoalReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        toNumber: toNumber_,
+        toDate: toDate_,
+        toPositiveInt: toPositiveInt_,
+      }
+    );
+  }
+  return null;
+}
+
+function mapIncomeReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapIncomeReaderRows === 'function') {
+    return api.mapIncomeReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizeRecurrence: normalizeRecurrence_,
+        toNumber: toNumber_,
+      }
+    );
+  }
+  return null;
+}
+
+function mapExpenseReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapExpenseReaderRows === 'function') {
+    return api.mapExpenseReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizeRecurrence: normalizeRecurrence_,
+        toNumber: toNumber_,
+        expenseBehaviorLabel: Config.BEHAVIOR_LABELS.Expense,
+      }
+    );
+  }
+  return null;
+}
+
+function mapTransferReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapTransferReaderRows === 'function') {
+    return api.mapTransferReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizeRecurrence: normalizeRecurrence_,
+        toNumber: toNumber_,
+        normalizeTransferType: normalizeTransferType_,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

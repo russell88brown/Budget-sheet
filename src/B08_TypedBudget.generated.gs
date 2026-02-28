@@ -1635,8 +1635,892 @@ var TypedBudget = (() => {
     return dates;
   }
 
+  // ts/core/config.ts
+  var CONFIG = {
+    SHEETS: {
+      DASHBOARD: "Dashboard",
+      ACCOUNTS: "Accounts",
+      POLICIES: "Policies",
+      GOALS: "Goals",
+      TRANSFERS: "Transfers",
+      INCOME: "Income",
+      EXPENSE: "Expense",
+      JOURNAL: "Journal",
+      DAILY: "Daily",
+      MONTHLY: "Monthly"
+    },
+    BEHAVIORS: {
+      SCHEDULED: "Scheduled",
+      PROVISION: "Provision",
+      CAP_ONLY: "CapOnly",
+      ONE_OFF: "OneOff"
+    },
+    BEHAVIOR_LABELS: {
+      Expense: "Expense",
+      Repayment: "Repayment",
+      Transfer: "Transfer"
+    },
+    TRANSFER_TYPES: {
+      REPAYMENT_AMOUNT: "Repayment - Amount",
+      REPAYMENT_ALL: "Repayment - All",
+      TRANSFER_AMOUNT: "Transfer - Amount",
+      TRANSFER_EVERYTHING_EXCEPT: "Transfer - Everything Except"
+    },
+    POLICY_TYPES: {
+      AUTO_DEFICIT_COVER: "Auto Deficit Cover"
+    },
+    GOAL_FUNDING_POLICIES: {
+      FIXED: "Fixed Amount",
+      LEFTOVER: "Leftover",
+      PERCENT: "Percent of Inflow"
+    },
+    SCENARIOS: {
+      DEFAULT: "Base",
+      STRESS: "Stress"
+    },
+    ACCOUNT_TYPES: {
+      CASH: "Cash",
+      CREDIT: "Credit"
+    },
+    INTEREST_METHODS: {
+      APR_SIMPLE: "APR (Simple)",
+      APY_COMPOUND: "APY (Compound)"
+    },
+    FREQUENCIES: {
+      ONCE: "Once",
+      DAILY: "Daily",
+      WEEKLY: "Weekly",
+      MONTHLY: "Monthly",
+      YEARLY: "Yearly"
+    },
+    NAMED_RANGES: {
+      ACCOUNT_NAMES: "AccountNames",
+      CATEGORIES: "ExpenseCategories",
+      INCOME_TYPES: "IncomeTypes",
+      SCENARIOS: "ScenarioList",
+      FORECAST_START: "ForecastStartDate",
+      FORECAST_END: "ForecastEndDate"
+    },
+    LISTS_SHEET: "Settings",
+    FORECAST_DAYS: 365
+  };
+
+  // ts/core/schema.ts
+  function schemaToMarkdown(inputs, outputs) {
+    const lines = [];
+    lines.push("# Sheet Schemas");
+    lines.push("");
+    lines.push("Generated from `ts/core/schema.ts`.");
+    lines.push("");
+    lines.push("## Inputs");
+    lines.push("");
+    inputs.forEach((spec) => {
+      lines.push("### `" + spec.name + "`");
+      lines.push("");
+      lines.push("| Column | Type | Required | Description |");
+      lines.push("|-----|-----|---------|------------|");
+      spec.columns.forEach((column) => {
+        lines.push(
+          "| " + column.name + " | " + column.type + " | " + (column.required ? "Yes" : "Optional") + " | " + column.description + " |"
+        );
+      });
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    });
+    lines.push("## Outputs");
+    lines.push("");
+    outputs.forEach((spec) => {
+      lines.push("### " + spec.name);
+      lines.push("");
+      lines.push("| Column | Type | Required | Description |");
+      lines.push("|-----|-----|---------|------------|");
+      spec.columns.forEach((column) => {
+        lines.push(
+          "| " + column.name + " | " + column.type + " | " + (column.required ? "Yes" : "Optional") + " | " + column.description + " |"
+        );
+      });
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    });
+    return lines.join("\n");
+  }
+  var SCHEMA = {
+    inputs: [
+      {
+        name: CONFIG.SHEETS.ACCOUNTS,
+        columns: [
+          { name: "Account Name", type: "string", required: true, description: "Unique identifier" },
+          { name: "Balance", type: "number", required: true, description: "Starting balance", format: "0.00" },
+          {
+            name: "Type",
+            type: "enum",
+            required: true,
+            description: "Cash / Credit",
+            enumValues: Object.values(CONFIG.ACCOUNT_TYPES)
+          },
+          { name: "Include", type: "boolean", required: false, description: "Include in forecast outputs" },
+          { name: "Tag", type: "scenario", required: false, description: "Tag key (default Base)" },
+          {
+            name: "Money In / Month",
+            type: "number",
+            required: false,
+            description: "Average credited amount (income + incoming fixed transfers)",
+            format: "0.00"
+          },
+          {
+            name: "Money Out / Month",
+            type: "number",
+            required: false,
+            description: "Average debited amount (expenses + outgoing fixed transfers + fees)",
+            format: "0.00"
+          },
+          {
+            name: "Net Interest / Month",
+            type: "number",
+            required: false,
+            description: "Estimated monthly interest impact based on current balance and rate",
+            format: "0.00"
+          },
+          {
+            name: "Net Change / Month",
+            type: "number",
+            required: false,
+            description: "Money In / Month + Net Interest / Month - Money Out / Month",
+            format: "0.00"
+          },
+          {
+            name: "Interest Rate (APR %)",
+            type: "number",
+            required: false,
+            description: "Annual rate as a percent (e.g. 5 for 5%)",
+            format: "0.00"
+          },
+          {
+            name: "Interest Fee / Month",
+            type: "number",
+            required: false,
+            description: "Monthly fee charged to the account",
+            format: "0.00"
+          },
+          {
+            name: "Interest Method",
+            type: "enum",
+            required: false,
+            description: "How interest is calculated",
+            enumValues: Object.values(CONFIG.INTEREST_METHODS)
+          },
+          {
+            name: "Interest Frequency",
+            type: "enum",
+            required: false,
+            description: "How often interest posts",
+            enumValues: [
+              CONFIG.FREQUENCIES.DAILY,
+              CONFIG.FREQUENCIES.WEEKLY,
+              CONFIG.FREQUENCIES.MONTHLY,
+              CONFIG.FREQUENCIES.YEARLY
+            ]
+          },
+          {
+            name: "Interest Repeat Every",
+            type: "positive_int",
+            required: false,
+            description: "Interval multiplier (default 1)",
+            format: "0"
+          },
+          {
+            name: "Interest Start Date",
+            type: "date",
+            required: false,
+            description: "First interest posting date",
+            format: "yyyy-mm-dd"
+          }
+        ]
+      },
+      {
+        name: CONFIG.SHEETS.POLICIES,
+        columns: [
+          { name: "Include", type: "boolean", required: true, description: "Enable this policy rule" },
+          { name: "Tag", type: "scenario", required: false, description: "Tag key (default Base)" },
+          { name: "Rule ID", type: "string", required: false, description: "Stable rule identifier for explainability/diffs" },
+          {
+            name: "Policy Type",
+            type: "enum",
+            required: true,
+            description: "Policy behavior mode",
+            enumValues: Object.values(CONFIG.POLICY_TYPES)
+          },
+          { name: "Name", type: "string", required: true, description: "Policy label" },
+          { name: "Priority", type: "positive_int", required: false, description: "Lower runs first", format: "0" },
+          { name: "Start Date", type: "date", required: false, description: "Rule start date", format: "yyyy-mm-dd" },
+          { name: "End Date", type: "date", required: false, description: "Optional stop date", format: "yyyy-mm-dd" },
+          { name: "Trigger Account", type: "ref", required: true, description: "Account being protected from deficit" },
+          { name: "Funding Account", type: "ref", required: true, description: "Account used to fund protection" },
+          {
+            name: "Threshold",
+            type: "number",
+            required: false,
+            description: "Minimum balance target to preserve on trigger account",
+            format: "0.00"
+          },
+          {
+            name: "Max Per Event",
+            type: "number",
+            required: false,
+            description: "Optional cap for a single auto-cover action",
+            format: "0.00"
+          },
+          { name: "Notes", type: "string", required: false, description: "Optional" }
+        ]
+      },
+      {
+        name: CONFIG.SHEETS.GOALS,
+        columns: [
+          { name: "Include", type: "boolean", required: true, description: "Include in planning" },
+          { name: "Tag", type: "scenario", required: false, description: "Tag key (default Base)" },
+          { name: "Rule ID", type: "string", required: false, description: "Stable rule identifier for explainability/diffs" },
+          { name: "Goal Name", type: "string", required: true, description: "Goal label" },
+          { name: "Target Amount", type: "number", required: true, description: "Goal target amount", format: "0.00" },
+          { name: "Target Date", type: "date", required: true, description: "Target completion date", format: "yyyy-mm-dd" },
+          { name: "Priority", type: "positive_int", required: false, description: "Lower runs first", format: "0" },
+          { name: "Funding Account", type: "ref", required: true, description: "Primary account used for funding" },
+          {
+            name: "Funding Policy",
+            type: "enum",
+            required: true,
+            description: "How to fund this goal",
+            enumValues: Object.values(CONFIG.GOAL_FUNDING_POLICIES)
+          },
+          { name: "Amount Per Month", type: "number", required: false, description: "Used for Fixed Amount policy", format: "0.00" },
+          { name: "Percent Of Inflow", type: "number", required: false, description: "Used for Percent of Inflow policy", format: "0.00" },
+          { name: "Notes", type: "string", required: false, description: "Optional" }
+        ]
+      },
+      {
+        name: CONFIG.SHEETS.INCOME,
+        columns: [
+          { name: "Include", type: "boolean", required: true, description: "Include in forecast" },
+          { name: "Tag", type: "scenario", required: false, description: "Tag key (default Base)" },
+          { name: "Rule ID", type: "string", required: false, description: "Stable rule identifier for explainability/diffs" },
+          {
+            name: "Monthly Total",
+            type: "number",
+            required: false,
+            description: "Computed monthly equivalent for this row",
+            format: "0.00"
+          },
+          { name: "Type", type: "income_type", required: true, description: "Salary / Other Income" },
+          { name: "Name", type: "string", required: true, description: "Label" },
+          { name: "Amount", type: "number", required: true, description: "> 0", format: "0.00" },
+          {
+            name: "Frequency",
+            type: "enum",
+            required: true,
+            description: "Recurrence",
+            enumValues: Object.values(CONFIG.FREQUENCIES)
+          },
+          {
+            name: "Repeat Every",
+            type: "positive_int",
+            required: false,
+            description: "Interval multiplier (default 1)",
+            format: "0"
+          },
+          { name: "Start Date", type: "date", required: true, description: "First occurrence", format: "yyyy-mm-dd" },
+          { name: "End Date", type: "date", required: false, description: "Optional stop date", format: "yyyy-mm-dd" },
+          { name: "To Account", type: "ref", required: true, description: "Destination account" },
+          { name: "Notes", type: "string", required: false, description: "Optional" }
+        ]
+      },
+      {
+        name: CONFIG.SHEETS.EXPENSE,
+        columns: [
+          { name: "Include", type: "boolean", required: true, description: "Include in forecast" },
+          { name: "Tag", type: "scenario", required: false, description: "Tag key (default Base)" },
+          { name: "Rule ID", type: "string", required: false, description: "Stable rule identifier for explainability/diffs" },
+          {
+            name: "Monthly Total",
+            type: "number",
+            required: false,
+            description: "Computed monthly equivalent for this row",
+            format: "0.00"
+          },
+          { name: "Type", type: "category", required: true, description: "Expense type/category" },
+          { name: "Name", type: "string", required: true, description: "Label" },
+          { name: "Amount", type: "number", required: true, description: ">= 0", format: "0.00" },
+          {
+            name: "Frequency",
+            type: "enum",
+            required: false,
+            description: "Recurrence",
+            enumValues: Object.values(CONFIG.FREQUENCIES)
+          },
+          {
+            name: "Repeat Every",
+            type: "positive_int",
+            required: false,
+            description: "Interval multiplier (default 1)",
+            format: "0"
+          },
+          {
+            name: "Start Date",
+            type: "date",
+            required: false,
+            description: "First occurrence",
+            format: "yyyy-mm-dd"
+          },
+          {
+            name: "End Date",
+            type: "date",
+            required: false,
+            description: "Optional stop date",
+            format: "yyyy-mm-dd"
+          },
+          { name: "From Account", type: "ref", required: true, description: "Source account" },
+          { name: "Notes", type: "string", required: false, description: "Optional" }
+        ]
+      },
+      {
+        name: CONFIG.SHEETS.TRANSFERS,
+        columns: [
+          { name: "Include", type: "boolean", required: true, description: "Include in forecast" },
+          { name: "Tag", type: "scenario", required: false, description: "Tag key (default Base)" },
+          { name: "Rule ID", type: "string", required: false, description: "Stable rule identifier for explainability/diffs" },
+          {
+            name: "Monthly Total",
+            type: "number",
+            required: false,
+            description: "Computed monthly equivalent for fixed transfer rows",
+            format: "0.00"
+          },
+          {
+            name: "Type",
+            type: "enum",
+            required: true,
+            description: "Repayment/Transfer behavior mode",
+            enumValues: Object.values(CONFIG.TRANSFER_TYPES)
+          },
+          { name: "Name", type: "string", required: true, description: "Label" },
+          { name: "Amount", type: "number", required: true, description: ">= 0", format: "0.00" },
+          {
+            name: "Frequency",
+            type: "enum",
+            required: false,
+            description: "Recurrence",
+            enumValues: Object.values(CONFIG.FREQUENCIES)
+          },
+          {
+            name: "Repeat Every",
+            type: "positive_int",
+            required: false,
+            description: "Interval multiplier (default 1)",
+            format: "0"
+          },
+          {
+            name: "Start Date",
+            type: "date",
+            required: false,
+            description: "First occurrence",
+            format: "yyyy-mm-dd"
+          },
+          {
+            name: "End Date",
+            type: "date",
+            required: false,
+            description: "Optional stop date",
+            format: "yyyy-mm-dd"
+          },
+          { name: "From Account", type: "ref", required: true, description: "Source account" },
+          { name: "To Account", type: "ref", required: true, description: "Destination account" },
+          { name: "Notes", type: "string", required: false, description: "Optional" }
+        ]
+      }
+    ],
+    outputs: [
+      {
+        name: CONFIG.SHEETS.JOURNAL,
+        columns: [
+          { name: "Date", type: "date", required: true, description: "Event date", format: "yyyy-mm-dd" },
+          { name: "Tag", type: "string", required: true, description: "Tag key for this run" },
+          { name: "Account", type: "string", required: false, description: "Debited/credited account" },
+          {
+            name: "Transaction Type",
+            type: "enum",
+            required: true,
+            description: "Income / Expense / Transfer (with transfer behavior detail) / Interest / Opening"
+          },
+          { name: "Name", type: "string", required: true, description: "Label" },
+          { name: "Amount", type: "number", required: true, description: "Event amount", format: "0.00" },
+          { name: "Source Rule ID", type: "string", required: false, description: "Originating input rule identifier" },
+          { name: "Alerts", type: "string", required: false, description: "Engine flags" }
+        ]
+      }
+    ],
+    toMarkdown: () => schemaToMarkdown(SCHEMA.inputs, SCHEMA.outputs)
+  };
+
+  // ts/core/runModel.ts
+  function filterScenarioRowsForModel(rows, scenarioId, normalizeScenario, defaultScenarioId) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return [];
+    }
+    const activeScenarioId = normalizeScenario(scenarioId);
+    return rows.filter((row) => {
+      const rowScenarioId = row && typeof row === "object" ? normalizeScenario(row.scenarioId) : defaultScenarioId;
+      return rowScenarioId === activeScenarioId;
+    });
+  }
+  function buildRunModel(scenarioId, sources, normalizeScenario, defaultScenarioId) {
+    const activeScenarioId = normalizeScenario(scenarioId);
+    const accounts = filterScenarioRowsForModel(sources.accounts, activeScenarioId, normalizeScenario, defaultScenarioId).filter(
+      (account) => account && account.name
+    );
+    return {
+      scenarioId: activeScenarioId,
+      accounts,
+      incomeRules: filterScenarioRowsForModel(sources.incomeRules, activeScenarioId, normalizeScenario, defaultScenarioId),
+      transferRules: filterScenarioRowsForModel(sources.transferRules, activeScenarioId, normalizeScenario, defaultScenarioId),
+      expenseRules: filterScenarioRowsForModel(sources.expenseRules, activeScenarioId, normalizeScenario, defaultScenarioId)
+    };
+  }
+  function buildRunModelWithExtensions(scenarioId, sources, normalizeScenario, defaultScenarioId) {
+    const core = buildRunModel(scenarioId, sources, normalizeScenario, defaultScenarioId);
+    return {
+      ...core,
+      policies: filterScenarioRowsForModel(sources.policies, core.scenarioId, normalizeScenario, defaultScenarioId),
+      goals: filterScenarioRowsForModel(sources.goals, core.scenarioId, normalizeScenario, defaultScenarioId)
+    };
+  }
+
+  // ts/core/runExtensions.ts
+  function buildRunExtensions(runModelWithExtensions) {
+    const model = runModelWithExtensions || {};
+    return {
+      policies: Array.isArray(model.policies) ? model.policies : [],
+      goals: Array.isArray(model.goals) ? model.goals : []
+    };
+  }
+
+  // ts/core/ruleIdAssignment.ts
+  function hasMeaningfulRowDataForRuleId(row, ruleIdIdx) {
+    for (let i = 0; i < row.length; i += 1) {
+      if (i === ruleIdIdx) {
+        continue;
+      }
+      const value = row[i];
+      if (value === null || value === "") {
+        continue;
+      }
+      if (value === false) {
+        continue;
+      }
+      return true;
+    }
+    return false;
+  }
+  function assignMissingRuleIdsRows(sourceRows, ruleIdIdx, prefix) {
+    const rows = sourceRows.map((row) => row.slice());
+    const existing = {};
+    rows.forEach((row) => {
+      const id = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : "";
+      if (id) {
+        existing[id] = true;
+      }
+    });
+    let nextNumber = 1;
+    let assigned = 0;
+    rows.forEach((row) => {
+      const current = row[ruleIdIdx] ? String(row[ruleIdIdx]).trim() : "";
+      if (current) {
+        return;
+      }
+      if (!hasMeaningfulRowDataForRuleId(row, ruleIdIdx)) {
+        return;
+      }
+      let candidate = "";
+      while (!candidate) {
+        const serial = ("00000" + nextNumber).slice(-5);
+        const trial = `${prefix}-${serial}`;
+        nextNumber += 1;
+        if (!existing[trial]) {
+          candidate = trial;
+        }
+      }
+      row[ruleIdIdx] = candidate;
+      existing[candidate] = true;
+      assigned += 1;
+    });
+    return { rows, assigned };
+  }
+
+  // ts/core/scenarioValidation.ts
+  function disableUnknownScenarioRows(sourceRows, includeIdx, scenarioIdx, validScenarios, toBoolean2, resolveScenarioId) {
+    const rows = sourceRows.map((row) => row.slice());
+    let disabledCount = 0;
+    let updated = false;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[includeIdx])) {
+        return;
+      }
+      const scenarioId = resolveScenarioId(row[scenarioIdx]);
+      if (!validScenarios[scenarioId]) {
+        row[includeIdx] = false;
+        updated = true;
+        disabledCount += 1;
+      }
+    });
+    return { rows, disabledCount, updated };
+  }
+
+  // ts/core/journalAccountRows.ts
+  function buildAccountLookupFromRows(params) {
+    const {
+      rows,
+      nameIdx,
+      includeIdx,
+      scenarioIdx,
+      defaultScenarioId,
+      toBoolean: toBoolean2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey
+    } = params;
+    const lookup = {};
+    const counts = {};
+    const scopedCounts = {};
+    rows.forEach((row) => {
+      if (includeIdx !== -1 && !toBoolean2(row[includeIdx])) {
+        return;
+      }
+      const name = row[nameIdx];
+      if (!name) {
+        return;
+      }
+      const key = normalizeAccountLookupKey(name);
+      if (!key) {
+        return;
+      }
+      const scenarioId = scenarioIdx === -1 ? defaultScenarioId : normalizeScenarioId(row[scenarioIdx]);
+      counts[key] = (counts[key] || 0) + 1;
+      const scopedKey = `${scenarioId}|${key}`;
+      scopedCounts[scopedKey] = (scopedCounts[scopedKey] || 0) + 1;
+    });
+    Object.keys(counts).forEach((key) => {
+      if (counts[key] === 1) {
+        lookup[key] = true;
+      }
+    });
+    Object.keys(scopedCounts).forEach((key) => {
+      if (scopedCounts[key] === 1) {
+        lookup[key] = true;
+      }
+    });
+    return lookup;
+  }
+  function validateAccountsRows(params) {
+    const {
+      rows: sourceRows,
+      includeIdx,
+      nameIdx,
+      scenarioIdx,
+      typeIdx,
+      balanceIdx,
+      defaultScenarioId,
+      cashType,
+      creditType,
+      toBoolean: toBoolean2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey,
+      normalizeAccountType: normalizeAccountType2,
+      toNumber: toNumber2
+    } = params;
+    const rows = sourceRows.map((row) => row.slice());
+    const seen = {};
+    let updated = 0;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[includeIdx])) {
+        return;
+      }
+      const name = row[nameIdx] ? String(row[nameIdx]).trim() : "";
+      const scenarioId = scenarioIdx === -1 ? defaultScenarioId : normalizeScenarioId(row[scenarioIdx]);
+      const normalizedName = normalizeAccountLookupKey(name);
+      const type = normalizeAccountType2(row[typeIdx]);
+      const balance = toNumber2(row[balanceIdx]);
+      const reasons = [];
+      if (!name) {
+        reasons.push("missing account name");
+      } else {
+        const duplicateKey = `${scenarioId}|${normalizedName}`;
+        if (seen[duplicateKey]) {
+          reasons.push("duplicate account name");
+        }
+        seen[duplicateKey] = true;
+      }
+      if (type !== cashType && type !== creditType) {
+        reasons.push("invalid account type");
+      }
+      if (balance === null) {
+        reasons.push("invalid balance");
+      }
+      if (reasons.length > 0) {
+        row[includeIdx] = false;
+        updated += 1;
+      }
+    });
+    return { rows, updated };
+  }
+
+  // ts/core/journalPolicyRows.ts
+  function validatePolicyRows(params) {
+    const {
+      rows: sourceRows,
+      idx,
+      defaultScenarioId,
+      autoDeficitCoverPolicyType,
+      toBoolean: toBoolean2,
+      normalizePolicyType: normalizePolicyType2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey,
+      hasValidAccountForScenario,
+      toNumber: toNumber2,
+      toPositiveInt: toPositiveInt2,
+      toDate: toDate2
+    } = params;
+    const rows = sourceRows.map((row) => row.slice());
+    let updated = 0;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[idx.include])) {
+        return;
+      }
+      const reasons = [];
+      const policyType = normalizePolicyType2(row[idx.type]);
+      const name = row[idx.name] ? String(row[idx.name]).trim() : "";
+      const rowScenarioId = idx.scenario === -1 ? defaultScenarioId : normalizeScenarioId(row[idx.scenario]);
+      const trigger = normalizeAccountLookupKey(row[idx.trigger]);
+      const funding = normalizeAccountLookupKey(row[idx.funding]);
+      const threshold = idx.threshold === -1 ? null : toNumber2(row[idx.threshold]);
+      const maxPerEvent = idx.maxPerEvent === -1 ? null : toNumber2(row[idx.maxPerEvent]);
+      if (policyType !== autoDeficitCoverPolicyType) {
+        reasons.push("invalid policy type");
+      }
+      if (!name) {
+        reasons.push("missing name");
+      }
+      if (!trigger) {
+        reasons.push("missing trigger account");
+      } else if (!hasValidAccountForScenario(rowScenarioId, trigger)) {
+        reasons.push("unknown trigger account");
+      }
+      if (!funding) {
+        reasons.push("missing funding account");
+      } else if (!hasValidAccountForScenario(rowScenarioId, funding)) {
+        reasons.push("unknown funding account");
+      }
+      if (trigger && funding && trigger === funding) {
+        reasons.push("trigger and funding account cannot match");
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== "" && toPositiveInt2(row[idx.priority]) === null) {
+        reasons.push("invalid priority");
+      }
+      if (idx.start !== -1 && row[idx.start] && !toDate2(row[idx.start])) {
+        reasons.push("invalid start date");
+      }
+      if (idx.end !== -1 && row[idx.end] && !toDate2(row[idx.end])) {
+        reasons.push("invalid end date");
+      }
+      if (threshold !== null && threshold < 0) {
+        reasons.push("threshold must be >= 0");
+      }
+      if (maxPerEvent !== null && maxPerEvent <= 0) {
+        reasons.push("max per event must be > 0");
+      }
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+    return { rows, updated };
+  }
+
+  // ts/core/journalGoalRows.ts
+  function validateGoalRows(params) {
+    const {
+      rows: sourceRows,
+      idx,
+      defaultScenarioId,
+      goalFundingPolicies,
+      toBoolean: toBoolean2,
+      normalizeScenarioId,
+      normalizeAccountLookupKey,
+      hasValidAccountForScenario,
+      toNumber: toNumber2,
+      toDate: toDate2,
+      toPositiveInt: toPositiveInt2
+    } = params;
+    const rows = sourceRows.map((row) => row.slice());
+    let updated = 0;
+    rows.forEach((row) => {
+      if (!toBoolean2(row[idx.include])) {
+        return;
+      }
+      const reasons = [];
+      const goalName = row[idx.name] ? String(row[idx.name]).trim() : "";
+      const rowScenarioId = idx.scenario === -1 ? defaultScenarioId : normalizeScenarioId(row[idx.scenario]);
+      const targetAmount = toNumber2(row[idx.targetAmount]);
+      const targetDate = toDate2(row[idx.targetDate]);
+      const fundingAccount = normalizeAccountLookupKey(row[idx.fundingAccount]);
+      const fundingPolicy = row[idx.fundingPolicy];
+      const amountPerMonth = idx.amountPerMonth === -1 ? null : toNumber2(row[idx.amountPerMonth]);
+      const percentOfInflow = idx.percentOfInflow === -1 ? null : toNumber2(row[idx.percentOfInflow]);
+      if (!goalName) {
+        reasons.push("missing goal name");
+      }
+      if (targetAmount === null || targetAmount <= 0) {
+        reasons.push("target amount must be > 0");
+      }
+      if (!targetDate) {
+        reasons.push("invalid target date");
+      }
+      if (!fundingAccount) {
+        reasons.push("missing funding account");
+      } else if (!hasValidAccountForScenario(rowScenarioId, fundingAccount)) {
+        reasons.push("unknown funding account");
+      }
+      if (fundingPolicy !== goalFundingPolicies.FIXED && fundingPolicy !== goalFundingPolicies.LEFTOVER && fundingPolicy !== goalFundingPolicies.PERCENT) {
+        reasons.push("invalid funding policy");
+      }
+      if (idx.priority !== -1 && row[idx.priority] !== "" && toPositiveInt2(row[idx.priority]) === null) {
+        reasons.push("invalid priority");
+      }
+      if (fundingPolicy === goalFundingPolicies.FIXED && (amountPerMonth === null || amountPerMonth <= 0)) {
+        reasons.push("amount per month must be > 0 for fixed policy");
+      }
+      if (fundingPolicy === goalFundingPolicies.PERCENT && (percentOfInflow === null || percentOfInflow <= 0)) {
+        reasons.push("percent of inflow must be > 0 for percent policy");
+      }
+      if (!reasons.length) {
+        return;
+      }
+      row[idx.include] = false;
+      updated += 1;
+    });
+    return { rows, updated };
+  }
+
+  // ts/core/journalRowValidation.ts
+  function validateIncomeRowReasons(row, indexes, ctx) {
+    const reasons = [];
+    const rowScenarioId = indexes.scenario === -1 ? ctx.defaultScenarioId : ctx.normalizeScenarioId(row[indexes.scenario]);
+    if (!row[indexes.type]) {
+      reasons.push("missing type");
+    }
+    if (!row[indexes.name]) {
+      reasons.push("missing name");
+    }
+    const amount = ctx.toNumber(row[indexes.amount]);
+    if (amount === null || amount <= 0) {
+      reasons.push("amount must be > 0");
+    }
+    if (!row[indexes.frequency]) {
+      reasons.push("missing frequency");
+    }
+    if (!ctx.toDate(row[indexes.start])) {
+      reasons.push("missing/invalid start date");
+    }
+    const account = ctx.normalizeAccountLookupKey(row[indexes.account]);
+    if (!account) {
+      reasons.push("missing to account");
+    } else if (!ctx.hasValidAccountForScenario(rowScenarioId, account)) {
+      reasons.push("unknown to account");
+    }
+    return reasons;
+  }
+  function validateTransferRowReasons(row, indexes, ctx) {
+    const reasons = [];
+    const rowScenarioId = indexes.scenario === -1 ? ctx.defaultScenarioId : ctx.normalizeScenarioId(row[indexes.scenario]);
+    if (!row[indexes.name]) {
+      reasons.push("missing name");
+    }
+    const amount = ctx.toNumber(row[indexes.amount]);
+    if (amount === null || amount < 0) {
+      reasons.push("amount must be >= 0");
+    }
+    if (!row[indexes.frequency]) {
+      reasons.push("missing frequency");
+    }
+    if (!ctx.toDate(row[indexes.start])) {
+      reasons.push("missing/invalid start date");
+    }
+    const transferType = ctx.normalizeTransferType(row[indexes.type], amount);
+    const validType = transferType === ctx.transferTypes.REPAYMENT_AMOUNT || transferType === ctx.transferTypes.REPAYMENT_ALL || transferType === ctx.transferTypes.TRANSFER_AMOUNT || transferType === ctx.transferTypes.TRANSFER_EVERYTHING_EXCEPT;
+    if (!validType) {
+      reasons.push("invalid transfer type");
+    }
+    const fromAccount = ctx.normalizeAccountLookupKey(row[indexes.from]);
+    const toAccount = ctx.normalizeAccountLookupKey(row[indexes.to]);
+    if (!fromAccount) {
+      reasons.push("missing from account");
+    } else if (!ctx.hasValidAccountForScenario(rowScenarioId, fromAccount)) {
+      reasons.push("unknown from account");
+    }
+    if (!toAccount) {
+      reasons.push("missing to account");
+    } else if (!ctx.hasValidAccountForScenario(rowScenarioId, toAccount)) {
+      reasons.push("unknown to account");
+    }
+    if (fromAccount && toAccount && fromAccount === toAccount) {
+      reasons.push("from and to account cannot match");
+    }
+    return reasons;
+  }
+  function validateExpenseRowReasons(row, indexes, ctx) {
+    const reasons = [];
+    const rowScenarioId = indexes.scenario === -1 ? ctx.defaultScenarioId : ctx.normalizeScenarioId(row[indexes.scenario]);
+    if (!row[indexes.type]) {
+      reasons.push("missing type");
+    }
+    if (!row[indexes.name]) {
+      reasons.push("missing name");
+    }
+    const amount = ctx.toNumber(row[indexes.amount]);
+    if (amount === null || amount < 0) {
+      reasons.push("amount must be >= 0");
+    }
+    if (!row[indexes.frequency]) {
+      reasons.push("missing frequency");
+    }
+    if (!ctx.toDate(row[indexes.start])) {
+      reasons.push("missing/invalid start date");
+    }
+    const fromAccount = ctx.normalizeAccountLookupKey(row[indexes.from]);
+    if (!fromAccount) {
+      reasons.push("missing from account");
+    } else if (!ctx.hasValidAccountForScenario(rowScenarioId, fromAccount)) {
+      reasons.push("unknown from account");
+    }
+    return reasons;
+  }
+
   // ts/apps-script/entry.ts
   var TypedBudget = {
+    Config: CONFIG,
+    Schema: SCHEMA,
+    buildRunModel,
+    buildRunModelWithExtensions,
+    filterScenarioRowsForModel,
+    buildRunExtensions,
+    hasMeaningfulRowDataForRuleId,
+    assignMissingRuleIdsRows,
+    disableUnknownScenarioRows,
+    buildAccountLookupFromRows,
+    validateAccountsRows,
+    validatePolicyRows,
+    validateGoalRows,
+    validateIncomeRowReasons,
+    validateTransferRowReasons,
+    validateExpenseRowReasons,
     DEFAULT_TAG: "Base",
     normalizeTag,
     normalizeAvailableTags,

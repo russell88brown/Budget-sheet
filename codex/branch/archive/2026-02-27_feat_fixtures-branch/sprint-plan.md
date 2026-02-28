@@ -1,11 +1,11 @@
-# Sprint Plan: feat-fixtures-branch
+# Sprint Plan: 2026-02-27_feat_fixtures-branch
 
 ## Metadata
-- Sprint ID: `feat-fixtures-branch`
+- Sprint ID: `2026-02-27_feat_fixtures-branch`
 - Start date (YYYY-MM-DD): 2026-02-27
 - End date (YYYY-MM-DD): 2026-02-27
 - Owner: Codex + User
-- Branch: `codex/feat-fixtures-branch`
+- Branch: `codex/2026-02-27_feat_fixtures-branch`
 
 ## Objective
 Add high-value deterministic fixture tests that lock down typed-core behavior during the TypeScript migration, with explicit coverage for sorting, transfer resolution, recurrence boundaries, policy selection, scenario scope, and summary stats.
@@ -48,7 +48,7 @@ Add high-value deterministic fixture tests that lock down typed-core behavior du
 - Legacy normalization behaviors for `repayment` and `transfer` are explicitly covered.
 - `npm test` passes.
 - `npm run sprint:check` passes.
-- `codex/history/feat-fixtures-branch/PR.md` documents changes and validation evidence.
+- `codex/branch/2026-02-27_feat_fixtures-branch/PR.md` documents changes and validation evidence.
 
 ## Constraints
 - Use existing test runner (`node scripts/run-tests.mjs`) and existing TypeScript test files.
@@ -65,4 +65,5 @@ Add high-value deterministic fixture tests that lock down typed-core behavior du
 - Risk: Date fixtures can be flaky due to local timezone handling.
   Mitigation: Use normalized dates and compare exact YYYY-MM-DD or normalized timestamps consistently.
 - Risk: Branch/path naming confusion (`.codex` vs `codex`, typo `featu-fixtures`).
-  Mitigation: Standardize docs and updates under `codex/history/feat-fixtures-branch/`.
+  Mitigation: Standardize docs and updates under `codex/branch/2026-02-27_feat_fixtures-branch/`.
+
