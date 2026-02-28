@@ -195,6 +195,7 @@ import { mapPolicyReaderRows } from "../core/policyReaderRows";
 import { mapGoalReaderRows } from "../core/goalReaderRows";
 import { mapIncomeReaderRows } from "../core/incomeReaderRows";
 import { mapExpenseReaderRows } from "../core/expenseReaderRows";
+import { mapTransferReaderRows } from "../core/transferReaderRows";
 
 export const TypedBudget = {
   Config: CONFIG,
@@ -238,6 +239,7 @@ export const TypedBudget = {
   mapGoalReaderRows,
   mapIncomeReaderRows,
   mapExpenseReaderRows,
+  mapTransferReaderRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

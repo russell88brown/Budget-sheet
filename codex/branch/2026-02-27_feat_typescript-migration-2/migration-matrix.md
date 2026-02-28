@@ -33,12 +33,11 @@ Definitions:
 - `B08_TypedBudget.generated.gs` (generated output)
 - `C02_RunModel.gs`, `C03_RunExtensions.gs`, `D01_Events.gs`, `D02_CoreCompile.gs`
 - Parts of `D04_JournalEngine.gs` already extracted to `ts/core/*`
-- Parts of `C01_Readers.gs` already extracted to `ts/core/*` (`readSheetRows`, `readTags`, `readAccounts`, `readPolicies`, `readGoals`, `readIncome`, `readExpenses`)
+- Parts of `C01_Readers.gs` already extracted to `ts/core/*` (`readSheetRows`, `readTags`, `readAccounts`, `readPolicies`, `readGoals`, `readIncome`, `readExpenses`, `readTransfers`)
 
 ### Yet To Be Migrated (next extraction targets)
 - `D04_JournalEngine.gs` remaining pure orchestration/selection logic
 - `D03_CoreApply.gs` remaining pure algorithm paths
-- `C01_Readers.gs` remaining mapping path (`readTransfers`)
 - `E01_Summary.gs` pure summary compute logic
 - `A02_DefaultData.gs` pure seed-data construction logic
 - `Z01_FixtureTests.gs` behavior-contract coverage migration to Node tests
@@ -62,7 +61,7 @@ Rationale:
 | `B06_CoreModel.gs` | Migrated (mostly) | Keep wrapper boundary; prefer typed path. |
 | `B07_TypedAdapters.gs` | To migrate (reduce) | Reduce adapter/fallback surface as parity confidence increases. |
 | `B08_TypedBudget.generated.gs` | Migrated (generated) | Keep generated; do not hand-edit. |
-| `C01_Readers.gs` | To migrate (partial) | Keep sheet reads in GAS; migrate remaining `readTransfers` row mapping path to TS. |
+| `C01_Readers.gs` | Migrated (mostly) | Keep sheet reads in GAS runtime boundary; continue trimming adapter fallbacks as parity confidence increases. |
 | `C02_RunModel.gs` | Migrated (mostly) | Keep as typed wrapper boundary. |
 | `C03_RunExtensions.gs` | Migrated (mostly) | Keep as typed wrapper boundary. |
 | `D01_Events.gs` | Migrated (mostly) | Keep wrapper boundary; continue legacy removal. |
@@ -79,5 +78,5 @@ Rationale:
 ## Immediate Next Actions
 1. Continue `D04_JournalEngine.gs` extraction of remaining pure orchestration logic.
 2. Reduce `B07_TypedAdapters.gs` fallback branches now covered by tests.
-3. Finish `C01_Readers.gs` mapping extraction (`readTransfers`).
+3. Reduce `B07_TypedAdapters.gs` reader fallback branches now covered by tests.
 4. Start `E01_Summary.gs` compute extraction to typed core.

@@ -65,6 +65,7 @@ Produce a file-by-file migration matrix for `src/*.gs` that estimates current Ty
 - [x] Extract `C01_Readers.gs` goal-row reader mapping helper to typed core and keep GAS fallback.
 - [x] Extract `C01_Readers.gs` income-row reader mapping helper to typed core and keep GAS fallback.
 - [x] Extract `C01_Readers.gs` expense-row reader mapping helper to typed core and keep GAS fallback.
+- [x] Extract `C01_Readers.gs` transfer-row reader mapping helper to typed core and keep GAS fallback.
 
 ## Acceptance Criteria
 - Every `src/*.gs` file is represented exactly once in the matrix.

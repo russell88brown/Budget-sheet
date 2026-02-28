@@ -939,6 +939,24 @@ function mapExpenseReaderRowsTyped_(rows) {
   return null;
 }
 
+function mapTransferReaderRowsTyped_(rows) {
+  var api = typedBudgetApi_();
+  if (api && typeof api.mapTransferReaderRows === 'function') {
+    return api.mapTransferReaderRows(
+      Array.isArray(rows) ? rows : [],
+      {
+        toBoolean: toBoolean_,
+        normalizeScenario: normalizeScenario_,
+        getTagValue: getTagValue_,
+        normalizeRecurrence: normalizeRecurrence_,
+        toNumber: toNumber_,
+        normalizeTransferType: normalizeTransferType_,
+      }
+    );
+  }
+  return null;
+}
+
 function shouldIncludeScenarioColumnTyped_(scenarioColumnIndex, scenarioIds) {
   var api = typedBudgetApi_();
   if (api && typeof api.shouldIncludeScenarioColumn === 'function') {

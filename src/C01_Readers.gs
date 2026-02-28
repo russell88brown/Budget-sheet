@@ -165,6 +165,10 @@ const Readers = {
 
   readTransfers: function () {
     var rows = readSheetRows_(Config.SHEETS.TRANSFERS);
+    var typed = mapTransferReaderRowsTyped_(rows);
+    if (typed) {
+      return typed;
+    }
     return rows
       .filter(function (row) {
         return toBoolean_(row['Include']);

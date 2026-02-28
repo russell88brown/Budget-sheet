@@ -51,6 +51,7 @@ const required = [
   "mapGoalReaderRows",
   "mapIncomeReaderRows",
   "mapExpenseReaderRows",
+  "mapTransferReaderRows",
 ];
 
 for (const key of required) {
