@@ -61,7 +61,7 @@ Rationale:
 | `B06_CoreModel.gs` | Migrated (mostly) | Keep wrapper boundary; prefer typed path. |
 | `B07_TypedAdapters.gs` | To migrate (reduce) | Reduce adapter/fallback surface as parity confidence increases. |
 | `B08_TypedBudget.generated.gs` | Migrated (generated) | Keep generated; do not hand-edit. |
-| `C01_Readers.gs` | Migrated (mostly) | Keep sheet reads in GAS runtime boundary; continue trimming adapter fallbacks as parity confidence increases. |
+| `C01_Readers.gs` | Migrated (mostly) | Keep sheet reads in GAS runtime boundary; mapped reads are now typed-required, with legacy mapping fallbacks removed. |
 | `C02_RunModel.gs` | Migrated (mostly) | Keep as typed wrapper boundary. |
 | `C03_RunExtensions.gs` | Migrated (mostly) | Keep as typed wrapper boundary. |
 | `D01_Events.gs` | Migrated (mostly) | Keep wrapper boundary; continue legacy removal. |

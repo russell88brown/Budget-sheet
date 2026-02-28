@@ -42,6 +42,7 @@ Target architecture agreed for implementation:
 - [x] Extract `C01_Readers.gs` income-row reader mapping helper to typed core (`ts/core/incomeReaderRows.ts`) and keep GAS fallback wiring.
 - [x] Extract `C01_Readers.gs` expense-row reader mapping helper to typed core (`ts/core/expenseReaderRows.ts`) and keep GAS fallback wiring.
 - [x] Extract `C01_Readers.gs` transfer-row reader mapping helper to typed core (`ts/core/transferReaderRows.ts`) and keep GAS fallback wiring.
+- [x] Reduce `C01_Readers.gs` legacy row-mapping fallbacks and require typed reader helpers for mapped reads.
 
 ## PR Review Against Code
 - [x] PR notes match implemented code changes.
@@ -124,6 +125,7 @@ Target architecture agreed for implementation:
 | 2026-02-28 | Added `tests/expenseReaderRows.test.ts` and expanded typed API surface checks for `mapExpenseReaderRows`. | Guard expense-reader mapping extraction and keep typed runtime contract explicit. | Export and behavior regressions for expense-reader mapping are caught earlier in Node tests. |
 | 2026-02-28 | Extracted `C01_Readers.gs` transfer-row reader mapping helper into `ts/core/transferReaderRows.ts`, exported via typed runtime, and wired `readTransfers` to typed-first execution with fallback. | Complete extraction of remaining `C01` row normalization/mapping logic while preserving sheet-read boundaries. | Transfer reader row mapping is now unit-testable TS logic and removes the final inline mapping path from `C01_Readers.gs`. |
 | 2026-02-28 | Added `tests/transferReaderRows.test.ts` and expanded typed API surface checks for `mapTransferReaderRows`. | Guard transfer-reader mapping extraction and keep typed runtime contract explicit. | Export and behavior regressions for transfer-reader mapping are caught earlier in Node tests. |
+| 2026-02-28 | Removed legacy fallback row-mapping branches from `C01_Readers.gs` (`readAccounts`/`readPolicies`/`readGoals`/`readIncome`/`readExpenses`/`readTransfers`/`readTags`/`readSheetRows_`) and required typed helper availability. | Reduce duplicated mapping logic and enforce typed runtime as the single source for reader transformations. | `C01` read paths are now thinner runtime boundaries; missing typed runtime surfaces as explicit errors instead of silent fallback divergence. |
 | 2026-02-27 | Reworked `codex/README.md` into a prompt catalog aligned to `codex/SKILL.md` phases and required artifacts. | Make sprint prompting consistent with deterministic workflow (`codex/current-sprint.md`, `sprint-plan.md`, `PR.md`). | Future sprint requests are clearer and less likely to diverge from the mandated process. |
 | 2026-02-27 | Migrated sprint marker path to `codex/current-sprint.md` and updated sprint tooling/docs references. | Ensure current sprint phase/state marker is markdown-based and consistently referenced across automation and prompts. | Sprint tooling now writes `.md` marker and still reads legacy marker files when present. |
 
@@ -165,6 +167,9 @@ Target architecture agreed for implementation:
 | Typecheck | `npm.cmd run typecheck` | Fail | Re-ran for transfer-reader extraction chunk; same environment blocker (`'tsc' is not recognized as an internal or external command`). |
 | Unit | `npm.cmd test` | Fail | Re-ran for transfer-reader extraction chunk; same `ENOTCACHED` npm policy block for `tsx`. |
 | Build | `npm.cmd run build:typed` | Fail | Re-ran for transfer-reader extraction chunk; same missing local `esbuild` package (`ERR_MODULE_NOT_FOUND`). |
+| Typecheck | `npm.cmd run typecheck` | Fail | Re-ran for `C01` fallback-reduction chunk; same environment blocker (`'tsc' is not recognized as an internal or external command`). |
+| Unit | `npm.cmd test` | Fail | Re-ran for `C01` fallback-reduction chunk; same `ENOTCACHED` npm policy block for `tsx`. |
+| Build | `npm.cmd run build:typed` | Fail | Re-ran for `C01` fallback-reduction chunk; same missing local `esbuild` package (`ERR_MODULE_NOT_FOUND`). |
 | Validation | Updated `codex/README.md` prompt catalog to match `codex/SKILL.md` phase model | Pass | Prompt set now explicitly maps to required sprint phases and sprint artifacts. |
 | Validation | `node scripts/sprint-tools.mjs check` | Pass | Passed with current marker stored at `codex/current-sprint.md`. |
 | Manual | Verified matrix covers all `src/*.gs` files exactly once | Pass | 23 files represented. |
@@ -179,6 +184,6 @@ Target architecture agreed for implementation:
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Next implementation target: reduce `B07_TypedAdapters.gs` fallback branches for `C01` reader mappers now covered by typed exports/tests.
+- Next implementation target: extract another `D03_CoreApply.gs` helper to typed core (or remove adapter fallback where already covered) while keeping behavior parity.
 - Continue `D04_JournalEngine.gs` extraction for remaining pure decision logic and non-I/O transforms still embedded in GAS wrappers.
 
