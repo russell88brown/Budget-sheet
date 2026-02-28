@@ -48,6 +48,21 @@ Definitions:
 Rationale:
 - These are UI/sheet/runtime integration boundaries and should remain Apps Script entry/write/orchestration layers.
 
+## Domain Snapshot
+- `Accounts`: Mostly migrated. Reader mapping (`C01`), account normalization, lookup maps, balance maps, and monthly-flow helpers are in typed core. Remaining work is mostly orchestration cleanup in `D04` and adapter fallback reduction.
+- `Journals`: Partially migrated with significant progress. Core row transforms, validations, monthly worksheet logic, run-log helpers, and scenario matching are typed. Main remaining scope is `D04_JournalEngine.gs` orchestration and some `D03_CoreApply.gs` algorithm-path cleanup.
+- `Utilities (including Recurrence)`: Mostly migrated. Recurrence normalization and recurrence utility paths are typed and covered; remaining utility work is mainly runtime-bound helpers in `B03_Utils.gs` or thin-wrapper cleanup.
+- `Summaries/Dashboards`: Not fully migrated by design. `E01_Summary.gs` is still a high-value compute extraction target; `E02_DashboardReports.gs` remains runtime/rendering-heavy and expected to stay mostly GAS.
+
+## Redo / Refactor Candidates
+| Area | Current TS Status | Candidate Rework |
+|---|---|---|
+| `D03 Core Apply` | Partially typed with remaining fallback paths | Complete typed-required fallback reduction and simplify event-application orchestration. |
+| `D04 Journal Engine` | Major helper coverage typed; orchestration still mixed | Continue extracting orchestration/selection logic so GAS is mostly sheet/runtime boundary. |
+| `Daily Flow` | Recurrence + daily interest helpers are typed | Keep daily logic in TS and reduce wrapper fan-out in `D03/D04`. |
+| `Monthly Flow` | Monthly totals + worksheet helpers are typed | Refactor monthly pipeline assembly in `D04` to reduce duplicate setup/branching. |
+| `Summaries / Dashboards` | Summary compute partly pending; dashboards mostly GAS rendering | Extract pure `E01` compute first; keep `E02` rendering in GAS and only move reusable pure shaping helpers. |
+
 ## File Matrix
 | File | Status | Plan |
 |---|---|---|
@@ -77,6 +92,6 @@ Rationale:
 
 ## Immediate Next Actions
 1. Continue `D04_JournalEngine.gs` extraction of remaining pure orchestration logic.
-2. Reduce `B07_TypedAdapters.gs` fallback branches now covered by tests.
-3. Reduce `B07_TypedAdapters.gs` reader fallback branches now covered by tests.
-4. Start `E01_Summary.gs` compute extraction to typed core.
+2. Finalize `D03_CoreApply.gs` typed-required fallback reduction and commit checkpoint.
+3. Start `E01_Summary.gs` daily/monthly compute extraction to typed core.
+4. Trim adapter fallback branches only where parity is already proven by typed tests.

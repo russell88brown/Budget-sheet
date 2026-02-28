@@ -7,6 +7,19 @@ Target architecture agreed for implementation:
 - TypeScript owns most business logic with automated tests.
 - Apps Script files remain as thin runtime/integration wrappers.
 
+## Domain Status
+- Accounts: Reader mappings and key account helpers are now typed-first (`C01` mappings, account normalization, account maps, monthly-flow helpers).
+- Journals: Core transform/validation/helper coverage is strongly migrated, but `D04_JournalEngine.gs` still has remaining orchestration to extract.
+- Recurrence/Utilities: Recurrence paths are mostly typed; remaining utility/runtime behavior is intentionally kept in GAS wrappers.
+- Summaries/Dashboards: `E01_Summary.gs` compute extraction remains open; dashboard/report rendering is expected to stay mostly GAS.
+
+## Domain Rework Focus
+- D04 core orchestration: Finish reducing branch-heavy orchestration in `D04_JournalEngine.gs` so typed modules own decision logic and GAS remains runtime I/O.
+- D03 core apply path: Continue removing fallback/duplication in `D03_CoreApply.gs` and enforce typed helper ownership for event application paths.
+- Daily/Monthly core flows: Keep daily interest/recurrence and monthly totals/worksheet pipelines in typed core, and simplify wrapper call graphs.
+- Summaries: Prioritize `E01_Summary.gs` pure compute extraction (daily/monthly aggregates, shaping) while keeping output writes in GAS.
+- Dashboards: Keep `E02_DashboardReports.gs` rendering in GAS; only move reusable pure aggregation/shaping helpers when they support core summary flow.
+
 ## Sprint Plan Reference
 - Sprint folder: `codex/branch/2026-02-27_feat_typescript-migration-2/`
 - Plan file: `codex/branch/2026-02-27_feat_typescript-migration-2/sprint-plan.md`
@@ -184,6 +197,6 @@ Target architecture agreed for implementation:
 - [x] Risks/follow-ups documented
 
 ## Follow-Ups
-- Next implementation target: extract another `D03_CoreApply.gs` helper to typed core (or remove adapter fallback where already covered) while keeping behavior parity.
-- Continue `D04_JournalEngine.gs` extraction for remaining pure decision logic and non-I/O transforms still embedded in GAS wrappers.
+- Next step (core functionality): finish `D03_CoreApply.gs` typed-required fallback reduction and commit as a stabilization checkpoint.
+- Next step after checkpoint: continue `D04_JournalEngine.gs` orchestration extraction, then start `E01_Summary.gs` daily/monthly compute extraction.
 
