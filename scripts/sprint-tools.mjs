@@ -9,7 +9,8 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const codexRoot = path.join(repoRoot, 'codex');
 const historyDir = path.join(codexRoot, 'history');
-const currentSprintFile = path.join(codexRoot, 'current-sprint');
+const currentSprintFile = path.join(codexRoot, 'current-sprint.md');
+const legacyCurrentSprintFile = path.join(codexRoot, 'current-sprint');
 const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
 const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
 
@@ -54,6 +55,25 @@ function readFile(filePath) {
 
 function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf8');
+}
+
+function writeCurrentSprint(sprintId) {
+  const content = `${sprintId}\n`;
+  writeFile(currentSprintFile, content);
+  // Keep the legacy ignored marker in sync so older local setups continue to work.
+  writeFile(legacyCurrentSprintFile, content);
+}
+
+function resolveCurrentSprintFile() {
+  if (fs.existsSync(currentSprintFile)) {
+    return currentSprintFile;
+  }
+
+  if (fs.existsSync(legacyCurrentSprintFile)) {
+    return legacyCurrentSprintFile;
+  }
+
+  return currentSprintFile;
 }
 
 function copyTemplate(templatePath, targetFilePath, sprintId) {
@@ -104,7 +124,7 @@ function startSprint(sprintId, options) {
   copyTemplate(planTemplateFile, path.join(sprintPath, 'sprint-plan.md'), sprintId);
   copyTemplate(prTemplateFile, path.join(sprintPath, 'PR.md'), sprintId);
 
-  writeFile(currentSprintFile, `${sprintId}\n`);
+  writeCurrentSprint(sprintId);
   info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${sprintId}`);
 
   if (!options.noBranch) {
@@ -186,13 +206,14 @@ function checkFileSections(filePath, sectionNames) {
 }
 
 function checkSprint() {
-  if (!fs.existsSync(currentSprintFile)) {
+  const sprintFile = resolveCurrentSprintFile();
+  if (!fs.existsSync(sprintFile)) {
     fail(`Missing ${path.relative(repoRoot, currentSprintFile)}. Run sprint:start first.`);
   }
 
-  const sprintId = readFile(currentSprintFile).trim();
+  const sprintId = readFile(sprintFile).trim();
   if (!sprintId) {
-    fail(`${path.relative(repoRoot, currentSprintFile)} is empty.`);
+    fail(`${path.relative(repoRoot, sprintFile)} is empty.`);
   }
 
   const sprintPath = path.join(historyDir, sprintId);
