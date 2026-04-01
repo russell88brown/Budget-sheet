@@ -147,8 +147,99 @@ import {
   type RecurrenceFrequencies,
   type RecurrenceStepContext,
 } from "../core/recurrence";
+import { CONFIG } from "../core/config";
+import { SCHEMA } from "../core/schema";
+import {
+  buildRunModel,
+  buildRunModelWithExtensions,
+  filterScenarioRowsForModel,
+} from "../core/runModel";
+import { buildRunExtensions } from "../core/runExtensions";
+import {
+  assignMissingRuleIdsRows,
+  hasMeaningfulRowDataForRuleId,
+} from "../core/ruleIdAssignment";
+import { disableUnknownScenarioRows } from "../core/scenarioValidation";
+import {
+  buildAccountLookupFromRows,
+  validateAccountsRows,
+} from "../core/journalAccountRows";
+import { validatePolicyRows } from "../core/journalPolicyRows";
+import { validateGoalRows } from "../core/journalGoalRows";
+import {
+  validateExpenseRowReasons,
+  validateIncomeRowReasons,
+  validateTransferRowReasons,
+} from "../core/journalRowValidation";
+import { normalizeTransferRows } from "../core/transferRowNormalization";
+import { normalizeRecurrenceRows } from "../core/recurrenceRowNormalization";
+import { normalizeAccountRows } from "../core/accountRowNormalization";
+import { deactivateRowsByValidator } from "../core/rowDeactivation";
+import { buildExpenseMonthlyTotals, buildIncomeMonthlyTotals } from "../core/monthlyRuleTotals";
+import { buildTransferMonthlyTotals } from "../core/transferRuleTotals";
+import { computeTransferMonthlyWorksheet } from "../core/transferMonthlyWorksheet";
+import { computeRuleMonthlyWorksheet } from "../core/ruleMonthlyWorksheet";
+import { buildAccountBalanceMap } from "../core/accountBalanceMap";
+import { buildAccountLookupMap } from "../core/accountLookupMap";
+import { computeAccountMonthlyFlowWorksheet } from "../core/accountMonthlyFlowWorksheet";
+import { composeRunLogNotes } from "../core/runLogNotes";
+import { listDuplicateAccountNames } from "../core/accountNameDuplicates";
+import { resolveRunLogWriteRow } from "../core/runLogRow";
+import { buildRunLogEntryRow } from "../core/runLogEntry";
+import { isRowInActiveScenario } from "../core/scenarioRow";
+import { formatDuplicateAccountErrorMessage } from "../core/accountDuplicateError";
+import { mapSheetRows } from "../core/sheetRows";
+import { buildScenarioCatalog } from "../core/scenarioCatalog";
+import { mapAccountReaderRows } from "../core/accountReaderRows";
+import { mapPolicyReaderRows } from "../core/policyReaderRows";
+import { mapGoalReaderRows } from "../core/goalReaderRows";
+import { mapIncomeReaderRows } from "../core/incomeReaderRows";
+import { mapExpenseReaderRows } from "../core/expenseReaderRows";
+import { mapTransferReaderRows } from "../core/transferReaderRows";
 
 export const TypedBudget = {
+  Config: CONFIG,
+  Schema: SCHEMA,
+  buildRunModel,
+  buildRunModelWithExtensions,
+  filterScenarioRowsForModel,
+  buildRunExtensions,
+  hasMeaningfulRowDataForRuleId,
+  assignMissingRuleIdsRows,
+  disableUnknownScenarioRows,
+  buildAccountLookupFromRows,
+  validateAccountsRows,
+  validatePolicyRows,
+  validateGoalRows,
+  validateIncomeRowReasons,
+  validateTransferRowReasons,
+  validateExpenseRowReasons,
+  normalizeTransferRows,
+  normalizeRecurrenceRows,
+  normalizeAccountRows,
+  deactivateRowsByValidator,
+  buildIncomeMonthlyTotals,
+  buildExpenseMonthlyTotals,
+  buildTransferMonthlyTotals,
+  computeTransferMonthlyWorksheet,
+  computeRuleMonthlyWorksheet,
+  buildAccountBalanceMap,
+  buildAccountLookupMap,
+  computeAccountMonthlyFlowWorksheet,
+  composeRunLogNotes,
+  listDuplicateAccountNames,
+  resolveRunLogWriteRow,
+  buildRunLogEntryRow,
+  isRowInActiveScenario,
+  formatDuplicateAccountErrorMessage,
+  mapSheetRows,
+  buildScenarioCatalog,
+  mapAccountReaderRows,
+  mapPolicyReaderRows,
+  mapGoalReaderRows,
+  mapIncomeReaderRows,
+  mapExpenseReaderRows,
+  mapTransferReaderRows,
   DEFAULT_TAG: "Base",
   normalizeTag,
   normalizeAvailableTags,

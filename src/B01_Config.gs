@@ -1,70 +1,16 @@
 // Centralized configuration and enums for the forecast engine.
-// BUILD_TIMESTAMP: '2026-02-22T00:00:00Z'
-const Config = {
-  SHEETS: {
-    DASHBOARD: 'Dashboard',
-    ACCOUNTS: 'Accounts',
-    POLICIES: 'Policies',
-    GOALS: 'Goals',
-    TRANSFERS: 'Transfers',
-    INCOME: 'Income',
-    EXPENSE: 'Expense',
-    JOURNAL: 'Journal',
-    DAILY: 'Daily',
-    MONTHLY: 'Monthly',
-  },
-  BEHAVIORS: {
-    SCHEDULED: 'Scheduled',
-    PROVISION: 'Provision',
-    CAP_ONLY: 'CapOnly',
-    ONE_OFF: 'OneOff',
-  },
-  BEHAVIOR_LABELS: {
-    Expense: 'Expense',
-    Repayment: 'Repayment',
-    Transfer: 'Transfer',
-  },
-  TRANSFER_TYPES: {
-    REPAYMENT_AMOUNT: 'Repayment - Amount',
-    REPAYMENT_ALL: 'Repayment - All',
-    TRANSFER_AMOUNT: 'Transfer - Amount',
-    TRANSFER_EVERYTHING_EXCEPT: 'Transfer - Everything Except',
-  },
-  POLICY_TYPES: {
-    AUTO_DEFICIT_COVER: 'Auto Deficit Cover',
-  },
-  GOAL_FUNDING_POLICIES: {
-    FIXED: 'Fixed Amount',
-    LEFTOVER: 'Leftover',
-    PERCENT: 'Percent of Inflow',
-  },
-  SCENARIOS: {
-    DEFAULT: 'Base',
-    STRESS: 'Stress',
-  },
-  ACCOUNT_TYPES: {
-    CASH: 'Cash',
-    CREDIT: 'Credit',
-  },
-  INTEREST_METHODS: {
-    APR_SIMPLE: 'APR (Simple)',
-    APY_COMPOUND: 'APY (Compound)',
-  },
-  FREQUENCIES: {
-    ONCE: 'Once',
-    DAILY: 'Daily',
-    WEEKLY: 'Weekly',
-    MONTHLY: 'Monthly',
-    YEARLY: 'Yearly',
-  },
-  NAMED_RANGES: {
-    ACCOUNT_NAMES: 'AccountNames',
-    CATEGORIES: 'ExpenseCategories',
-    INCOME_TYPES: 'IncomeTypes',
-    SCENARIOS: 'ScenarioList',
-    FORECAST_START: 'ForecastStartDate',
-    FORECAST_END: 'ForecastEndDate',
-  },
-  LISTS_SHEET: 'Settings',
-  FORECAST_DAYS: 365,
-};
+// Source of truth: ts/core/config.ts via generated TypedBudget bundle.
+
+function resolveTypedBudgetConfigExport_(name) {
+  var container = typeof TypedBudget !== 'undefined' && TypedBudget ? TypedBudget : null;
+  if (container && container.TypedBudget && typeof container.TypedBudget === 'object') {
+    container = container.TypedBudget;
+  }
+  var value = container ? container[name] : null;
+  if (value === null || value === undefined) {
+    throw new Error('Typed runtime export "' + name + '" is unavailable. Run npm run build:typed.');
+  }
+  return value;
+}
+
+const Config = resolveTypedBudgetConfigExport_('Config');

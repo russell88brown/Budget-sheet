@@ -8,10 +8,20 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 const codexRoot = path.join(repoRoot, 'codex');
-const historyDir = path.join(codexRoot, 'history');
-const currentSprintFile = path.join(codexRoot, 'current-sprint');
+const branchDir = path.join(codexRoot, 'branch');
+const currentSprintFile = path.join(codexRoot, 'current-sprint.md');
+const legacyCurrentSprintFile = path.join(codexRoot, 'current-sprint');
 const planTemplateFile = path.join(codexRoot, 'sprint_tempalte-plan.md');
 const prTemplateFile = path.join(codexRoot, 'sprint_template-pr.md');
+const allowedPhaseValues = [
+  'create_plan_from_prompt',
+  'review_and_finalize_plan',
+  'execute_task_chunk',
+  'review_pr_against_code',
+  'determine_remaining_actions',
+  'final_checks_and_housekeeping',
+];
+const allowedStatusValues = ['in_progress', 'completed'];
 
 const requiredSections = {
   'sprint-plan.md': [
@@ -45,7 +55,7 @@ function ensureDir(dirPath) {
 }
 
 function isValidSprintId(sprintId) {
-  return /^[a-z0-9][a-z0-9._-]*$/.test(sprintId);
+  return /^\d{4}-\d{2}-\d{2}_feat_[a-z0-9][a-z0-9-]*$/.test(sprintId);
 }
 
 function readFile(filePath) {
@@ -54,6 +64,27 @@ function readFile(filePath) {
 
 function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf8');
+}
+
+function parseCurrentSprintState(rawValue) {
+  const parts = rawValue.trim().split('|');
+  if (parts.length === 1) {
+    return { sprintId: parts[0], phase: null, status: null };
+  }
+  if (parts.length !== 3) {
+    return null;
+  }
+  return { sprintId: parts[0], phase: parts[1], status: parts[2] };
+}
+
+function readCurrentSprintMarker() {
+  if (fs.existsSync(currentSprintFile)) {
+    return { filePath: currentSprintFile, raw: readFile(currentSprintFile) };
+  }
+  if (fs.existsSync(legacyCurrentSprintFile)) {
+    return { filePath: legacyCurrentSprintFile, raw: readFile(legacyCurrentSprintFile) };
+  }
+  return null;
 }
 
 function copyTemplate(templatePath, targetFilePath, sprintId) {
@@ -92,20 +123,25 @@ function startSprint(sprintId, options) {
     fail('Usage: node scripts/sprint-tools.mjs start <sprint-id> [--no-branch]');
   }
   if (!isValidSprintId(sprintId)) {
-    fail('Sprint ID must match: lowercase letters, digits, dots, underscores, hyphens.');
+    fail('Sprint ID must match: YYYY-MM-DD_feat_<kebab-name>.');
   }
 
   ensureDir(codexRoot);
-  ensureDir(historyDir);
+  ensureDir(branchDir);
 
-  const sprintPath = path.join(historyDir, sprintId);
+  const sprintPath = path.join(branchDir, sprintId);
   ensureDir(sprintPath);
 
   copyTemplate(planTemplateFile, path.join(sprintPath, 'sprint-plan.md'), sprintId);
   copyTemplate(prTemplateFile, path.join(sprintPath, 'PR.md'), sprintId);
 
-  writeFile(currentSprintFile, `${sprintId}\n`);
-  info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${sprintId}`);
+  const stateValue = `${sprintId}|create_plan_from_prompt|in_progress`;
+  writeFile(currentSprintFile, `${stateValue}\n`);
+  info(`Updated: ${path.relative(repoRoot, currentSprintFile)} -> ${stateValue}`);
+  if (fs.existsSync(legacyCurrentSprintFile)) {
+    fs.unlinkSync(legacyCurrentSprintFile);
+    info(`Removed legacy marker: ${path.relative(repoRoot, legacyCurrentSprintFile)}`);
+  }
 
   if (!options.noBranch) {
     runGitCreateBranch(`sprint/${sprintId}`);
@@ -186,18 +222,29 @@ function checkFileSections(filePath, sectionNames) {
 }
 
 function checkSprint() {
-  if (!fs.existsSync(currentSprintFile)) {
+  const marker = readCurrentSprintMarker();
+  if (!marker) {
     fail(`Missing ${path.relative(repoRoot, currentSprintFile)}. Run sprint:start first.`);
   }
 
-  const sprintId = readFile(currentSprintFile).trim();
-  if (!sprintId) {
-    fail(`${path.relative(repoRoot, currentSprintFile)} is empty.`);
+  const state = parseCurrentSprintState(marker.raw);
+  if (!state || !state.sprintId) {
+    fail(`${path.relative(repoRoot, marker.filePath)} is empty.`);
   }
+  const sprintId = state.sprintId;
 
-  const sprintPath = path.join(historyDir, sprintId);
+  const sprintPath = path.join(branchDir, sprintId);
   if (!fs.existsSync(sprintPath)) {
     fail(`Current sprint folder missing: ${path.relative(repoRoot, sprintPath)}`);
+  }
+
+  if (state.phase !== null || state.status !== null) {
+    if (!allowedPhaseValues.includes(state.phase)) {
+      fail(`${path.relative(repoRoot, marker.filePath)} has invalid phase "${state.phase}".`);
+    }
+    if (!allowedStatusValues.includes(state.status)) {
+      fail(`${path.relative(repoRoot, marker.filePath)} has invalid status "${state.status}".`);
+    }
   }
 
   const failures = [];

@@ -59,24 +59,24 @@ This section is the source of truth for planning, executing, and closing sprints
 - Skill: `codex/SKILL.md`
 - Plan template: `codex/sprint_tempalte-plan.md`
 - PR template: `codex/sprint_template-pr.md`
-- Sprint history: `codex/history/<sprint-id>/`
+- Sprint history: `codex/branch/<sprint-id>/`
 
 ### First-Time Quickstart (Repeatable)
 
 Use this exact flow for your first sprint and every sprint after that.
 
 1. Start from `main`.
-2. Choose sprint ID (example: `feat-fixtures-branch`).
+2. Choose sprint ID (example: `2026-02-27_feat_fixtures-branch`).
 3. Scaffold sprint docs:
    - `npm run sprint:start -- <sprint-id> --no-branch`
 4. Create/switch branch in your preferred way (user-driven).
 5. Fill required sections in:
-   - `codex/history/<sprint-id>/sprint-plan.md`
-   - `codex/history/<sprint-id>/PR.md`
-6. Validate docs before implementation:
-   - `npm run sprint:check`
+   - `codex/branch/<sprint-id>/sprint-plan.md`
+   - `codex/branch/<sprint-id>/PR.md`
+6. Validate documentation/process expectations needed for the sprint.
 7. Implement work, updating `PR.md` continuously.
-8. Before PR/merge, run final checks.
+8. Commit as you go with clear, task-specific commit messages.
+9. Before PR/merge, run final checks.
 
 ### End-To-End Flow (Default Convention)
 
@@ -85,9 +85,9 @@ Use this exact flow for your first sprint and every sprint after that.
    - `npm run sprint:start -- <sprint-id>`
 3. Implement on `sprint/<sprint-id>`.
 4. Update `PR.md` continuously as tasks complete.
-5. Before opening/updating PR, run:
-   - `npm run sprint:check`
-6. Merge when acceptance criteria and checks are satisfied.
+5. Commit incrementally as tasks land, using descriptive commit messages.
+6. Before opening/updating PR, run the checks relevant to your changes and capture evidence in `PR.md`.
+7. Merge when acceptance criteria and checks are satisfied.
 
 ### Commands
 
@@ -103,17 +103,12 @@ Start docs only (no branch create):
 npm run sprint:start -- <sprint-id> --no-branch
 ```
 
-Validate required sprint docs and section completeness:
-
-```bash
-npm run sprint:check
-```
-
 ### Repeatability Rules
 
 - Keep one sprint folder per sprint ID.
 - Keep `PR.md` as a running log; do not backfill only at the end.
-- Run `npm run sprint:check` at least once before coding and once before PR.
+- Commit throughout the sprint with descriptive messages tied to completed work.
+- Run relevant validation for the work you changed and capture evidence in `PR.md`.
 - Keep Git operations lightweight and user-driven; focus AI effort on plan quality, execution tracking, and documentation evidence.
 
 ### If You Want A Different Structure
@@ -122,8 +117,8 @@ Current automation is hard-wired to these paths in `scripts/sprint-tools.mjs`:
 
 - `codex/sprint_tempalte-plan.md`
 - `codex/sprint_template-pr.md`
-- `codex/history/`
-- `codex/current-sprint`
+- `codex/branch/`
+- `codex/current-sprint.md`
 
 If you want another root, update those constants in `scripts/sprint-tools.mjs` once, then keep that structure stable across sprints.
 
@@ -138,3 +133,5 @@ Keep commit safety simple:
 
 1. Stage only what belongs to this sprint.
 2. Check staged files once before commit.
+3. Use descriptive commit messages that map to completed sprint tasks.
+

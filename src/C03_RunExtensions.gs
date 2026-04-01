@@ -2,6 +2,10 @@
 // Core remains Accounts + Income + Transfers + Expenses + Journal math.
 const RunExtensions = {
   build: function (runModelWithExtensions) {
+    var api = typedRunExtensionsApi_();
+    if (api && typeof api.buildRunExtensions === 'function') {
+      return api.buildRunExtensions(runModelWithExtensions || {});
+    }
     var model = runModelWithExtensions || {};
     return {
       // Policy-driven auto-deficit cover remains optional extension behavior.
@@ -14,4 +18,12 @@ const RunExtensions = {
 
 function buildRunExtensions_(runModelWithExtensions) {
   return RunExtensions.build(runModelWithExtensions);
+}
+
+function typedRunExtensionsApi_() {
+  var container = typeof TypedBudget !== 'undefined' && TypedBudget ? TypedBudget : null;
+  if (container && container.TypedBudget && typeof container.TypedBudget === 'object') {
+    container = container.TypedBudget;
+  }
+  return container;
 }

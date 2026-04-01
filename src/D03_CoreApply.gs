@@ -76,48 +76,24 @@ function coreBuildOpeningRows_(accounts, date, forecastAccounts, balances, scena
 }
 
 function coreBuildBalanceMap_(accounts) {
-  var typed = buildBalanceMapTyped_(accounts);
-  if (typed) {
-    return typed;
-  }
-
-  var map = {};
-  accounts.forEach(function (account) {
-    var key = coreAccountKey_(account && account.name);
-    if (!key) {
-      return;
-    }
-    map[key] = roundUpCents_(account.balance || 0);
-  });
-  return map;
+  return requireTypedCoreApplyResult_(
+    buildBalanceMapTyped_(accounts),
+    'buildBalanceMap'
+  );
 }
 
 function coreBuildForecastableMap_(accounts) {
-  var typed = buildForecastableMapTyped_(accounts);
-  if (typed) {
-    return typed;
-  }
-
-  var map = {};
-  accounts.forEach(function (account) {
-    var key = coreAccountKey_(account && account.name);
-    if (!key) {
-      return;
-    }
-    map[key] = account.forecast === true;
-  });
-  return map;
+  return requireTypedCoreApplyResult_(
+    buildForecastableMapTyped_(accounts),
+    'buildForecastableMap'
+  );
 }
 
 function coreBuildForecastBalanceCells_(balances, forecastAccounts) {
-  var typed = buildForecastBalanceCellsTyped_(balances, forecastAccounts);
-  if (typed) {
-    return typed;
-  }
-
-  return forecastAccounts.map(function (name) {
-    return balances[coreAccountKey_(name)] || 0;
-  });
+  return requireTypedCoreApplyResult_(
+    buildForecastBalanceCellsTyped_(balances, forecastAccounts),
+    'buildForecastBalanceCells'
+  );
 }
 
 function coreBuildJournalEventRows_(
@@ -211,21 +187,7 @@ function coreBuildJournalEventRows_(
 
 function coreBuildAlerts_(cashNegative, creditPaidOff, explicitAlert) {
   var typed = buildAlertsTyped_(cashNegative, creditPaidOff, explicitAlert);
-  if (typed !== null && typed !== undefined) {
-    return typed;
-  }
-
-  var alerts = [];
-  if (cashNegative) {
-    alerts.push('NEGATIVE_CASH');
-  }
-  if (creditPaidOff) {
-    alerts.push('CREDIT_PAID_OFF');
-  }
-  if (explicitAlert) {
-    alerts.push(explicitAlert);
-  }
-  return alerts.join(' | ');
+  return requireTypedCoreApplyResult_(typed, 'buildAlerts');
 }
 
 function coreApplyEventWithSnapshots_(balances, event) {
@@ -465,15 +427,10 @@ function coreGetInterestBucket_(accountName) {
 }
 
 function coreCloneBalances_(balances) {
-  var typed = cloneBalancesTyped_(balances);
-  if (typed) {
-    return typed;
-  }
-
-  return Object.keys(balances).reduce(function (copy, key) {
-    copy[key] = balances[key];
-    return copy;
-  }, {});
+  return requireTypedCoreApplyResult_(
+    cloneBalancesTyped_(balances),
+    'cloneBalances'
+  );
 }
 
 function coreAccountKey_(value) {
@@ -481,18 +438,16 @@ function coreAccountKey_(value) {
 }
 
 function coreBuildAccountTypesByKey_(accounts) {
-  var typed = buildAccountTypesByKeyTyped_(accounts);
-  if (typed) {
-    return typed;
-  }
+  return requireTypedCoreApplyResult_(
+    buildAccountTypesByKeyTyped_(accounts),
+    'buildAccountTypesByKey'
+  );
+}
 
-  var byKey = {};
-  (accounts || []).forEach(function (account) {
-    if (!account || !account.name) {
-      return;
-    }
-    byKey[coreAccountKey_(account.name)] = account.type;
-  });
-  return byKey;
+function requireTypedCoreApplyResult_(value, functionName) {
+  if (value === null || value === undefined) {
+    throw new Error('Typed core apply runtime is unavailable for ' + functionName + '. Run npm run build:typed.');
+  }
+  return value;
 }
 
