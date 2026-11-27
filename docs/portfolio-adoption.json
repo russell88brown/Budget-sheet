@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "proposed_adoption_record",
+  "repository": "russell88brown/Budget-sheet",
+  "proposed_repository": null,
+  "owner_role": "Budget-sheet maintainer",
+  "integration_pr": "https://github.com/russell88brown/personal-governance/pull/70",
+  "governance": {
+    "revision": "bdae1168413b054f865bfc1d26569921415fd956",
+    "working_instructions": "https://github.com/russell88brown/personal-governance/blob/bdae1168413b054f865bfc1d26569921415fd956/docs/operating-practices.md",
+    "lifecycle": "https://github.com/russell88brown/personal-governance/blob/bdae1168413b054f865bfc1d26569921415fd956/docs/issue-pr-lifecycle.md"
+  },
+  "candidate_branch": "sprint/finance-workbook-map",
+  "pr_target": "main",
+  "existing_pr": 22,
+  "canonical_issue": null,
+  "milestone": null,
+  "approval_reference": null,
+  "scope": "Reviewed source preparation and synthetic offline verification; no runtime activation",
+  "unknowns": [
+    "Follow-on issue not created or selected",
+    "Milestone placement not verified",
+    "Operational acceptance pending"
+  ],
+  "adoption_effect": "Publishing this record does not install tools, activate policy or override repository-specific instructions"
+}
