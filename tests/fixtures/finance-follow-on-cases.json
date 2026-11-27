@@ -1,0 +1,62 @@
+{
+  "status": "synthetic-proposed-domain-contract",
+  "source_revision": "07bfa140e8b2c3aec2fa3e34dc066dc54037a1e1",
+  "currency": "AUD",
+  "cases": [
+    {
+      "id": "duplicate-posted-card-credit",
+      "meaning": "A posted card payment is seen twice; count the same principal transfer once.",
+      "opening_balances": {"cash": 1000, "card": -500},
+      "records": [
+        {"transaction_id": "SYN-PAY-001", "status": "posted", "date": "2030-04-02", "from": "Cash", "to": "Card", "amount_minor": 12500},
+        {"transaction_id": "SYN-PAY-001", "status": "posted", "date": "2030-04-02", "from": "Cash", "to": "Card", "amount_minor": 12500}
+      ],
+      "canonical_events": [
+        {"kind": "Transfer", "name": "Synthetic card payment", "date": "2030-04-02", "from": "Cash", "to": "Card", "amount": 125, "sourceRuleId": "SYN-PAY-001"}
+      ],
+      "expected": {"unique_count": 1, "balances": {"cash": 875, "card": -375}, "raw_module_balances": {"cash": 750, "card": -250}}
+    },
+    {
+      "id": "repeated-bill-reminder",
+      "meaning": "Two messages reference one bill obligation; reminders are not new expenses.",
+      "opening_balances": {"cash": 1000},
+      "records": [
+        {"message_id": "SYN-MSG-001", "bill_id": "SYN-BILL-001", "due_date": "2030-04-05", "from": "Cash", "amount_minor": 8000},
+        {"message_id": "SYN-MSG-002", "bill_id": "SYN-BILL-001", "due_date": "2030-04-05", "from": "Cash", "amount_minor": 8000}
+      ],
+      "canonical_events": [
+        {"kind": "Expense", "name": "Synthetic bill obligation", "date": "2030-04-05", "from": "Cash", "amount": 80, "sourceRuleId": "SYN-BILL-001"}
+      ],
+      "expected": {"unique_count": 1, "balances": {"cash": 920}, "raw_module_balances": {"cash": 840}}
+    },
+    {
+      "id": "notice-account-available-date",
+      "meaning": "The entire synthetic notice balance becomes available on its stated release date; release creates no income.",
+      "opening_balances": {"cash": 400, "notice": 600},
+      "accounts": [
+        {"name": "Cash", "balance": 400, "type": "Cash", "forecast": true},
+        {"name": "Notice", "balance": 600, "type": "Cash", "forecast": true}
+      ],
+      "availability_overlay": [
+        {"account": "cash", "available_date": "2030-04-01"},
+        {"account": "notice", "available_date": "2030-04-10"}
+      ],
+      "canonical_events": [],
+      "expected": {"balances": {"cash": 400, "notice": 600}, "spendable_by_date": {"2030-04-09": 400, "2030-04-10": 1000, "2030-04-11": 1000}, "total_cash": 1000}
+    },
+    {
+      "id": "paid-travel-in-opening-balance",
+      "meaning": "The opening cash balance already reflects the paid booking; only unpaid committed cost remains in forecast outflows.",
+      "opening_date": "2030-04-01",
+      "opening_balances": {"cash": 800},
+      "records": [
+        {"booking_id": "SYN-TRIP-001", "status": "paid", "paid_date": "2030-03-20", "included_in_opening": true, "from": "Cash", "amount_minor": 20000},
+        {"booking_id": "SYN-TRIP-002", "status": "committed", "due_date": "2030-04-06", "included_in_opening": false, "from": "Cash", "amount_minor": 15000}
+      ],
+      "canonical_events": [
+        {"kind": "Expense", "name": "Synthetic unpaid booking", "date": "2030-04-06", "from": "Cash", "amount": 150, "sourceRuleId": "SYN-TRIP-002"}
+      ],
+      "expected": {"paid_remaining_minor": 0, "remaining_minor": 15000, "balances": {"cash": 650}, "raw_module_balances": {"cash": 450}}
+    }
+  ]
+}
